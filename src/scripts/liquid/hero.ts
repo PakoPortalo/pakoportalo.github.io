@@ -96,6 +96,12 @@ interface HotWord {
   glow: number;
 }
 
+/** Transición suave entre dos umbrales, como la de los shaders. */
+function smoothstep(edge0: number, edge1: number, value: number) {
+  const t = Math.min(Math.max((value - edge0) / (edge1 - edge0), 0), 1);
+  return t * t * (3 - 2 * t);
+}
+
 function compile(gl: WebGL2RenderingContext, type: number, source: string) {
   const shader = gl.createShader(type)!;
   gl.shaderSource(shader, source);
@@ -338,6 +344,23 @@ export async function createLiquidHero(
   const pointerDelta = { x: 0, y: 0 };
   /** Objetivo cuando el cursor está quieto: el chorro se pasea solo. */
   const wander = { x: 0.5, y: 0.5 };
+  /**
+   * El objetivo que persigue de verdad la cadena, suavizado.
+   *
+   * El objetivo crudo da saltos: cuando el cursor vuelve a moverse tras estar
+   * parado, salta del paseo autónomo a donde esté el ratón; y un movimiento
+   * brusco del ratón lo teletransporta. Cada salto se transmitía entero a la
+   * cabeza de la cadena y se sentía como un tropezón. Metiendo una etapa más
+   * de retardo, el objetivo no puede saltar nunca.
+   */
+  const aim = { x: 0.5, y: 0.6 };
+  /**
+   * El bloque de texto, en las unidades del shader, y con cuánta fuerza
+   * rechaza al líquido. Lo calcula drawText().
+   */
+  const textZone = { right: 0.9, top: 0.6, strength: 0.16 };
+  /** Inclinación del móvil, ya suavizada. */
+  const gyro = { x: 0, y: 0, rawX: 0, rawY: 0, base: null as null | [number, number] };
   /**
    * Inclinación de la escena hacia el cursor, suavizada.
    *
@@ -675,6 +698,15 @@ export async function createLiquidHero(
       };
     });
 
+    // --- Zona que el líquido tiene que respetar ---
+    // En unidades del shader: el eje X va de 0 a aspect y el Y de 0 a 1 hacia
+    // arriba, así que ambos se dividen por el ALTO.
+    textZone.right = (margin + blockWidth) / height;
+    textZone.top = 1 - (eyebrowBaseline - bigSize * 0.9) / height;
+    // En móvil el texto ocupa todo el ancho de abajo y no hay hueco al que
+    // apartarse de lado, así que el empuje hacia arriba tiene que ser mayor.
+    textZone.strength = 0.15 + compact * 0.22;
+
     subtitleOrigin.x = boxLeft;
     subtitleOrigin.y = boxTop;
     subtitleStyle = {
@@ -832,6 +864,24 @@ export async function createLiquidHero(
     drawText();
   }
 
+  /**
+   * Cuánto hay que levantar un punto para que no se quede encima del texto.
+   *
+   * No es un tope: vale cero fuera de la zona y crece al cuadrado según el
+   * punto se mete hacia abajo. Por eso la masa SÍ puede bajar sobre el texto
+   * —y se le nota el esfuerzo— pero acaba saliendo sola. Con un tope duro se
+   * vería un techo invisible; así parece flotabilidad.
+   */
+  function textLift(x: number, y: number) {
+    if (y >= textZone.top) return 0;
+    // A la derecha del bloque no hay nada que tapar, así que el empuje se
+    // apaga en cuanto se sale de su ancho.
+    const across = 1 - smoothstep(textZone.right, textZone.right + 0.3, x);
+    if (across <= 0) return 0;
+    const depth = (textZone.top - y) / Math.max(textZone.top, 0.001);
+    return across * depth * depth * textZone.strength;
+  }
+
   function step(time: number, delta: number) {
     // Siempre, aunque el líquido esté apagado: la inclinación es de la escena.
     // El signo es el que acerca hacia el ojo el lado donde está el cursor.
@@ -890,16 +940,40 @@ export async function createLiquidHero(
     wander.y = Math.min(Math.max(wander.y, 0.42), 0.88);
 
     const blend = Math.min(Math.max((idle - 0.9) / 1.4, 0), 1);
-    const target = {
-      x: pointer.x * aspect * (1 - blend) + wander.x * blend,
-      y: pointer.y * (1 - blend) + wander.y * blend,
-    };
+    let rawX = pointer.x * aspect * (1 - blend) + wander.x * blend;
+    let rawY = pointer.y * (1 - blend) + wander.y * blend;
+
+    // Inclinación del móvil: desplaza el objetivo. Es el único mando que hay
+    // cuando no se toca la pantalla, así que aquí sí conviene que empuje.
+    const gyroEase = 1 - Math.pow(0.25, delta);
+    gyro.x += (gyro.rawX - gyro.x) * gyroEase;
+    gyro.y += (gyro.rawY - gyro.y) * gyroEase;
+    rawX += gyro.x * aspect * 0.3;
+    rawY += gyro.y * 0.22;
 
     // Si la cadena persigue un punto que cae fuera, los doce eslabones se
     // amontonan contra la pared y se quedan ahí pegados.
     const edge = 0.12;
-    target.x = Math.min(Math.max(target.x, edge), aspect - edge);
-    target.y = Math.min(Math.max(target.y, edge), 1 - edge);
+    rawX = Math.min(Math.max(rawX, edge), aspect - edge);
+    rawY = Math.min(Math.max(rawY, edge), 1 - edge);
+
+    // El empuje del texto entra ANTES del suavizado, no después: sumándolo
+    // al final, al entrar en la zona el objetivo pegaba un respingo hacia
+    // arriba que la cadena copiaba tal cual.
+    rawY += textLift(rawX, rawY);
+
+    // Y el objetivo de verdad va por detrás del crudo.
+    //
+    // El crudo pega saltos: al volver a mover el ratón después de un rato
+    // parado salta del paseo autónomo hasta el cursor, y un manotazo con el
+    // ratón lo teletransporta. Cada salto llegaba entero a la cabeza de la
+    // cadena. Con esta etapa de retardo el objetivo no puede saltar, solo
+    // acelerar, y los tropezones desaparecen.
+    const aimEase = 1 - Math.pow(0.002, delta);
+    aim.x += (rawX - aim.x) * aimEase;
+    aim.y += (rawY - aim.y) * aimEase;
+
+    const target = { x: aim.x, y: aim.y };
 
     const centre = aspect * MASS_BIAS_X;
 
@@ -937,6 +1011,10 @@ export async function createLiquidHero(
           const link = blob.radius * 1.4;
           goalX = Math.min(Math.max(previous.x - previous.dirX * link, edge), aspect - edge);
           goalY = Math.min(Math.max(previous.y - previous.dirY * link, edge), 1 - edge);
+          // El eslabón también esquiva el texto, cada uno por su cuenta: así
+          // la cinta se arquea por encima del bloque en vez de subir entera
+          // de golpe.
+          goalY += textLift(goalX, goalY);
         }
 
         const settle = index === 0 ? 0.015 : 0.1;
@@ -956,9 +1034,13 @@ export async function createLiquidHero(
         blob.vy += (cy * 0.5 * delta) / blob.drag;
 
         // Atracción floja a un centro desplazado hacia arriba: si no, el
-        // campo las acaba echando fuera, y abajo a la izquierda tapan el texto.
+        // campo las acaba echando fuera.
         blob.vx += (centre - blob.x) * 0.55 * delta;
         blob.vy += (0.62 - blob.y) * 0.75 * delta;
+
+        // Y el empuje del texto, aquí sí como fuerza: estas gotas sí
+        // acumulan velocidad, al contrario que las de la cadena.
+        blob.vy += textLift(blob.x, blob.y) * 5 * delta;
 
         // Empuje del cursor: al pasar, aparta un poco las gotas cercanas.
         //
@@ -1158,6 +1240,62 @@ export async function createLiquidHero(
     pointer.lastMove = elapsed;
   }
 
+  /**
+   * Giroscopio. Solo en pantallas táctiles, y muy suave.
+   *
+   * La primera lectura fija el cero, así que da igual cómo se sujete el
+   * móvil: lo que mueve la masa es el cambio respecto a esa postura, no la
+   * inclinación absoluta. Sin eso, mirándolo tumbado en el sofá la masa se
+   * iría a un lado y se quedaría ahí.
+   */
+  function onOrientation(event: DeviceOrientationEvent) {
+    const { beta, gamma } = event;
+    if (beta === null || gamma === null) return;
+    if (!gyro.base) gyro.base = [beta, gamma];
+    const [baseBeta, baseGamma] = gyro.base;
+    // Veintiséis grados de recorrido hasta el tope: un gesto de muñeca.
+    gyro.rawX = Math.min(Math.max((gamma - baseGamma) / 26, -1), 1);
+    gyro.rawY = Math.min(Math.max((beta - baseBeta) / 26, -1), 1);
+  }
+
+  let stopOrientation = () => {};
+
+  if (
+    !options.reducedMotion &&
+    window.matchMedia('(pointer: coarse)').matches &&
+    typeof DeviceOrientationEvent !== 'undefined'
+  ) {
+    const listen = () => {
+      window.addEventListener('deviceorientation', onOrientation);
+      stopOrientation = () =>
+        window.removeEventListener('deviceorientation', onOrientation);
+    };
+
+    const request = (
+      DeviceOrientationEvent as unknown as {
+        requestPermission?: () => Promise<'granted' | 'denied' | 'prompt'>;
+      }
+    ).requestPermission;
+
+    if (typeof request === 'function') {
+      // iOS solo lo concede dentro de un gesto del usuario, así que se pide
+      // en el primer toque. Si lo deniega no se rompe nada: queda el paseo
+      // autónomo, igual que en un ordenador.
+      const ask = () => {
+        request
+          .call(DeviceOrientationEvent)
+          .then((state) => {
+            if (state === 'granted') listen();
+          })
+          .catch(() => {});
+      };
+      window.addEventListener('touchend', ask, { once: true });
+      stopOrientation = () => window.removeEventListener('touchend', ask);
+    } else {
+      listen();
+    }
+  }
+
   const resizeObserver = new ResizeObserver(() => {
     resize();
     if (!running) {
@@ -1202,6 +1340,7 @@ export async function createLiquidHero(
       intersectionObserver.disconnect();
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('pointermove', onPointerMove);
+      stopOrientation();
       gl!.deleteProgram(smokeProgram);
       gl!.deleteProgram(liquidProgram);
       gl!.deleteProgram(flowProgram);
