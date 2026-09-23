@@ -1,0 +1,205 @@
+---
+import { render } from 'astro:content';
+import type { Area, Locale } from '../../i18n/config';
+import { areaLabel, useTranslations } from '../../i18n/ui';
+import { areaPath, splitId, type Work } from '../../i18n/utils';
+import Base from '../../layouts/Base.astro';
+import YouTube from '../YouTube.astro';
+
+interface Props {
+  locale: Locale;
+  area: Area;
+  work: Work;
+}
+
+const { locale, area, work } = Astro.props;
+const t = useTranslations(locale);
+const { slug } = splitId(work.id);
+const { title, summary, role, year, client, youtube, cover, tags, url, repo } = work.data;
+const { Content } = await render(work);
+
+const label = areaLabel(area, locale);
+const facts = [
+  role && { term: t('work.role'), value: role },
+  year && { term: t('work.year'), value: String(year) },
+  client && { term: t('work.client'), value: client },
+].filter(Boolean) as { term: string; value: string }[];
+---
+
+<Base
+  locale={locale}
+  area={area}
+  slug={slug}
+  title={title}
+  description={summary}
+  image={cover}
+>
+  <article class="wrap work">
+    <p class="crumb">
+      <a href={areaPath(area, locale)}>← {t('work.back')} {label.toLowerCase()}</a>
+    </p>
+
+    <header class="work__head">
+      <h1>{title}</h1>
+      <p class="work__summary">{summary}</p>
+    </header>
+
+    {youtube && <YouTube id={youtube} title={title} locale={locale} />}
+    {
+      !youtube && cover && (
+        <img class="work__cover" src={cover} alt="" width="1600" height="900" />
+      )
+    }
+
+    <div class="work__grid">
+      <div class="prose">
+        <Content />
+      </div>
+
+      <aside class="work__aside stack">
+        {
+          facts.length > 0 && (
+            <dl>
+              {facts.map(({ term, value }) => (
+                <div>
+                  <dt class="muted">{term}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
+            </dl>
+          )
+        }
+
+        {
+          tags.length > 0 && (
+            <div>
+              <h2 class="muted aside__label">{t('work.tags')}</h2>
+              <ul class="tags" role="list">
+                {tags.map((tag) => (
+                  <li>{tag}</li>
+                ))}
+              </ul>
+            </div>
+          )
+        }
+
+        {
+          (url || repo) && (
+            <div class="links">
+              {url && (
+                <a class="button button--accent" href={url} rel="noopener noreferrer" target="_blank">
+                  {t('work.visit')}
+                </a>
+              )}
+              {repo && (
+                <a class="button" href={repo} rel="noopener noreferrer" target="_blank">
+                  {t('work.repo')}
+                </a>
+              )}
+            </div>
+          )
+        }
+      </aside>
+    </div>
+  </article>
+</Base>
+
+<style>
+  .work {
+    max-width: 62rem;
+  }
+
+  .crumb {
+    font-size: var(--step--1);
+    margin-block-end: 1.5rem;
+  }
+
+  .crumb a {
+    color: var(--fg-muted);
+    text-decoration: none;
+  }
+
+  .crumb a:hover {
+    color: var(--fg);
+  }
+
+  .work__head {
+    margin-block-end: 2rem;
+    max-width: var(--measure);
+  }
+
+  .work__summary {
+    margin-block-start: 1rem;
+    font-size: var(--step-1);
+    color: var(--fg-muted);
+  }
+
+  .work__cover {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: var(--radius);
+  }
+
+  .work__grid {
+    display: grid;
+    gap: clamp(2rem, 5vw, 3.5rem);
+    margin-block-start: clamp(2rem, 5vw, 3rem);
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  @media (min-width: 52rem) {
+    .work__grid {
+      grid-template-columns: minmax(0, 1fr) 15rem;
+    }
+  }
+
+  .work__aside {
+    --stack-gap: 1.75rem;
+    font-size: var(--step--1);
+  }
+
+  dl {
+    margin: 0;
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  dl dt {
+    font-size: var(--step--1);
+  }
+
+  dl dd {
+    margin: 0;
+    font-weight: 500;
+  }
+
+  .aside__label {
+    font-size: var(--step--1);
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-block-end: 0.5rem;
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+  }
+
+  .tags li {
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.1rem 0.6rem;
+    color: var(--fg-muted);
+  }
+
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+</style>

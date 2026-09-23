@@ -1,0 +1,152 @@
+---
+import type { Area, Locale } from '../i18n/config';
+import { areaLabel } from '../i18n/ui';
+import { splitId, workPath, youtubeThumb, type Work } from '../i18n/utils';
+
+interface Props {
+  work: Work;
+  area: Area;
+  locale: Locale;
+  /** Muestra a qué área pertenece. Útil en la portada, redundante dentro de un área. */
+  showArea?: boolean;
+}
+
+const { work, area, locale, showArea = false } = Astro.props;
+const { slug } = splitId(work.id);
+const { title, summary, role, year, youtube, cover, tags } = work.data;
+
+const image = cover ?? (youtube ? youtubeThumb(youtube) : undefined);
+const href = workPath(area, locale, slug);
+---
+
+<article class="card">
+  <a class="card__link" href={href}>
+    <span class="visually-hidden">{title}</span>
+  </a>
+
+  {
+    image ? (
+      <img
+        class="card__img"
+        src={image}
+        alt=""
+        width="1280"
+        height="720"
+        loading="lazy"
+        decoding="async"
+      />
+    ) : (
+      <div class="card__img card__img--empty" aria-hidden="true" />
+    )
+  }
+
+  <div class="card__body">
+    <p class="card__meta muted">
+      {showArea && <span>{areaLabel(area, locale)}</span>}
+      {role && <span>{role}</span>}
+      {year && <span>{year}</span>}
+    </p>
+    <h3 class="card__title">{title}</h3>
+    <p class="card__summary muted">{summary}</p>
+    {
+      tags.length > 0 && (
+        <ul class="card__tags" role="list">
+          {tags.slice(0, 4).map((tag) => (
+            <li>{tag}</li>
+          ))}
+        </ul>
+      )
+    }
+  </div>
+</article>
+
+<style>
+  .card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color 150ms ease, translate 150ms ease, box-shadow 150ms ease;
+  }
+
+  .card:hover {
+    border-color: var(--accent);
+    translate: 0 -2px;
+    box-shadow: var(--shadow);
+  }
+
+  /* El enlace cubre toda la tarjeta, pero el foco se ve en el borde. */
+  .card__link {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+
+  .card:focus-within {
+    border-color: var(--accent);
+  }
+
+  .card__link:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: -3px;
+    border-radius: var(--radius);
+  }
+
+  .card__img {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    background: var(--bg-sunken);
+  }
+
+  .card__img--empty {
+    background: linear-gradient(135deg, var(--bg-sunken), var(--border));
+  }
+
+  .card__body {
+    padding: 1rem 1.1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    flex: 1;
+  }
+
+  .card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-size: var(--step--1);
+  }
+
+  .card__meta span + span::before {
+    content: '·';
+    margin-inline-end: 0.5rem;
+  }
+
+  .card__title {
+    font-size: var(--step-1);
+  }
+
+  .card__summary {
+    font-size: var(--step--1);
+  }
+
+  .card__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin: 0.35rem 0 0;
+    padding: 0;
+    font-size: var(--step--1);
+  }
+
+  .card__tags li {
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.1rem 0.6rem;
+    color: var(--fg-muted);
+  }
+</style>

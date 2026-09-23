@@ -1,0 +1,40 @@
+---
+import type { Area, Locale } from '../../i18n/config';
+import { areaBlurb, areaLabel } from '../../i18n/ui';
+import { getWorks } from '../../i18n/utils';
+import Base from '../../layouts/Base.astro';
+import WorkGrid from '../WorkGrid.astro';
+
+interface Props {
+  locale: Locale;
+  area: Area;
+}
+
+const { locale, area } = Astro.props;
+const label = areaLabel(area, locale);
+const blurb = areaBlurb(area, locale);
+const works = await getWorks(area, locale);
+const items = works.map((work) => ({ area, work }));
+---
+
+<Base locale={locale} area={area} title={label} description={blurb}>
+  <div class="wrap">
+    <header class="head">
+      <h1>{label}</h1>
+      <p class="muted">{blurb}</p>
+    </header>
+    <WorkGrid items={items} locale={locale} />
+  </div>
+</Base>
+
+<style>
+  .head {
+    margin-block-end: clamp(2rem, 5vw, 3rem);
+    max-width: var(--measure);
+  }
+
+  .head p {
+    margin-block-start: 0.75rem;
+    font-size: var(--step-1);
+  }
+</style>

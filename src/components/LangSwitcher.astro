@@ -1,0 +1,71 @@
+---
+import { locales, localeNames, type Area, type Locale } from '../i18n/config';
+import { useTranslations, } from '../i18n/ui';
+import { alternatePath } from '../i18n/utils';
+
+interface Props {
+  locale: Locale;
+  area?: Area;
+  slug?: string;
+}
+
+const { locale, area, slug } = Astro.props;
+const t = useTranslations(locale);
+
+const links = await Promise.all(
+  locales.map(async (target) => ({
+    locale: target,
+    href: await alternatePath(target, { area, slug }),
+    current: target === locale,
+  })),
+);
+---
+
+<nav class="lang" aria-label={t('lang.switch')}>
+  {
+    links.map(({ locale: target, href, current }) => (
+      <a
+        href={href}
+        hreflang={target}
+        lang={target}
+        aria-current={current ? 'true' : undefined}
+      >
+        <abbr title={localeNames[target]}>{target.toUpperCase()}</abbr>
+      </a>
+    ))
+  }
+</nav>
+
+<style>
+  .lang {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    font-size: var(--step--1);
+  }
+
+  /* Los colores salen de variables para que la cabecera superpuesta del hero
+     pueda redefinirlos sin romper el encapsulado de estilos de Astro. */
+  a {
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    text-decoration: none;
+    color: var(--switcher-fg, var(--fg-muted));
+    font-variant-numeric: tabular-nums;
+  }
+
+  a:hover {
+    color: var(--switcher-fg-strong, var(--fg));
+    background: var(--switcher-hover-bg, var(--bg-sunken));
+  }
+
+  a[aria-current] {
+    color: var(--switcher-fg-strong, var(--fg));
+    font-weight: 600;
+  }
+
+  abbr {
+    text-decoration: none;
+    cursor: inherit;
+  }
+</style>

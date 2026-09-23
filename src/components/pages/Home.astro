@@ -1,0 +1,119 @@
+---
+import { areas, type Locale } from '../../i18n/config';
+import { areaBlurb, areaLabel, useTranslations } from '../../i18n/ui';
+import { areaPath, getFeatured, getWorks } from '../../i18n/utils';
+import Base from '../../layouts/Base.astro';
+import Hero3D from '../Hero3D.astro';
+import WorkGrid from '../WorkGrid.astro';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+
+const featured = await getFeatured(locale, areas);
+
+// Cuántos trabajos hay en cada módulo, para enseñarlo en la tarjeta.
+const counts = Object.fromEntries(
+  await Promise.all(
+    areas.map(async (area) => [area, (await getWorks(area, locale)).length] as const),
+  ),
+) as Record<(typeof areas)[number], number>;
+---
+
+<Base locale={locale} bleed>
+  <Hero3D locale={locale} />
+
+  <section class="modules wrap" id="modulos">
+    <ul role="list">
+      {
+        areas.map((area) => (
+          <li>
+            <a class="module" href={areaPath(area, locale)}>
+              <span class="module__count muted">
+                {counts[area]}
+                {' '}
+                {t('work.all').toLowerCase()}
+              </span>
+              <h2 class="module__title">{areaLabel(area, locale)}</h2>
+              <p class="module__blurb muted">{areaBlurb(area, locale)}</p>
+              <span class="module__cue">{t('home.viewArea')} →</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  {
+    featured.length > 0 && (
+      <section class="featured wrap">
+        <h2>{t('home.featured')}</h2>
+        <WorkGrid items={featured} locale={locale} showArea />
+      </section>
+    )
+  }
+</Base>
+
+<style>
+  .modules {
+    padding-block: clamp(3rem, 9vw, 6rem);
+  }
+
+  .modules ul {
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+    margin: 0;
+    padding: 0;
+  }
+
+  .module {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    height: 100%;
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-raised);
+    text-decoration: none;
+    transition: border-color 200ms ease, translate 200ms ease, box-shadow 200ms ease;
+  }
+
+  .module:hover {
+    border-color: var(--accent);
+    translate: 0 -3px;
+    box-shadow: var(--shadow);
+  }
+
+  .module__count {
+    font-size: var(--step--1);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .module__title {
+    font-size: var(--step-2);
+  }
+
+  .module__blurb {
+    flex: 1;
+  }
+
+  .module__cue {
+    color: var(--accent);
+    font-weight: 500;
+    font-size: var(--step--1);
+  }
+
+  .featured {
+    padding-block-end: clamp(3rem, 9vw, 6rem);
+  }
+
+  .featured h2 {
+    margin-block-end: 1.5rem;
+  }
+</style>

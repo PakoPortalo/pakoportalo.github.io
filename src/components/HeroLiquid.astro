@@ -1,0 +1,170 @@
+---
+import type { HeroCopy } from '../scripts/liquid/fonts';
+
+interface Props {
+  copy: HeroCopy;
+}
+
+const { copy } = Astro.props;
+---
+
+{/*
+  El bloque de texto se dibuja DENTRO del canvas: el líquido tiene que poder
+  refractarlo al pasar por encima, y eso solo es posible si forma parte de lo
+  que se refracta. Lo que sí va en HTML es la barra de color y el icono, que
+  son interfaz y ganan al verse nítidos.
+
+  El bloque de respaldo mantiene el texto en el DOM para lectores de pantalla
+  y buscadores, y es lo que se ve si no hay WebGL2.
+*/}
+<section class="hero" data-liquid-hero>
+  <canvas class="hero__canvas" data-liquid-canvas aria-hidden="true"></canvas>
+
+  <div class="hero__fallback">
+    <p class="hero__eyebrow">{copy.eyebrowLeft} — {copy.eyebrowRight}</p>
+    <h1 class="hero__title">{copy.title}</h1>
+    <p class="hero__subtitle">{copy.subtitle}</p>
+    <p class="hero__paragraph">{copy.paragraph}</p>
+  </div>
+
+  {/* Barra de color: cierra el hero y señala el paso al siguiente módulo. */}
+  <div class="bar" aria-hidden="true"></div>
+
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    width: 100%;
+    height: 100svh;
+    background: #050505;
+    overflow: hidden;
+    --gutter: max(24px, 5.5vw);
+  }
+
+  .hero__canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    opacity: 0;
+    transition: opacity 900ms ease;
+  }
+
+  .hero.is-live .hero__canvas {
+    opacity: 1;
+  }
+
+  .hero__fallback {
+    position: absolute;
+    inset-inline-start: var(--gutter);
+    inset-block-end: calc(var(--gutter) + 18px);
+    max-width: min(62%, 720px);
+    color: #fff;
+    font-family: Geist, ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .hero__eyebrow {
+    margin: 0 0 1.4em;
+    font-size: clamp(9.5px, 0.85vw, 14px);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.8);
+  }
+
+  .hero__title,
+  .hero__subtitle {
+    font-size: clamp(32px, 8.2vw, 132px);
+    line-height: 1;
+    letter-spacing: -0.028em;
+    margin: 0;
+  }
+
+  .hero__title { font-weight: 450; }
+  .hero__subtitle { font-weight: 300; color: rgb(255 255 255 / 0.92); }
+
+  .hero__paragraph {
+    margin: 1.1em 0 0;
+    font-size: clamp(12.5px, 1.3vw, 19px);
+    line-height: 1.55;
+    color: rgb(255 255 255 / 0.62);
+  }
+
+  /* Con el canvas activo el texto lo dibuja él, pero sigue en el DOM. */
+  .hero.is-live .hero__fallback {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    max-width: none;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* Barra de color: guiño a las tiras de control de color de imprenta. */
+  .bar {
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: 0;
+    height: 3px;
+    background: linear-gradient(
+      90deg,
+      #18c6d4 0%,
+      #2f3ad0 12%,
+      #7b2fd0 22%,
+      #d92b6a 31%,
+      #e8603a 39%,
+      #e8e030 46%,
+      rgb(255 255 255 / 0.5) 52%,
+      rgb(255 255 255 / 0.12) 62%,
+      rgb(255 255 255 / 0.12) 100%
+    );
+  }
+
+</style>
+
+<script>
+  import { createLiquidHero } from '../scripts/liquid/hero';
+  import { HERO_FONTS, type HeroCopy } from '../scripts/liquid/fonts';
+
+  const section = document.querySelector<HTMLElement>('[data-liquid-hero]');
+  const canvas = document.querySelector<HTMLCanvasElement>('[data-liquid-canvas]');
+  const fallback = document.querySelector<HTMLElement>('.hero__fallback');
+
+  // Los textos se leen del propio DOM de respaldo: una sola fuente de verdad,
+  // sin duplicarlos en un atributo data.
+  function readCopy(): HeroCopy {
+    const text = (selector: string) =>
+      fallback?.querySelector(selector)?.textContent?.trim() ?? '';
+    const [eyebrowLeft = '', eyebrowRight = ''] = text('.hero__eyebrow').split('—');
+    return {
+      eyebrowLeft: eyebrowLeft.trim(),
+      eyebrowRight: eyebrowRight.trim(),
+      title: text('.hero__title'),
+      subtitle: text('.hero__subtitle'),
+      paragraph: text('.hero__paragraph'),
+    };
+  }
+
+  if (section && canvas) {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // ?plain en la URL apaga el líquido para poder valorar la maquetación.
+    const plain = new URLSearchParams(location.search).has('plain');
+
+    createLiquidHero(canvas, {
+      copy: readCopy(),
+      fonts: HERO_FONTS,
+      reducedMotion,
+      plain,
+    })
+      .then(() => {
+        section.classList.add('is-live');
+      })
+      .catch((error) => {
+        // Sin WebGL2 o si algo falla, se queda el hero de texto. Nada roto.
+        console.warn('Hero líquido no disponible:', error);
+      });
+  }
+</script>

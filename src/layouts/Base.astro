@@ -1,0 +1,88 @@
+---
+import { locales, type Area, type Locale } from '../i18n/config';
+import { useTranslations } from '../i18n/ui';
+import { alternatePath } from '../i18n/utils';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css';
+
+interface Props {
+  locale: Locale;
+  title?: string;
+  description?: string;
+  area?: Area;
+  slug?: string;
+  /** Imagen para redes sociales, ruta absoluta o URL completa. */
+  image?: string;
+  /** Sin margen superior en <main>: para páginas que empiezan con un hero. */
+  bleed?: boolean;
+}
+
+const { locale, title, description, area, slug, image, bleed = false } = Astro.props;
+const t = useTranslations(locale);
+
+const pageTitle = title ? `${title} · ${t('site.name')}` : `${t('site.name')} · ${t('site.tagline')}`;
+const pageDescription = description ?? t('site.description');
+
+const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url);
+const ogImage = image ? new URL(image, Astro.site ?? Astro.url).href : undefined;
+
+const alternates = await Promise.all(
+  locales.map(async (target) => ({
+    locale: target,
+    href: new URL(await alternatePath(target, { area, slug }), Astro.site ?? Astro.url).href,
+  })),
+);
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={pageDescription} />
+    <link rel="canonical" href={canonical.href} />
+    {
+      alternates.map(({ locale: target, href }) => (
+        <link rel="alternate" hreflang={target} href={href} />
+      ))
+    }
+    <link rel="alternate" hreflang="x-default" href={alternates[0]?.href} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={pageDescription} />
+    <meta property="og:url" content={canonical.href} />
+    <meta property="og:locale" content={locale === 'es' ? 'es_ES' : 'en_US'} />
+    {ogImage && <meta property="og:image" content={ogImage} />}
+    <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+
+    <meta name="generator" content={Astro.generator} />
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main">{t('nav.skipToContent')}</a>
+    <Nav locale={locale} area={area} slug={slug} overlay={bleed} />
+    <main id="main" tabindex="-1" class:list={[{ 'is-bleed': bleed }]}>
+      <slot />
+    </main>
+    <Footer locale={locale} />
+  </body>
+</html>
+
+<style>
+  main {
+    flex: 1;
+    padding-block: clamp(2rem, 1rem + 4vw, 4.5rem);
+  }
+
+  main.is-bleed {
+    padding-block: 0;
+  }
+
+  main:focus {
+    outline: none;
+  }
+</style>

@@ -1,0 +1,165 @@
+---
+import { areas, type Area, type Locale } from '../i18n/config';
+import { areaLabel, useTranslations } from '../i18n/ui';
+import { areaPath, path } from '../i18n/utils';
+import LangSwitcher from './LangSwitcher.astro';
+
+interface Props {
+  locale: Locale;
+  area?: Area;
+  slug?: string;
+  /** En la portada la cabecera flota sobre el hero en vez de ocupar espacio. */
+  overlay?: boolean;
+}
+
+const { locale, area, slug, overlay = false } = Astro.props;
+const t = useTranslations(locale);
+---
+
+<header
+  class:list={['site-header', { 'is-overlay': overlay, 'is-over-hero': overlay }]}
+  data-site-header
+>
+  <div class="wrap bar">
+    <a class="brand" href={path(locale)}>
+      <span class="brand__name">{t('site.name')}</span>
+      <span class="brand__tag muted">{t('site.tagline')}</span>
+    </a>
+
+    <nav class="links" aria-label={t('nav.menu')}>
+      <ul role="list">
+        {
+          areas.map((key) => (
+            <li>
+              <a
+                href={areaPath(key, locale)}
+                aria-current={key === area ? 'page' : undefined}
+              >
+                {areaLabel(key, locale)}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <LangSwitcher locale={locale} area={area} slug={slug} />
+  </div>
+</header>
+
+<style>
+  .site-header {
+    border-block-end: 1px solid var(--border);
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    backdrop-filter: blur(8px);
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 50;
+    transition: background 350ms ease, color 350ms ease, border-color 350ms ease;
+  }
+
+  /* Portada: flota sobre el hero sin ocupar altura. */
+  .site-header.is-overlay {
+    position: fixed;
+    inset-inline: 0;
+    inset-block-start: 0;
+  }
+
+  /* Mientras el hero está debajo, la cabecera se viste con sus colores. */
+  .site-header.is-over-hero {
+    --switcher-fg: var(--hero-muted);
+    --switcher-fg-strong: var(--hero-fg);
+    --switcher-hover-bg: color-mix(in srgb, var(--hero-fg) 12%, transparent);
+
+    background: transparent;
+    backdrop-filter: none;
+    border-block-end-color: transparent;
+    color: var(--hero-fg);
+  }
+
+  .site-header.is-over-hero .brand__tag,
+  .site-header.is-over-hero .links a {
+    color: var(--hero-muted);
+  }
+
+  .site-header.is-over-hero .links a:hover,
+  .site-header.is-over-hero .links a[aria-current='page'] {
+    color: var(--hero-fg);
+  }
+
+  .bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.5rem;
+    padding-block: 0.85rem;
+  }
+
+  .brand {
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+    margin-inline-end: auto;
+  }
+
+  .brand__name {
+    font-weight: 650;
+    letter-spacing: -0.01em;
+  }
+
+  .brand__tag {
+    font-size: var(--step--1);
+  }
+
+  .links ul {
+    display: flex;
+    gap: 1.25rem;
+    margin: 0;
+    padding: 0;
+  }
+
+  .links a {
+    text-decoration: none;
+    font-size: var(--step--1);
+    color: var(--fg-muted);
+    padding-block: 0.25rem;
+    border-block-end: 2px solid transparent;
+  }
+
+  .links a:hover {
+    color: var(--fg);
+  }
+
+  .links a[aria-current='page'] {
+    color: var(--fg);
+    border-block-end-color: var(--accent);
+  }
+
+  @media (max-width: 34rem) {
+    .brand__tag {
+      display: none;
+    }
+    .bar {
+      gap: 0.5rem 1rem;
+    }
+  }
+</style>
+
+<script>
+  // La cabecera solo va translúcida mientras el hero ocupa la parte de arriba.
+  const header = document.querySelector<HTMLElement>('[data-site-header]');
+  const hero = document.querySelector<HTMLElement>('[data-hero]');
+
+  if (header?.classList.contains('is-overlay') && hero) {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        header.classList.toggle('is-over-hero', Boolean(entry?.isIntersecting));
+      },
+      // El margen negativo equivale al alto de la cabecera: el cambio ocurre
+      // justo cuando el final del hero pasa por debajo de ella.
+      { rootMargin: '-72px 0px 0px 0px', threshold: 0 },
+    );
+    observer.observe(hero);
+  }
+</script>

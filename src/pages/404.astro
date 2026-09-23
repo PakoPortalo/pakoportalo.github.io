@@ -1,0 +1,53 @@
+---
+import { useTranslations } from '../i18n/ui';
+import { path } from '../i18n/utils';
+import Base from '../layouts/Base.astro';
+
+const es = useTranslations('es');
+const en = useTranslations('en');
+---
+
+<Base locale="es" title={es('404.title')} description={es('404.body')}>
+  <div class="wrap notfound">
+    <p class="code" aria-hidden="true">404</p>
+
+    <div class="block">
+      <h1>{es('404.title')}</h1>
+      <p class="muted">{es('404.body')}</p>
+      <a class="button button--accent" href={path('es')}>{es('404.home')}</a>
+    </div>
+
+    <div class="block" lang="en">
+      <h2>{en('404.title')}</h2>
+      <p class="muted">{en('404.body')}</p>
+      <a class="button" href={path('en')}>{en('404.home')}</a>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .notfound {
+    max-width: var(--measure);
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+  }
+
+  .code {
+    font-family: var(--font-mono);
+    font-size: var(--step-3);
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .block {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    gap: 0.75rem;
+  }
+
+  .block h2 {
+    font-size: var(--step-1);
+  }
+</style>

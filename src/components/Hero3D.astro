@@ -1,0 +1,295 @@
+---
+import { areas, type Locale } from '../i18n/config';
+import { areaLabel, useTranslations } from '../i18n/ui';
+import { areaPath } from '../i18n/utils';
+import { defaultTheme, themeIds, themeNames } from '../scripts/hero/themes';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+---
+
+{/*
+  Mejora progresiva: sin JS o sin WebGL se ve un hero de texto normal y
+  corriente. Cuando el 3D arranca, añade .hero--3d y el <h1> pasa a ser solo
+  para lectores de pantalla — el título visible lo dibuja el canvas.
+*/}
+<section class="hero" data-hero data-hero-theme={defaultTheme}>
+  <canvas class="hero__canvas" data-hero-canvas aria-hidden="true"></canvas>
+
+  <div class="hero__inner wrap">
+    <h1 class="hero__title" data-hero-title>{t('site.name')}</h1>
+
+    <p class="hero__tagline">{t('hero.tagline')}</p>
+
+    <nav class="hero__cta" aria-label={t('work.all')}>
+      {
+        areas.map((area) => (
+          <a class="hero__link" href={areaPath(area, locale)}>
+            {areaLabel(area, locale)}
+          </a>
+        ))
+      }
+    </nav>
+  </div>
+
+  {/* Selector temporal, solo para elegir dirección visual. */}
+  <fieldset class="picker" data-hero-picker hidden>
+    <legend>{t('hero.picker')}</legend>
+    {
+      themeIds.map((id) => (
+        <label>
+          <input type="radio" name="hero-theme" value={id} checked={id === defaultTheme} />
+          <span>{themeNames[id]}</span>
+        </label>
+      ))
+    }
+  </fieldset>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    isolation: isolate;
+    min-height: 100svh;
+    display: grid;
+    align-items: center;
+    background: var(--hero-bg);
+    color: var(--hero-fg);
+    overflow: hidden;
+    transition: background 400ms ease, color 400ms ease;
+  }
+
+  .hero__canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    /* El canvas no captura el ratón: los enlaces de encima deben funcionar. */
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 600ms ease;
+  }
+
+  .hero--3d .hero__canvas {
+    opacity: 1;
+  }
+
+  .hero__inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.5rem;
+    padding-block: clamp(4rem, 12vh, 8rem);
+    /* Deja libre la franja central, que es donde van las letras 3D. */
+    justify-content: end;
+  }
+
+  .hero__title {
+    font-size: clamp(2.8rem, 12vw, 8rem);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 0.92;
+    text-transform: uppercase;
+  }
+
+  /* Con 3D activo el título lo pinta el canvas, pero sigue en el DOM. */
+  .hero--3d .hero__title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .hero--3d .hero__inner {
+    min-height: 100svh;
+  }
+
+  .hero__tagline {
+    font-size: clamp(1.05rem, 2.2vw, 1.5rem);
+    color: var(--hero-muted);
+    max-width: 24ch;
+  }
+
+  .hero__cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .hero__link {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.7rem 1.4rem;
+    border: 1px solid var(--hero-line);
+    border-radius: 999px;
+    text-decoration: none;
+    font-size: var(--step--1);
+    font-weight: 500;
+    color: var(--hero-fg);
+    background: color-mix(in srgb, var(--hero-bg) 55%, transparent);
+    backdrop-filter: blur(6px);
+    transition: border-color 200ms ease, background 200ms ease, translate 200ms ease;
+  }
+
+  .hero__link:hover {
+    border-color: var(--hero-fg);
+    translate: 0 -2px;
+  }
+
+  /* Selector provisional ---------------------------------------------------- */
+
+  .picker {
+    position: absolute;
+    z-index: 2;
+    inset-block-end: 1rem;
+    inset-inline-end: 1rem;
+    margin: 0;
+    padding: 0.6rem 0.9rem 0.75rem;
+    border: 1px solid var(--hero-line);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--hero-bg) 80%, transparent);
+    backdrop-filter: blur(8px);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem 0.9rem;
+    font-size: 0.78rem;
+  }
+
+  .picker legend {
+    padding-inline: 0.2rem;
+    color: var(--hero-muted);
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .picker label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    cursor: pointer;
+    color: var(--hero-fg);
+  }
+
+  .picker input {
+    accent-color: currentColor;
+    margin: 0;
+  }
+
+  @media (max-width: 34rem) {
+    .picker {
+      inset-inline: 1rem;
+      inset-block-end: 0.75rem;
+      justify-content: center;
+    }
+  }
+</style>
+
+<script>
+  import { createHero, type HeroHandle } from '../scripts/hero';
+  import { defaultTheme, isThemeId, THEMES, type ThemeId } from '../scripts/hero/themes';
+
+  /**
+   * Los colores de la página salen del propio tema, no de una copia en CSS:
+   * así no hay dos sitios que puedan desincronizarse.
+   */
+  function applyPageColors(theme: ThemeId) {
+    const { page } = THEMES[theme];
+    const root = document.documentElement;
+    root.dataset.heroTheme = theme;
+    root.style.setProperty('--hero-bg', page.bg);
+    root.style.setProperty('--hero-fg', page.fg);
+    root.style.setProperty('--hero-muted', page.muted);
+    root.style.setProperty('--hero-line', page.line);
+  }
+
+  const STORAGE_KEY = 'hero-theme';
+
+  function readStoredTheme(): ThemeId {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (isThemeId(stored)) return stored;
+    } catch {
+      // Modo privado o cookies bloqueadas: seguimos con el tema por defecto.
+    }
+    return defaultTheme;
+  }
+
+  function storeTheme(theme: ThemeId) {
+    try {
+      localStorage.setItem(STORAGE_KEY, theme);
+    } catch {
+      // Da igual: es una comodidad, no un requisito.
+    }
+  }
+
+  function supportsWebGL(): boolean {
+    try {
+      const canvas = document.createElement('canvas');
+      return Boolean(
+        canvas.getContext('webgl2') ?? canvas.getContext('webgl'),
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  function boot() {
+    const section = document.querySelector<HTMLElement>('[data-hero]');
+    const canvas = document.querySelector<HTMLCanvasElement>('[data-hero-canvas]');
+    const picker = document.querySelector<HTMLFieldSetElement>('[data-hero-picker]');
+    if (!section || !canvas) return;
+
+    if (!supportsWebGL()) return; // Se queda el hero de texto. Nada roto.
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const initial = readStoredTheme();
+
+    let hero: HeroHandle;
+    try {
+      hero = createHero(canvas, initial, { reducedMotion });
+    } catch (error) {
+      console.error('No se pudo iniciar el hero 3D:', error);
+      return;
+    }
+
+    section.dataset.heroTheme = initial;
+    applyPageColors(initial);
+    section.classList.add('hero--3d');
+
+    if (picker) {
+      picker.hidden = false;
+      const input = picker.querySelector<HTMLInputElement>(`input[value="${initial}"]`);
+      if (input) input.checked = true;
+
+      picker.addEventListener('change', (event) => {
+        const target = event.target as HTMLInputElement;
+        if (!isThemeId(target.value)) return;
+        hero.setTheme(target.value);
+        section.dataset.heroTheme = target.value;
+        applyPageColors(target.value);
+        storeTheme(target.value);
+      });
+    }
+
+    // Astro con transiciones de vista puede reemplazar el documento.
+    document.addEventListener('astro:before-swap', () => hero.destroy(), { once: true });
+  }
+
+  // El 3D no debe retrasar el primer pintado.
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(boot, { timeout: 1200 });
+  } else {
+    setTimeout(boot, 200);
+  }
+</script>

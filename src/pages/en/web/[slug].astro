@@ -1,0 +1,21 @@
+---
+import type { GetStaticPaths } from 'astro';
+import WorkDetail from '../../../components/pages/WorkDetail.astro';
+import { getWorks, splitId, type Work } from '../../../i18n/utils';
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  const works = await getWorks('web', 'en');
+  return works.map((work) => ({
+    params: { slug: splitId(work.id).slug },
+    props: { work },
+  }));
+};
+
+interface Props {
+  work: Work;
+}
+
+const { work } = Astro.props;
+---
+
+<WorkDetail locale="en" area="web" work={work} />

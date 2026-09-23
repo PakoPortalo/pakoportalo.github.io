@@ -1,0 +1,47 @@
+---
+import type { Area, Locale } from '../i18n/config';
+import { useTranslations } from '../i18n/ui';
+import type { Work } from '../i18n/utils';
+import WorkCard from './WorkCard.astro';
+
+interface Props {
+  items: { area: Area; work: Work }[];
+  locale: Locale;
+  showArea?: boolean;
+}
+
+const { items, locale, showArea = false } = Astro.props;
+const t = useTranslations(locale);
+---
+
+{
+  items.length === 0 ? (
+    <p class="muted">{t('work.empty')}</p>
+  ) : (
+    <ul class="grid" role="list">
+      {items.map(({ area, work }) => (
+        <li>
+          <WorkCard work={work} area={area} locale={locale} showArea={showArea} />
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+<style>
+  .grid {
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+    margin: 0;
+    padding: 0;
+  }
+
+  .grid > li {
+    display: flex;
+  }
+
+  .grid > li > :global(*) {
+    width: 100%;
+  }
+</style>
