@@ -150,14 +150,19 @@ const { copy } = Astro.props;
 
   if (section && canvas) {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const params = new URLSearchParams(location.search);
     // ?plain en la URL apaga el líquido para poder valorar la maquetación.
-    const plain = new URLSearchParams(location.search).has('plain');
+    const plain = params.has('plain');
+    // Se puede cambiar de composición con ?marks=N sin tocar el código; no
+    // hay interfaz para ello porque ya está elegida.
+    const marks = Number(params.get('marks') ?? '5');
 
     createLiquidHero(canvas, {
       copy: readCopy(),
       fonts: HERO_FONTS,
       reducedMotion,
       plain,
+      marks,
     })
       .then(() => {
         section.classList.add('is-live');

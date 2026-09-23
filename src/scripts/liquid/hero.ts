@@ -1,12 +1,42 @@
 import { curl } from './noise';
 import type { HeroCopy, HeroFont, HeroFonts } from './fonts';
-import { LIQUID, SMOKE, VERTEX } from './shaders';
+import { FLOW, LIQUID, SMOKE, VERTEX } from './shaders';
+import { MARK_PRESETS } from './marks';
 
 const MAX_BLOBS = 24;
-/** Gotas encadenadas que siguen al cursor; el resto viven por su cuenta. */
-const STREAM = 6;
+/**
+ * Gotas encadenadas que siguen al cursor; el resto viven por su cuenta.
+ *
+ * La cadena es lo que deja el rastro: cuantos más eslabones, más larga es la
+ * cinta que queda detrás del cursor y más tarda en recogerse.
+ */
+const STREAM = 12;
+
+/**
+ * Hacia dónde se recuesta la masa de líquido, en fracción del ancho.
+ *
+ * Centrada justo encima del título la deformaba demasiado; corrida a la
+ * derecha, el bloque de texto —que está abajo a la izquierda— queda despejado.
+ */
+const MASS_BIAS_X = 0.62;
+
+/**
+ * Multiplica el tamaño de todas las gotas sin tocar dónde viven. El largo de
+ * los eslabones de la cadena se calcula a partir del radio, así que la cinta
+ * se estira en la misma proporción y la masa crece sin desmontarse.
+ */
+const MASS_SCALE = 1.22;
 /** El humo es de frecuencia baja: a media resolución no se aprecia. */
 const SMOKE_SCALE = 0.5;
+/**
+ * La huella del cursor es aún más suave que el humo: a un cuarto de
+ * resolución no se distingue, y así el ping-pong de cada fotograma es barato.
+ */
+const FLOW_SCALE = 0.25;
+/** Radio de la brocha que estampa el cursor, en unidades de aspecto. */
+const FLOW_RADIUS = 0.19;
+/** Qué fracción de la huella sobrevive cada segundo. */
+const FLOW_DECAY = 0.05;
 /**
  * Tope de densidad de píxel. El bucle del shader recorre 24 gotas por píxel,
  * así que a dpr 3 en un monitor grande se dispara. A 1.75 no se nota y va
@@ -18,6 +48,8 @@ export interface LiquidOptions {
   copy: HeroCopy;
   fonts: HeroFonts;
   reducedMotion: boolean;
+  /** Cuál de las composiciones de marcas se pinta. 0 = ninguna. */
+  marks?: number;
   /**
    * Apaga el líquido y deja solo humo y texto. Sirve para juzgar la
    * maquetación: con el líquido encima no se puede leer nada.
@@ -27,6 +59,8 @@ export interface LiquidOptions {
 
 export interface LiquidHandle {
   destroy(): void;
+  /** Cambia la composición de marcas y repinta el texto. */
+  setMarks(index: number): void;
 }
 
 interface Blob {
@@ -40,6 +74,26 @@ interface Blob {
   seed: number;
   /** Cuánto le afecta el campo turbulento. Las grandes son más perezosas. */
   drag: number;
+  /**
+   * Hacia dónde iba, normalizado y suavizado. Persiste cuando la gota se
+   * para, y es lo que tiende la cadena a lo largo del recorrido del cursor.
+   */
+  dirX: number;
+  dirY: number;
+}
+
+/** Una palabra de la segunda línea que se enciende al pasar el ratón. */
+interface HotWord {
+  text: string;
+  /** Caja en píxeles CSS de la página, para acertar con el cursor. */
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  /** Color al que se enciende, o null si esta palabra no se enciende. */
+  colour: [number, number, number] | null;
+  /** 0 apagada, 1 encendida del todo. */
+  glow: number;
 }
 
 function compile(gl: WebGL2RenderingContext, type: number, source: string) {
@@ -100,8 +154,10 @@ export async function createLiquidHero(
 
   const smokeProgram = link(gl, VERTEX, SMOKE);
   const liquidProgram = link(gl, VERTEX, LIQUID);
+  const flowProgram = link(gl, VERTEX, FLOW);
   const smokeUniforms = uniforms(gl, smokeProgram);
   const liquidUniforms = uniforms(gl, liquidProgram);
+  const flowUniforms = uniforms(gl, flowProgram);
 
   // El triángulo a pantalla completa se genera en el vértice a partir de
   // gl_VertexID, así que no hace falta ningún búfer de geometría.
@@ -127,6 +183,46 @@ export async function createLiquidHero(
   );
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
+  // --- Huella del cursor -----------------------------------------------------
+
+  // Con coma flotante a media precisión si el equipo la tiene. En RGBA8 la
+  // huella se guarda en 256 escalones y el arrastre avanza a saltos visibles;
+  // en RGBA16F es continuo. El empaquetado con el cero en 0.5 se mantiene en
+  // ambos casos para que el shader sea el mismo.
+  const floatFlow =
+    gl.getExtension('EXT_color_buffer_half_float') ??
+    gl.getExtension('EXT_color_buffer_float');
+  const flowInternal = floatFlow ? gl.RGBA16F : gl.RGBA;
+  const flowType = floatFlow ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE;
+
+  // Dos texturas, no una: el flowmap se lee a sí mismo para atenuarse, y en
+  // WebGL no se puede leer y escribir la misma textura en la misma pasada.
+  // Así que se alternan — el clásico ping-pong.
+  const flowTextures = [gl.createTexture()!, gl.createTexture()!];
+  const flowBuffers = [gl.createFramebuffer()!, gl.createFramebuffer()!];
+
+  for (let index = 0; index < 2; index += 1) {
+    gl.bindTexture(gl.TEXTURE_2D, flowTextures[index]!);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, flowBuffers[index]!);
+    gl.framebufferTexture2D(
+      gl.FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      flowTextures[index]!,
+      0,
+    );
+  }
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+  /** Cuál de las dos tiene la huella buena ahora mismo. */
+  let flowIndex = 0;
+  let flowWidth = 1;
+  let flowHeight = 1;
+
   // --- Textura del texto -----------------------------------------------------
 
   const textCanvas = document.createElement('canvas');
@@ -150,11 +246,13 @@ export async function createLiquidHero(
     // Mezcla deliberada de tamaños. Si todas son iguales se lee como espuma;
     // lo que parece líquido son masas grandes con gotas pequeñas alrededor.
     const roll = (index * 7) % 10;
-    const radius = isStream
-      ? 0.155 - index * 0.014
-      : roll < 3
-        ? 0.13 + roll * 0.022
-        : 0.04 + roll * 0.009;
+    const radius =
+      MASS_SCALE *
+      (isStream
+        ? 0.148 - index * 0.0082
+        : roll < 3
+          ? 0.13 + roll * 0.022
+          : 0.04 + roll * 0.009);
 
     return {
       x: 0.5,
@@ -164,30 +262,71 @@ export async function createLiquidHero(
       radius,
       weight: isStream ? 1.05 : 0.92,
       seed: index * 19.37,
+      dirX: 1,
+      dirY: 0,
       // Las masas grandes tienen más inercia y responden menos al campo.
       drag: 0.55 + radius * 4.2,
     };
   });
 
   let seeded = false;
+  let marksIndex = options.marks ?? 5;
 
   /** Reparte las gotas por la pantalla la primera vez que sabemos el aspecto. */
   function seedPositions() {
     blobs.forEach((blob, index) => {
       const angle = index * 2.399;
       const radius = Math.sqrt((index + 0.5) / blobs.length);
-      blob.x = (0.5 + Math.cos(angle) * radius * 0.46) * aspect;
+      blob.x = (MASS_BIAS_X + Math.cos(angle) * radius * 0.42) * aspect;
       blob.y = 0.5 + Math.sin(angle) * radius * 0.42;
     });
     seeded = true;
   }
 
+  /**
+   * Caja que ocupan el título y el subtítulo, en UV y con el eje Y hacia
+   * arriba. La calcula drawText() y la lee el shader para saber dónde puede
+   * apretar la aberración cromática sin comerse las líneas pequeñas.
+   */
+  const bigTextBox = new Float32Array([0, 0, 1, 1]);
+
+  /**
+   * La segunda línea vive en su propio lienzo.
+   *
+   * Sus palabras se encienden al pasar el ratón, y eso hay que repintarlo
+   * mientras dura la transición. Repintando la textura entera serían quince
+   * megas por fotograma; repintando solo esta tira y subiéndola con
+   * texSubImage2D son menos de uno.
+   */
+  const subtitleCanvas = document.createElement('canvas');
+  const subtitleContext = subtitleCanvas.getContext('2d')!;
+  let hotWords: HotWord[] = [];
+  /** Esquina del lienzo pequeño dentro del grande, en píxeles CSS. */
+  const subtitleOrigin = { x: 0, y: 0 };
+  let subtitleStyle = { font: '', spacing: '0px', size: 0, alpha: 0.9, baseline: 0 };
+
   const blobData = new Float32Array(MAX_BLOBS * 4);
   const velData = new Float32Array(MAX_BLOBS * 4);
 
   const pointer = { x: 0.5, y: 0.55, speed: 0, lastMove: -10 };
+  /**
+   * Cuánto se ha movido el cursor desde la última vez que se estampó la
+   * huella. Se acumula porque pueden llegar varios eventos de ratón entre
+   * dos fotogramas, y si se cogiera solo el último se perdería parte del
+   * recorrido justo en los movimientos rápidos, que son los que importan.
+   */
+  const pointerDelta = { x: 0, y: 0 };
   /** Objetivo cuando el cursor está quieto: el chorro se pasea solo. */
   const wander = { x: 0.5, y: 0.5 };
+  /**
+   * Inclinación de la escena hacia el cursor, suavizada.
+   *
+   * No puede ser un transform de CSS: el texto no está en el DOM, está pintado
+   * dentro de la textura que refracta el líquido. Se hace en el shader, y de
+   * paso el humo y el texto se inclinan distinto, que es lo que da la
+   * sensación de profundidad.
+   */
+  const tilt = { x: 0, y: 0 };
 
   /** Parte un texto en líneas que quepan en el ancho dado. */
   function wrap(text: string, maxWidth: number): string[] {
@@ -395,6 +534,22 @@ export async function createLiquidHero(
     textContext.fillStyle = 'rgba(255, 255, 255, 0.6)';
     textContext.fillText(copy.eyebrowRight, cursorX, eyebrowBaseline);
 
+    // --- Marcas gráficas, en el aire que deja libre el texto ---
+    // Van en el canvas y no en HTML porque son decoración: si el agua no las
+    // deformara al pasar por encima, se notaría que están pegadas.
+    MARK_PRESETS[marksIndex]?.draw({
+      ctx: textContext,
+      width,
+      height,
+      margin,
+      blockWidth,
+      bigSize,
+      eyebrowBaseline,
+      titleBaseline,
+      subtitleBaseline,
+      blockBottom,
+    });
+
     // --- Línea grande ---
     textContext.letterSpacing = `${bigSize * titleFont.tracking}px`;
     textContext.fillStyle = '#ffffff';
@@ -403,14 +558,67 @@ export async function createLiquidHero(
 
     // --- Segunda línea: mismo cuerpo, menos peso. Si la tipografía no llega
     // a un peso bastante más fino, la diferencia se hace con la opacidad. ---
-    // La segunda línea tiene su propio tipo y su propia escala.
+    // La segunda línea tiene su propio tipo y su propia escala. Y NO se pinta
+    // aquí: se mide aquí y se pinta en drawSubtitle(), sobre su propio
+    // lienzo, porque tiene que poder repintarse sola.
     const subtitleSize = bigSize * (subtitleFont.sizeScale / titleFont.sizeScale);
     const weightGap = subtitleFont.titleWeight - subtitleFont.subtitleWeight;
-    textContext.fillStyle =
-      weightGap < 150 ? 'rgba(255, 255, 255, 0.62)' : 'rgba(255, 255, 255, 0.9)';
-    textContext.font = `${subtitleFont.subtitleWeight} ${subtitleSize}px ${subtitleStack}`;
-    textContext.letterSpacing = `${subtitleSize * subtitleFont.tracking}px`;
-    textContext.fillText(copy.subtitle, margin, subtitleBaseline);
+    const subtitleAlpha = weightGap < 150 ? 0.62 : 0.9;
+    const subtitleCss = `${subtitleFont.subtitleWeight} ${subtitleSize}px ${subtitleStack}`;
+    const subtitleSpacing = `${subtitleSize * subtitleFont.tracking}px`;
+    textContext.font = subtitleCss;
+    textContext.letterSpacing = subtitleSpacing;
+
+    // La tira que ocupa la línea. Subirla pisa lo que hubiera ahí, así que se
+    // recorta para no llegar ni a las colas del título ni a la primera línea
+    // del párrafo — con otro texto podrían quedar dentro y se borrarían.
+    const paraFirstTop = paraTop + paraLeading * 0.8 - paraSize * 0.95;
+    const boxTop = Math.max(
+      subtitleBaseline - subtitleSize * 0.95,
+      titleBaseline + bigSize * 0.24,
+    );
+    const boxBottom = Math.min(subtitleBaseline + subtitleSize * 0.34, paraFirstTop);
+    const boxLeft = Math.max(margin - subtitleSize * 0.3, 0);
+    const subtitleWidth = textContext.measureText(copy.subtitle).width;
+    const boxRight = Math.min(margin + subtitleWidth + subtitleSize * 0.4, width);
+
+    // Cada palabra se coloca midiendo el prefijo que la precede, así cae
+    // donde caería si la línea se pintara de una tirada.
+    const words = copy.subtitle.split(' ').filter(Boolean);
+    hotWords = words.map((text, index) => {
+      const prefix = words.slice(0, index).join(' ');
+      const offset = prefix ? textContext.measureText(`${prefix} `).width : 0;
+      // La primera se enciende en verde y la última en morado: los mismos dos
+      // colores, en el mismo orden, que los puntos de la fila de arriba. Lo
+      // que quede en medio no se enciende.
+      const colour =
+        index === 0
+          ? NEON_GREEN
+          : index === words.length - 1
+            ? NEON_PURPLE
+            : null;
+      return {
+        text,
+        left: margin + offset,
+        right: margin + offset + textContext.measureText(text).width,
+        top: boxTop,
+        bottom: boxBottom,
+        colour,
+        glow: 0,
+      };
+    });
+
+    subtitleOrigin.x = boxLeft;
+    subtitleOrigin.y = boxTop;
+    subtitleStyle = {
+      font: subtitleCss,
+      spacing: subtitleSpacing,
+      size: subtitleSize,
+      alpha: subtitleAlpha,
+      baseline: subtitleBaseline - boxTop,
+    };
+    subtitleCanvas.width = Math.max(Math.round((boxRight - boxLeft) * dpr), 1);
+    subtitleCanvas.height = Math.max(Math.round((boxBottom - boxTop) * dpr), 1);
 
     // --- Párrafo ---
     textContext.font = `${paraWeight} ${paraSize}px ${bodyStack}`;
@@ -422,6 +630,15 @@ export async function createLiquidHero(
       else justify(line, margin, y, blockWidth);
     });
 
+    // --- Caja de las dos líneas grandes, para el shader ---
+    // El eje Y del canvas baja y el del shader sube, de ahí las restas.
+    const glitchTop = titleBaseline - bigSize * 0.82;
+    const glitchBottom = subtitleBaseline + bigSize * 0.26;
+    bigTextBox[0] = (margin - bigSize * 0.06) / width;
+    bigTextBox[1] = 1 - glitchBottom / height;
+    bigTextBox[2] = (margin + blockWidth + bigSize * 0.06) / width;
+    bigTextBox[3] = 1 - glitchTop / height;
+
     gl!.bindTexture(gl!.TEXTURE_2D, textTexture);
     gl!.pixelStorei(gl!.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
     gl!.texImage2D(
@@ -431,6 +648,65 @@ export async function createLiquidHero(
       gl!.RGBA,
       gl!.UNSIGNED_BYTE,
       textCanvas,
+    );
+
+    drawSubtitle();
+  }
+
+  /**
+   * Pinta la segunda línea en su lienzo y sube solo ese rectángulo.
+   *
+   * Cada palabra se dibuja por separado porque cada una puede llevar su
+   * propio color y su propia escala. La escala va alrededor del centro de la
+   * palabra, no de su origen: creciendo desde el origen, empujaría a las que
+   * tiene detrás y la línea entera bailaría.
+   */
+  function drawSubtitle() {
+    if (!hotWords.length) return;
+
+    const style = subtitleStyle;
+    const cssWidth = subtitleCanvas.width / dpr;
+    const cssHeight = subtitleCanvas.height / dpr;
+
+    subtitleContext.setTransform(dpr, 0, 0, dpr, 0, 0);
+    subtitleContext.clearRect(0, 0, cssWidth, cssHeight);
+    subtitleContext.textBaseline = 'alphabetic';
+    subtitleContext.textAlign = 'left';
+    subtitleContext.font = style.font;
+    subtitleContext.letterSpacing = style.spacing;
+
+    for (const word of hotWords) {
+      const x = word.left - subtitleOrigin.x;
+      const [r, g, b] = word.colour ?? [255, 255, 255];
+      // Del blanco al color del punto, y de paso subiendo la opacidad: es lo
+      // que hace que se lea como que se enciende y no como que se tiñe.
+      const tint = (channel: number) => Math.round(255 + (channel - 255) * word.glow);
+      const alpha = style.alpha + (1 - style.alpha) * word.glow;
+
+      subtitleContext.save();
+      if (word.glow > 0.0005) {
+        const centreX = x + (word.right - word.left) / 2;
+        const centreY = style.baseline - style.size * 0.32;
+        const scale = 1 + 0.05 * word.glow;
+        subtitleContext.translate(centreX, centreY);
+        subtitleContext.scale(scale, scale);
+        subtitleContext.translate(-centreX, -centreY);
+      }
+      subtitleContext.fillStyle = `rgba(${tint(r)}, ${tint(g)}, ${tint(b)}, ${alpha})`;
+      subtitleContext.fillText(word.text, x, style.baseline);
+      subtitleContext.restore();
+    }
+
+    gl!.bindTexture(gl!.TEXTURE_2D, textTexture);
+    gl!.pixelStorei(gl!.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+    gl!.texSubImage2D(
+      gl!.TEXTURE_2D,
+      0,
+      Math.round(subtitleOrigin.x * dpr),
+      Math.round(subtitleOrigin.y * dpr),
+      gl!.RGBA,
+      gl!.UNSIGNED_BYTE,
+      subtitleCanvas,
     );
   }
 
@@ -459,10 +735,64 @@ export async function createLiquidHero(
       null,
     );
 
+    flowWidth = Math.max(Math.round(canvas.width * FLOW_SCALE), 1);
+    flowHeight = Math.max(Math.round(canvas.height * FLOW_SCALE), 1);
+    for (let index = 0; index < 2; index += 1) {
+      gl!.bindTexture(gl!.TEXTURE_2D, flowTextures[index]!);
+      gl!.texImage2D(
+        gl!.TEXTURE_2D,
+        0,
+        flowInternal,
+        flowWidth,
+        flowHeight,
+        0,
+        gl!.RGBA,
+        flowType,
+        null,
+      );
+      // Se limpian a 0.5, que es el cero de la velocidad con este
+      // empaquetado. Dejarlas a negro equivaldría a una huella a tope
+      // apuntando abajo a la izquierda en toda la pantalla.
+      gl!.bindFramebuffer(gl!.FRAMEBUFFER, flowBuffers[index]!);
+      gl!.viewport(0, 0, flowWidth, flowHeight);
+      gl!.clearColor(0.5, 0.5, 0, 1);
+      gl!.clear(gl!.COLOR_BUFFER_BIT);
+    }
+    gl!.bindFramebuffer(gl!.FRAMEBUFFER, null);
+
     drawText();
   }
 
   function step(time: number, delta: number) {
+    // Siempre, aunque el líquido esté apagado: la inclinación es de la escena.
+    // El signo es el que acerca hacia el ojo el lado donde está el cursor.
+    const ease = 1 - Math.pow(0.2, delta);
+    tilt.x += (-(pointer.x - 0.5) * 0.15 - tilt.x) * ease;
+    tilt.y += (-(pointer.y - 0.5) * 0.15 - tilt.y) * ease;
+
+    // --- Palabras que se encienden al pasar el ratón por encima ---
+    // Se repinta solo mientras alguna está cambiando; paradas, no cuesta nada.
+    if (hotWords.length) {
+      const cursorX = pointer.x * width;
+      const cursorY = (1 - pointer.y) * height;
+      const rise = 1 - Math.pow(0.3, delta);
+      let repaint = false;
+
+      for (const word of hotWords) {
+        if (!word.colour) continue;
+        const over =
+          cursorX >= word.left &&
+          cursorX <= word.right &&
+          cursorY >= word.top &&
+          cursorY <= word.bottom;
+        const next = word.glow + ((over ? 1 : 0) - word.glow) * rise;
+        if (Math.abs(next - word.glow) > 0.0005) repaint = true;
+        word.glow = next;
+      }
+
+      if (repaint) drawSubtitle();
+    }
+
     if (options.plain) {
       // Peso cero: el shader descarta las gotas y solo queda la escena.
       blobData.fill(0);
@@ -479,7 +809,10 @@ export async function createLiquidHero(
     const [wx, wy] = curl(wander.x * 1.3, wander.y * 1.3 + 40, time * 0.6);
     wander.x += wx * delta * 0.42;
     wander.y += wy * delta * 0.42;
-    wander.x = Math.min(Math.max(wander.x, 0.12), aspect - 0.12);
+    // Tirón flojo hacia el punto de reposo: sin él, el campo turbulento
+    // acaba llevándose el paseo a una esquina y se queda ahí.
+    wander.x += (MASS_BIAS_X * aspect - wander.x) * 0.5 * delta;
+    wander.x = Math.min(Math.max(wander.x, aspect * 0.3), aspect - 0.12);
     // El paseo se mantiene en los dos tercios altos: abajo a la izquierda
     // está el bloque de texto y el líquido lo dejaría ilegible.
     wander.y = Math.min(Math.max(wander.y, 0.42), 0.88);
@@ -490,7 +823,7 @@ export async function createLiquidHero(
       y: pointer.y * (1 - blend) + wander.y * blend,
     };
 
-    const centre = aspect / 2;
+    const centre = aspect * MASS_BIAS_X;
 
     for (let index = 0; index < blobs.length; index += 1) {
       const blob = blobs[index]!;
@@ -499,33 +832,76 @@ export async function createLiquidHero(
         // Cadena: la primera persigue el objetivo, cada una a la anterior.
         // El retardo creciente es lo que estira el chorro.
         const lead = index === 0 ? target : blobs[index - 1]!;
-        const pull = index === 0 ? 6.5 : 9;
-        blob.vx = (blob.vx + (lead.x - blob.x) * pull * delta) * 0.87;
-        blob.vy = (blob.vy + (lead.y - blob.y) * pull * delta) * 0.87;
+
+        // Seguimiento por suavizado, no por muelle.
+        //
+        // Un muelle poco amortiguado se pasa de largo y rebota, y con el
+        // cursor encima de la masa eso se convertía en un latigazo. Aquí la
+        // gota solo recorre una fracción fija de lo que le falta para llegar
+        // a su guía: no acumula velocidad, no puede dispararse. El rastro
+        // sigue siendo largo, pero por el retardo acumulado de los doce
+        // eslabones, no por inercia.
+        //
+        // La fracción se calcula por segundo, no por fotograma: si no, en una
+        // pantalla de 120 Hz el rastro se recogería al doble de rápido que en
+        // una de 60 y el efecto cambiaría de un equipo a otro.
+        // Y la cadena es una cuerda, no un imán: cada eslabón persigue un
+        // punto a una distancia fija POR DETRÁS del anterior. Y "detrás" es
+        // respecto a hacia dónde IBA el anterior, no respecto a la línea que
+        // los une: tomando la línea, la cadena se enrollaba sobre sí misma y
+        // acababa siendo una bola pegada al cursor. Con la dirección de
+        // marcha se tiende a lo largo del recorrido, que es lo que se espera
+        // de un rastro.
+        let goalX = lead.x;
+        let goalY = lead.y;
+        if (index > 0) {
+          const previous = blobs[index - 1]!;
+          const link = blob.radius * 1.4;
+          goalX = previous.x - previous.dirX * link;
+          goalY = previous.y - previous.dirY * link;
+        }
+
+        const settle = index === 0 ? 0.015 : 0.1;
+        const follow = (1 - Math.pow(settle, delta)) / delta;
+        blob.vx = (goalX - blob.x) * follow;
+        blob.vy = (goalY - blob.y) * follow;
+
+        // Un empujón del campo turbulento, flojo: es lo que hace serpentear
+        // la cinta en vez de dejarla como un churro recto cuando se para.
+        const [sx, sy] = curl(blob.x * 1.6 + blob.seed, blob.y * 1.6, time * 0.4);
+        blob.vx += sx * 0.14;
+        blob.vy += sy * 0.14;
       } else {
         // Turbulencia: el campo curl las arrastra en remolinos.
-        const [cx, cy] = curl(blob.x * 1.9 + blob.seed, blob.y * 1.9, time);
-        blob.vx += (cx * 1.15 * delta) / blob.drag;
-        blob.vy += (cy * 1.15 * delta) / blob.drag;
+        const [cx, cy] = curl(blob.x * 1.9 + blob.seed, blob.y * 1.9, time * 0.55);
+        blob.vx += (cx * 0.5 * delta) / blob.drag;
+        blob.vy += (cy * 0.5 * delta) / blob.drag;
 
         // Atracción floja a un centro desplazado hacia arriba: si no, el
         // campo las acaba echando fuera, y abajo a la izquierda tapan el texto.
         blob.vx += (centre - blob.x) * 0.55 * delta;
         blob.vy += (0.62 - blob.y) * 0.75 * delta;
 
-        // Empuje del cursor: al pasar rápido, salpica las gotas cercanas.
+        // Empuje del cursor: al pasar, aparta un poco las gotas cercanas.
+        //
+        // La caída es cuadrática y no lineal: con caída lineal el empuje
+        // seguía siendo fuerte justo en el borde del radio de acción, y al
+        // entrar y salir de él las gotas pegaban tirones. Así llega a cero
+        // suavemente.
         const dx = blob.x - target.x;
         const dy = blob.y - target.y;
         const dist2 = dx * dx + dy * dy;
-        if (dist2 < 0.12 && dist2 > 0.0001) {
-          const force = (0.12 - dist2) * 26 * (0.35 + pointer.speed * 5);
+        if (dist2 < 0.12 && dist2 > 0.0004) {
+          const falloff = (1 - dist2 / 0.12) ** 2;
+          const force = falloff * 2.4 * (0.3 + pointer.speed);
           const inv = 1 / Math.sqrt(dist2);
           blob.vx += dx * inv * force * delta;
           blob.vy += dy * inv * force * delta;
         }
 
-        blob.vx *= 0.975;
-        blob.vy *= 0.975;
+        const ambientFriction = Math.pow(0.22, delta);
+        blob.vx *= ambientFriction;
+        blob.vy *= ambientFriction;
       }
 
       blob.x += blob.vx * delta;
@@ -544,6 +920,19 @@ export async function createLiquidHero(
       blobData[offset + 1] = blob.y;
       blobData[offset + 2] = blob.radius;
       blobData[offset + 3] = blob.weight;
+      // Dirección propia: apunta a donde va la gota y se queda apuntando
+      // cuando se para. La cadena se apoya en ella para tenderse a lo largo
+      // del recorrido en vez de enrollarse sobre sí misma.
+      const speed = Math.hypot(blob.vx, blob.vy);
+      if (speed > 0.03) {
+        const turn = 1 - Math.pow(0.05, delta);
+        blob.dirX += (blob.vx / speed - blob.dirX) * turn;
+        blob.dirY += (blob.vy / speed - blob.dirY) * turn;
+        const len = Math.hypot(blob.dirX, blob.dirY) || 1;
+        blob.dirX /= len;
+        blob.dirY /= len;
+      }
+
       velData[offset] = blob.vx;
       velData[offset + 1] = blob.vy;
     }
@@ -553,7 +942,30 @@ export async function createLiquidHero(
     pointer.speed *= Math.pow(0.02, delta);
   }
 
-  function render(time: number) {
+  function render(time: number, delta: number) {
+    // --- Huella del cursor: se lee la del fotograma anterior y se escribe
+    // en la otra textura ---
+    const nextFlow = 1 - flowIndex;
+    gl!.bindFramebuffer(gl!.FRAMEBUFFER, flowBuffers[nextFlow]!);
+    gl!.viewport(0, 0, flowWidth, flowHeight);
+    gl!.useProgram(flowProgram);
+    gl!.activeTexture(gl!.TEXTURE0);
+    gl!.bindTexture(gl!.TEXTURE_2D, flowTextures[flowIndex]!);
+    gl!.uniform1i(flowUniforms.get('uPrev')!, 0);
+    gl!.uniform2f(flowUniforms.get('uMouse')!, pointer.x, pointer.y);
+    gl!.uniform2f(flowUniforms.get('uVelocity')!, pointerDelta.x, pointerDelta.y);
+    gl!.uniform1f(flowUniforms.get('uAspect')!, aspect);
+    gl!.uniform1f(flowUniforms.get('uRadius')!, FLOW_RADIUS);
+    // El desvanecimiento va por segundo, no por fotograma: si no, la huella
+    // duraría la mitad en una pantalla de 120 Hz que en una de 60.
+    gl!.uniform1f(flowUniforms.get('uDecay')!, Math.pow(FLOW_DECAY, delta));
+    gl!.bindVertexArray(vao);
+    gl!.drawArrays(gl!.TRIANGLES, 0, 3);
+
+    flowIndex = nextFlow;
+    pointerDelta.x = 0;
+    pointerDelta.y = 0;
+
     // --- Humo, a media resolución, en su textura ---
     const smokeWidth = Math.max(Math.round(canvas.width * SMOKE_SCALE), 1);
     const smokeHeight = Math.max(Math.round(canvas.height * SMOKE_SCALE), 1);
@@ -579,12 +991,27 @@ export async function createLiquidHero(
     gl!.bindTexture(gl!.TEXTURE_2D, textTexture);
     gl!.uniform1i(liquidUniforms.get('uText')!, 1);
 
+    gl!.activeTexture(gl!.TEXTURE2);
+    gl!.bindTexture(gl!.TEXTURE_2D, flowTextures[flowIndex]!);
+    gl!.uniform1i(liquidUniforms.get('uFlow')!, 2);
+
     gl!.uniform2f(liquidUniforms.get('uResolution')!, canvas.width, canvas.height);
     gl!.uniform1f(liquidUniforms.get('uTime')!, time);
     gl!.uniform1f(liquidUniforms.get('uThreshold')!, 0.52);
-    gl!.uniform1f(liquidUniforms.get('uEdge')!, 0.34);
-    gl!.uniform1f(liquidUniforms.get('uRefract')!, 0.075);
-    gl!.uniform1f(liquidUniforms.get('uDispersion')!, 0.26);
+    gl!.uniform1f(liquidUniforms.get('uEdge')!, 0.5);
+    // Fuerte: el humo del fondo se retuerce de verdad al pasar el líquido.
+    // Al texto solo le llega una fracción (TEXT_REFRACT en el shader), que es
+    // lo que le deja seguir leyéndose por debajo.
+    gl!.uniform1f(liquidUniforms.get('uRefract')!, 0.058);
+    // La dispersión se muestrea en seis bandas, así que si se sube demasiado
+    // las bandas dejan de solaparse y en vez de arcoíris salen seis fantasmas
+    // de colores sobre cada letra. A 0.32 el abanico sigue siendo continuo.
+    gl!.uniform1f(liquidUniforms.get('uDispersion')!, 0.32);
+    gl!.uniform2f(liquidUniforms.get('uTilt')!, tilt.x, tilt.y);
+    gl!.uniform1f(liquidUniforms.get('uAberration')!, 0.0034);
+    gl!.uniform1f(liquidUniforms.get('uIridescence')!, 0.16);
+    gl!.uniform1f(liquidUniforms.get('uFlowStrength')!, 0.85);
+    gl!.uniform4fv(liquidUniforms.get('uBigBox')!, bigTextBox);
     gl!.uniform4fv(liquidUniforms.get('uBlobs')!, blobData);
     gl!.uniform4fv(liquidUniforms.get('uBlobVel')!, velData);
 
@@ -606,7 +1033,7 @@ export async function createLiquidHero(
     last = seconds;
     elapsed += delta;
     step(elapsed, delta);
-    render(elapsed);
+    render(elapsed, delta);
   }
 
   function start() {
@@ -627,8 +1054,11 @@ export async function createLiquidHero(
     const nx = (event.clientX - rect.left) / rect.width;
     const ny = 1 - (event.clientY - rect.top) / rect.height;
 
+    pointerDelta.x += nx - pointer.x;
+    pointerDelta.y += ny - pointer.y;
+
     // La velocidad alimenta el empuje que salpica las gotas cercanas.
-    pointer.speed = Math.min(Math.hypot(nx - pointer.x, ny - pointer.y) * 14, 3);
+    pointer.speed = Math.min(Math.hypot(nx - pointer.x, ny - pointer.y) * 14, 1.4);
     pointer.x = nx;
     pointer.y = ny;
     pointer.lastMove = elapsed;
@@ -638,7 +1068,7 @@ export async function createLiquidHero(
     resize();
     if (!running) {
       step(elapsed, 1 / 60);
-      render(elapsed);
+      render(elapsed, 1 / 60);
     }
   });
   resizeObserver.observe(canvas);
@@ -664,9 +1094,14 @@ export async function createLiquidHero(
 
   resize();
   step(0, 1 / 60);
-  render(0);
+  render(0, 1 / 60);
 
   return {
+    setMarks(index: number) {
+      marksIndex = Math.min(Math.max(index, 0), MARK_PRESETS.length - 1);
+      drawText();
+      if (!running) render(elapsed, 1 / 60);
+    },
     destroy() {
       stop();
       resizeObserver.disconnect();
@@ -675,8 +1110,11 @@ export async function createLiquidHero(
       window.removeEventListener('pointermove', onPointerMove);
       gl!.deleteProgram(smokeProgram);
       gl!.deleteProgram(liquidProgram);
+      gl!.deleteProgram(flowProgram);
       gl!.deleteTexture(smokeTexture);
       gl!.deleteTexture(textTexture);
+      flowTextures.forEach((texture) => gl!.deleteTexture(texture));
+      flowBuffers.forEach((buffer) => gl!.deleteFramebuffer(buffer));
       gl!.deleteFramebuffer(smokeBuffer);
       gl!.deleteVertexArray(vao);
     },
