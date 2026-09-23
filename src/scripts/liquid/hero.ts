@@ -269,6 +269,26 @@ export async function createLiquidHero(
     };
   });
 
+  /** Radio de cada gota antes de corregirlo por la forma del encuadre. */
+  const baseRadii = blobs.map((blob) => blob.radius);
+
+  /**
+   * Ajusta el tamaño de las gotas a la forma de la pantalla.
+   *
+   * El eje X va de 0 a `aspect` y el Y de 0 a 1, así que las gotas se miden
+   * en unidades de ALTO. En un portátil apaisado el encuadre mide 1.6 de
+   * ancho y una gota de 0.18 ocupa un noveno; en un móvil el encuadre mide
+   * 0.46 y esa misma gota ocupa casi la mitad. Sin corregirlo, la cinta se
+   * pasa la vida encajonada contra las paredes, que es de donde salen los
+   * tropezones.
+   */
+  function fitBlobs() {
+    const fit = Math.min(1, 0.52 + aspect * 0.42);
+    blobs.forEach((blob, index) => {
+      blob.radius = baseRadii[index]! * fit;
+    });
+  }
+
   let seeded = false;
   let marksIndex = options.marks ?? 5;
 
@@ -456,12 +476,14 @@ export async function createLiquidHero(
     const { title: titleFont, subtitle: subtitleFont, body } = options.fonts;
     const copy = options.copy;
 
-    const margin = Math.max(24, width * 0.055);
-    const bigSize = Math.min(Math.max(width * 0.082, 32), 132) * titleFont.sizeScale;
-    const eyebrowSize =
-      Math.min(Math.max(bigSize * 0.1, 9.5), 14) * body.sizeScale;
-    const paraSize =
-      Math.min(Math.max(bigSize * 0.163, 13.5), 24) * body.sizeScale;
+    // Cuánto de "pantalla estrecha" tiene esto: 0 en un portátil, 1 en un
+    // móvil. Todas las proporciones se interpolan con él en vez de saltar en
+    // un punto de ruptura, así que no hay ningún ancho en el que el bloque
+    // pegue un salto de tamaño al redimensionar.
+    const compact = Math.min(Math.max((820 - width) / (820 - 380), 0), 1);
+
+    const margin = Math.max(20, width * (0.055 + compact * 0.018));
+    const available = width - margin * 2;
 
     const titleStack = `${titleFont.family}, ui-sans-serif, system-ui, sans-serif`;
     const subtitleStack = `${subtitleFont.family}, ui-sans-serif, system-ui, sans-serif`;
@@ -475,12 +497,32 @@ export async function createLiquidHero(
     textContext.textAlign = 'left';
 
     // --- El ancho del título manda sobre todo lo demás ---
+    // En pantalla estrecha el título tiene que ocupar mucha más proporción
+    // del ancho o se queda en una nota a pie de página.
+    let bigSize =
+      Math.min(Math.max(width * (0.082 + compact * 0.06), 30), 132) * titleFont.sizeScale;
+
+    // Y se encaja: se mide a ese cuerpo y se reduce hasta que cabe justo
+    // entre los márgenes. Recortarlo con un tope de ancho, como antes,
+    // dejaba el título saliéndose del margen en cuanto la pantalla se
+    // estrechaba; así sale siempre tan grande como quepa y ni un píxel más.
     textContext.font = `${titleFont.titleWeight} ${bigSize}px ${titleStack}`;
     textContext.letterSpacing = `${bigSize * titleFont.tracking}px`;
-    const blockWidth = Math.min(
-      textContext.measureText(copy.title).width,
-      width - margin * 2,
-    );
+    const naturalTitle = textContext.measureText(copy.title).width;
+    if (naturalTitle > available) {
+      bigSize *= available / naturalTitle;
+      textContext.font = `${titleFont.titleWeight} ${bigSize}px ${titleStack}`;
+      textContext.letterSpacing = `${bigSize * titleFont.tracking}px`;
+    }
+    const blockWidth = Math.min(textContext.measureText(copy.title).width, available);
+
+    // Las líneas pequeñas no pueden encoger al ritmo del título: a 13 px un
+    // párrafo deja de leerse. Suben su proporción según se estrecha la
+    // pantalla, y llevan un suelo en píxeles por debajo del cual no bajan.
+    let eyebrowSize =
+      Math.min(Math.max(bigSize * (0.1 + compact * 0.06), 10), 15) * body.sizeScale;
+    const paraSize =
+      Math.min(Math.max(bigSize * (0.163 + compact * 0.15), 15), 25) * body.sizeScale;
 
     // --- Párrafo: se mide antes porque su alto define dónde empieza todo ---
     const paraWeight = Math.max(body.subtitleWeight, 300);
@@ -498,21 +540,45 @@ export async function createLiquidHero(
     const eyebrowBaseline = titleBaseline - bigSize * 1.06;
 
     // --- Fila superior: punto de neón, etiqueta, filete, etiqueta ---
-    textContext.font = `500 ${eyebrowSize}px ${bodyStack}`;
-    textContext.letterSpacing = `${eyebrowSize * 0.16}px`;
+    // Todo lo de esta fila es proporcional a su cuerpo, así que se mide una
+    // vez y, si no cabe, se reescala entera de una tacada.
+    const measureRow = (size: number) => {
+      textContext.font = `500 ${size}px ${bodyStack}`;
+      textContext.letterSpacing = `${size * 0.16}px`;
+      const left = textContext.measureText(copy.eyebrowLeft).width;
+      const right = textContext.measureText(copy.eyebrowRight).width;
+      const radius = size * 0.28;
+      const span = radius * 2 + size * 0.9;
+      const separation = size * 1.5;
+      return {
+        left,
+        right,
+        radius,
+        span,
+        gap: separation,
+        used: span * 2 + left + right + separation * 2,
+      };
+    };
 
-    const leftWidth = textContext.measureText(copy.eyebrowLeft).width;
-    const rightWidth = textContext.measureText(copy.eyebrowRight).width;
+    let row = measureRow(eyebrowSize);
+    // El filete es lo que da a entender que la fila es una sola pieza, así
+    // que antes de dejarlo desaparecer se encoge el cuerpo de la fila. Es
+    // preferible a partirla en dos líneas: es un único gesto.
+    const rowFit = blockWidth / (row.used + eyebrowSize * 2.5);
+    if (rowFit < 1) {
+      eyebrowSize *= rowFit;
+      row = measureRow(eyebrowSize);
+    }
 
-    const dotRadius = eyebrowSize * 0.28;
-    const dotGap = eyebrowSize * 0.9;
-    const dotSpan = dotRadius * 2 + dotGap;
-    const gap = eyebrowSize * 1.5;
+    const leftWidth = row.left;
+    const dotRadius = row.radius;
+    const dotSpan = row.span;
+    const gap = row.gap;
     const rowY = eyebrowBaseline - eyebrowSize * 0.3;
 
     // El filete ocupa lo que sobra hasta el borde derecho del título, ya
     // descontados los dos puntos, las dos etiquetas y sus separaciones.
-    const used = dotSpan * 2 + leftWidth + rightWidth + gap * 2;
+    const used = row.used;
     const ruleWidth = Math.max(blockWidth - used, eyebrowSize * 2);
 
     let cursorX = margin;
@@ -548,6 +614,7 @@ export async function createLiquidHero(
       titleBaseline,
       subtitleBaseline,
       blockBottom,
+      compact,
     });
 
     // --- Línea grande ---
@@ -735,6 +802,8 @@ export async function createLiquidHero(
       null,
     );
 
+    fitBlobs();
+
     flowWidth = Math.max(Math.round(canvas.width * FLOW_SCALE), 1);
     flowHeight = Math.max(Math.round(canvas.height * FLOW_SCALE), 1);
     for (let index = 0; index < 2; index += 1) {
@@ -812,7 +881,10 @@ export async function createLiquidHero(
     // Tirón flojo hacia el punto de reposo: sin él, el campo turbulento
     // acaba llevándose el paseo a una esquina y se queda ahí.
     wander.x += (MASS_BIAS_X * aspect - wander.x) * 0.5 * delta;
-    wander.x = Math.min(Math.max(wander.x, aspect * 0.3), aspect - 0.12);
+    // Los topes van en fracción del ancho, no en unidades fijas: con un
+    // tope fijo, en un móvil el paseo se quedaba encerrado en una caja de
+    // dos dedos y se leía como un temblor.
+    wander.x = Math.min(Math.max(wander.x, aspect * 0.2), aspect * 0.82);
     // El paseo se mantiene en los dos tercios altos: abajo a la izquierda
     // está el bloque de texto y el líquido lo dejaría ilegible.
     wander.y = Math.min(Math.max(wander.y, 0.42), 0.88);
@@ -822,6 +894,12 @@ export async function createLiquidHero(
       x: pointer.x * aspect * (1 - blend) + wander.x * blend,
       y: pointer.y * (1 - blend) + wander.y * blend,
     };
+
+    // Si la cadena persigue un punto que cae fuera, los doce eslabones se
+    // amontonan contra la pared y se quedan ahí pegados.
+    const edge = 0.12;
+    target.x = Math.min(Math.max(target.x, edge), aspect - edge);
+    target.y = Math.min(Math.max(target.y, edge), 1 - edge);
 
     const centre = aspect * MASS_BIAS_X;
 
@@ -857,8 +935,8 @@ export async function createLiquidHero(
         if (index > 0) {
           const previous = blobs[index - 1]!;
           const link = blob.radius * 1.4;
-          goalX = previous.x - previous.dirX * link;
-          goalY = previous.y - previous.dirY * link;
+          goalX = Math.min(Math.max(previous.x - previous.dirX * link, edge), aspect - edge);
+          goalY = Math.min(Math.max(previous.y - previous.dirY * link, edge), 1 - edge);
         }
 
         const settle = index === 0 ? 0.015 : 0.1;
@@ -907,13 +985,29 @@ export async function createLiquidHero(
       blob.x += blob.vx * delta;
       blob.y += blob.vy * delta;
 
-      // Rebote blando en los bordes: las gotas se quedan dentro del encuadre
-      // sin el corte brusco de un wrap.
-      const pad = blob.radius * 0.6;
-      if (blob.x < pad) { blob.x = pad; blob.vx = Math.abs(blob.vx) * 0.55; }
-      if (blob.x > aspect - pad) { blob.x = aspect - pad; blob.vx = -Math.abs(blob.vx) * 0.55; }
-      if (blob.y < pad) { blob.y = pad; blob.vy = Math.abs(blob.vy) * 0.55; }
-      if (blob.y > 1 - pad) { blob.y = 1 - pad; blob.vy = -Math.abs(blob.vy) * 0.55; }
+      // Muros blandos.
+      //
+      // Invertir la velocidad al tocar el borde es un tirón seco, y en una
+      // pantalla estrecha las gotas tocan borde continuamente: de ahí los
+      // tropezones. Aquí el borde empuja hacia dentro con una fuerza
+      // proporcional a lo que se ha salido, y frena SOLO mientras está
+      // fuera. Ese freno es lo que impide que el muelle la devuelva rebotando.
+      const pad = blob.radius * 0.55;
+      const brake = Math.pow(0.04, delta);
+      if (blob.x < pad) {
+        blob.vx += (pad - blob.x) * 18 * delta;
+        blob.vx *= brake;
+      } else if (blob.x > aspect - pad) {
+        blob.vx -= (blob.x - aspect + pad) * 18 * delta;
+        blob.vx *= brake;
+      }
+      if (blob.y < pad) {
+        blob.vy += (pad - blob.y) * 18 * delta;
+        blob.vy *= brake;
+      } else if (blob.y > 1 - pad) {
+        blob.vy -= (blob.y - 1 + pad) * 18 * delta;
+        blob.vy *= brake;
+      }
 
       const offset = index * 4;
       blobData[offset] = blob.x;

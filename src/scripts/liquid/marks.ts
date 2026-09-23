@@ -25,6 +25,8 @@ export interface MarkLayout {
   subtitleBaseline: number;
   /** Línea en la que acaba el bloque de texto. */
   blockBottom: number;
+  /** 0 en pantalla ancha, 1 en móvil estrecho. */
+  compact: number;
 }
 
 const WHITE = (alpha: number) => `rgba(255, 255, 255, ${alpha})`;
@@ -461,10 +463,16 @@ export interface MarkPreset {
   draw(layout: MarkLayout): void;
 }
 
-/** Dónde empieza el aire de arriba, sin llegar a la fila de etiquetas. */
+/**
+ * Dónde empieza el aire de arriba, sin llegar a la fila de etiquetas.
+ *
+ * Cuelga del margen, el mismo que los lados, y no de un porcentaje del alto:
+ * con un porcentaje, en una pantalla alta la marca se iba hacia el centro y
+ * dejaba de leerse como una esquina.
+ */
 function topBand(layout: MarkLayout, blockHeight: number) {
   return Math.min(
-    layout.height * 0.13,
+    layout.margin,
     layout.eyebrowBaseline - layout.bigSize * 0.85 - blockHeight,
   );
 }
@@ -554,14 +562,27 @@ export const MARK_PRESETS: MarkPreset[] = [
   },
   {
     name: '5 · Semitono',
-    draw({ ctx, width, height, margin, blockBottom, eyebrowBaseline, bigSize }) {
-      const cell = Math.max(width * 0.007, 6);
-      const top = topBand({ height, eyebrowBaseline, bigSize } as MarkLayout, cell * 8);
+    draw({ ctx, width, height, margin, blockBottom, eyebrowBaseline, bigSize, compact }) {
+      const cell = Math.max(width * 0.0075, 5.5);
+      const rows = 8;
+      const top = topBand(
+        { height, margin, eyebrowBaseline, bigSize } as MarkLayout,
+        cell * rows,
+      );
+      // Menos columnas al estrecharse: con dieciocho, en un móvil la rejilla
+      // se comía media pantalla de ancho.
+      const columns = Math.round(18 - compact * 7);
+      halftoneFade(ctx, margin, top, columns, rows, cell, 0);
 
-      halftoneFade(ctx, margin, top, 18, 8, cell, 0);
-
-      const rings = Math.min(Math.max(width * 0.03, 28), 52);
-      concentricRings(ctx, width - margin - rings, blockBottom - rings, rings, 11);
+      const rings = Math.min(Math.max(width * 0.032, 26), 52);
+      // En pantalla estrecha el bloque de texto ocupa todo el ancho de abajo,
+      // así que el disco no cabe en esa esquina. Sube al hueco del medio, a
+      // la derecha, y la composición se sigue leyendo en diagonal.
+      const ringsY =
+        compact > 0.45
+          ? (top + cell * rows + (eyebrowBaseline - bigSize * 1.3)) / 2
+          : blockBottom - rings;
+      concentricRings(ctx, width - margin - rings, ringsY, rings, 11);
     },
   },
 ];

@@ -1,5 +1,33 @@
 ---
-import Home from '../components/pages/Home.astro';
+import HeroLiquid from '../components/HeroLiquid.astro';
+import '../styles/global.css';
 ---
 
-<Home locale="es" />
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pako Portalo — Música y desarrollo web</title>
+    <meta
+      name="description"
+      content="Efectos, bandas sonoras para spots y videojuegos, ambientes para cine — y las webs donde todo eso se ve."
+    />
+    <meta name="theme-color" content="#050505" />
+    <style>
+      body { margin: 0; background: #050505; }
+    </style>
+  </head>
+  <body>
+    <HeroLiquid
+      copy={{
+        eyebrowLeft: 'Sound design',
+        eyebrowRight: 'Web solutions',
+        title: 'Pako Portalo.',
+        subtitle: 'Music & Web.',
+        paragraph:
+          'Efectos, bandas sonoras para spots y videojuegos, ambientes para cine — y las webs donde todo eso se ve.',
+      }}
+    />
+  </body>
+</html>
