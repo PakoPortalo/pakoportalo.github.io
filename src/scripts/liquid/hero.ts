@@ -33,6 +33,18 @@ const SMOKE_SCALE = 0.5;
  * resolución no se distingue, y así el ping-pong de cada fotograma es barato.
  */
 const FLOW_SCALE = 0.25;
+/**
+ * Cuánta gravedad mete la inclinación del móvil, en unidades de alto por
+ * segundo al cuadrado. Es lo que convierte la pantalla en un recipiente.
+ */
+const GRAVITY = 3.4;
+/**
+ * Lo que tira el líquido por volver al centro cuando el móvil está recto.
+ * Junto con GRAVITY decide hasta dónde llega el charco: el reposo está en
+ * GRAVITY / POOL_SPRING, o sea a un tercio de la pantalla del centro.
+ */
+const POOL_SPRING = 9.5;
+
 /** Radio de la brocha que estampa el cursor, en unidades de aspecto. */
 const FLOW_RADIUS = 0.19;
 /** Qué fracción de la huella sobrevive cada segundo. */
@@ -359,6 +371,15 @@ export async function createLiquidHero(
    * rechaza al líquido. Lo calcula drawText().
    */
   const textZone = { right: 0.9, top: 0.6, strength: 0.16 };
+  /**
+   * El charco: cuánto se ha corrido la masa por la gravedad.
+   *
+   * Es un muelle amortiguado y no un desplazamiento fijo, y esa es toda la
+   * diferencia: al enderezar el móvil el líquido vuelve bamboleándose en vez
+   * de saltar a su sitio, que es lo que hace que parezca agua y no una capa
+   * que se desplaza.
+   */
+  const pool = { x: 0, y: 0, vx: 0, vy: 0 };
   /** Inclinación del móvil, ya suavizada. */
   const gyro = {
     x: 0,
@@ -886,7 +907,11 @@ export async function createLiquidHero(
     const across = 1 - smoothstep(textZone.right, textZone.right + 0.3, x);
     if (across <= 0) return 0;
     const depth = (textZone.top - y) / Math.max(textZone.top, 0.001);
-    return across * depth * depth * textZone.strength;
+    // Con el móvil ladeado el empuje se afloja: si no, al inclinar hacia el
+    // texto el agua se quedaría flotando encima sin poder bajar, y se vería
+    // que hay una mano invisible sujetándola.
+    const tilted = 1 - Math.min(Math.hypot(gyro.x, gyro.y), 1) * 0.55;
+    return across * depth * depth * textZone.strength * tilted;
   }
 
   function step(time: number, delta: number) {
@@ -955,8 +980,6 @@ export async function createLiquidHero(
     const gyroEase = 1 - Math.pow(0.25, delta);
     gyro.x += (gyro.rawX - gyro.x) * gyroEase;
     gyro.y += (gyro.rawY - gyro.y) * gyroEase;
-    rawX += gyro.x * aspect * 0.8;
-    rawY += gyro.y * 0.5;
 
     // Si la cadena persigue un punto que cae fuera, los doce eslabones se
     // amontonan contra la pared y se quedan ahí pegados.
@@ -971,6 +994,24 @@ export async function createLiquidHero(
     // arriba que la cadena copiaba tal cual.
     rawY += textLift(rawX, rawY);
 
+    // --- Gravedad de la inclinación ---
+    //
+    // Inclinar no mueve un punto de destino: añade gravedad. La masa cae
+    // hacia el lado bajo y se amontona contra la pared, con su inercia. Es
+    // la diferencia entre empujar el agua y ladear la bandeja.
+    const gravityX = gyro.x * GRAVITY;
+    const gravityY = gyro.y * GRAVITY;
+
+    pool.vx += (gravityX - pool.x * POOL_SPRING) * delta;
+    pool.vy += (gravityY - pool.y * POOL_SPRING) * delta;
+    // Amortiguado por debajo del crítico a propósito: pasarse un poco de
+    // largo y volver es exactamente el vaivén del agua en un recipiente.
+    const poolDrag = Math.pow(0.02, delta);
+    pool.vx *= poolDrag;
+    pool.vy *= poolDrag;
+    pool.x += pool.vx * delta;
+    pool.y += pool.vy * delta;
+
     // Y el objetivo de verdad va por detrás del crudo.
     //
     // El crudo pega saltos: al volver a mover el ratón después de un rato
@@ -982,12 +1023,25 @@ export async function createLiquidHero(
     aim.x += (rawX - aim.x) * aimEase;
     aim.y += (rawY - aim.y) * aimEase;
 
-    const target = { x: aim.x, y: aim.y };
+    // El charco se suma DESPUÉS del suavizado y se recorta al final: si se
+    // sumara antes, el recorte contra el borde se comería el bamboleo justo
+    // cuando la masa llega a la esquina, que es cuando hay que verlo.
+    const target = {
+      x: Math.min(Math.max(aim.x + pool.x, edge), aspect - edge),
+      y: Math.min(Math.max(aim.y + pool.y, edge), 1 - edge),
+    };
 
-    // El centro al que tiran las gotas sueltas también se va con la
-    // inclinación. Sin esto solo se movía la cadena, que es la mitad de la
-    // masa: la otra mitad se quedaba clavada y el efecto apenas se notaba.
-    const centre = aspect * (MASS_BIAS_X + gyro.x * 0.46);
+    const centre = aspect * MASS_BIAS_X;
+    /**
+     * Con el móvil ladeado el centro deja de tirar.
+     *
+     * Si siguiera tirando, el agua no podría amontonarse en la esquina: hay
+     * que elegir entre que la masa se quede compuesta en su sitio o que se
+     * comporte como un líquido, y ladeando el aparato queremos lo segundo.
+     */
+    // No se anula del todo: aflojándolo entero las gotas se desperdigaban en
+    // cuentas sueltas por la pared, y eso ya no parece un líquido.
+    const levelness = 1 - Math.min(Math.hypot(gyro.x, gyro.y), 1) * 0.6;
 
     for (let index = 0; index < blobs.length; index += 1) {
       const blob = blobs[index]!;
@@ -1046,9 +1100,15 @@ export async function createLiquidHero(
         blob.vy += (cy * 0.5 * delta) / blob.drag;
 
         // Atracción floja a un centro desplazado hacia arriba: si no, el
-        // campo las acaba echando fuera.
-        blob.vx += (centre - blob.x) * 0.55 * delta;
-        blob.vy += (0.62 + gyro.y * 0.26 - blob.y) * 0.75 * delta;
+        // campo las acaba echando fuera. Se afloja al inclinar el móvil.
+        blob.vx += (centre - blob.x) * 0.55 * levelness * delta;
+        blob.vy += (0.62 - blob.y) * 0.75 * levelness * delta;
+
+        // Y caen. Estas gotas sí acumulan velocidad, así que la gravedad
+        // entra aquí tal cual y se van apilando contra la pared de abajo.
+        // Un poco menos que la cadena, para que no la adelanten y se separen.
+        blob.vx += gravityX * 0.8 * delta;
+        blob.vy += gravityY * 0.8 * delta;
 
         // Y el empuje del texto, aquí sí como fuerza: estas gotas sí
         // acumulan velocidad, al contrario que las de la cadena.
@@ -1299,55 +1359,50 @@ export async function createLiquidHero(
     !options.reducedMotion &&
     (window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0)
   ) {
-    const listen = () => {
-      // Se escuchan las tres fuentes: no todos los móviles emiten las mismas,
-      // y la que llegue primero manda.
-      window.addEventListener('deviceorientation', onOrientation);
-      window.addEventListener('deviceorientationabsolute', onOrientation);
-      window.addEventListener('devicemotion', onMotion);
-      stopOrientation = () => {
-        window.removeEventListener('deviceorientation', onOrientation);
-        window.removeEventListener('deviceorientationabsolute', onOrientation);
-        window.removeEventListener('devicemotion', onMotion);
-      };
-    };
+    // Se escucha desde el principio y sin condiciones.
+    //
+    // Escuchar sin permiso no cuesta nada: si no lo hay, sencillamente no
+    // llega ningún evento, y en cuanto se concede empiezan a llegar a un
+    // oyente que ya estaba puesto. Antes esperaba a que requestPermission
+    // contestara 'granted' para engancharse, y ahí estaba el fallo: hay
+    // navegadores que contestan 'prompt', que no es una negativa, y el
+    // sensor se quedaba sin nadie escuchando para siempre.
+    //
+    // Se escuchan tres canales porque no todos los aparatos emiten los
+    // mismos, y manda el primero que informe.
+    window.addEventListener('deviceorientation', onOrientation);
+    window.addEventListener('deviceorientationabsolute', onOrientation);
+    window.addEventListener('devicemotion', onMotion);
 
     type Gated = { requestPermission?: () => Promise<string> };
-    const orientationApi =
-      typeof DeviceOrientationEvent === 'undefined'
-        ? undefined
-        : (DeviceOrientationEvent as unknown as Gated);
-    const motionApi =
-      typeof DeviceMotionEvent === 'undefined'
-        ? undefined
-        : (DeviceMotionEvent as unknown as Gated);
+    const apis = [
+      typeof DeviceOrientationEvent === 'undefined' ? undefined : (DeviceOrientationEvent as unknown as Gated),
+      typeof DeviceMotionEvent === 'undefined' ? undefined : (DeviceMotionEvent as unknown as Gated),
+    ];
 
-    const ask = (api?: Gated) =>
-      typeof api?.requestPermission === 'function'
-        ? api.requestPermission().catch(() => 'denied')
-        : Promise.resolve('granted');
+    // Y aparte se pide el permiso, que en iOS solo se concede dentro de un
+    // gesto del usuario. Se escuchan tres tipos de gesto porque según se
+    // toque o se arrastre no siempre llega el mismo.
+    const gestures = ['pointerdown', 'touchend', 'click'];
+    const unlock = () => {
+      gestures.forEach((name) => window.removeEventListener(name, unlock));
+      apis.forEach((api) => {
+        if (typeof api?.requestPermission === 'function') {
+          api.requestPermission().catch(() => {});
+        }
+      });
+    };
 
-    const gated =
-      typeof orientationApi?.requestPermission === 'function' ||
-      typeof motionApi?.requestPermission === 'function';
-
-    if (gated) {
-      // iOS solo concede el sensor dentro de un gesto del usuario, y no
-      // siempre llega el mismo evento según se toque o se arrastre: se
-      // escuchan los tres y el primero que entre desbloquea.
-      const gestures = ['pointerdown', 'touchend', 'click'];
-      const unlock = () => {
-        gestures.forEach((name) => window.removeEventListener(name, unlock));
-        Promise.all([ask(orientationApi), ask(motionApi)]).then((states) => {
-          if (states.includes('granted')) listen();
-        });
-      };
+    if (apis.some((api) => typeof api?.requestPermission === 'function')) {
       gestures.forEach((name) => window.addEventListener(name, unlock));
-      stopOrientation = () =>
-        gestures.forEach((name) => window.removeEventListener(name, unlock));
-    } else {
-      listen();
     }
+
+    stopOrientation = () => {
+      window.removeEventListener('deviceorientation', onOrientation);
+      window.removeEventListener('deviceorientationabsolute', onOrientation);
+      window.removeEventListener('devicemotion', onMotion);
+      gestures.forEach((name) => window.removeEventListener(name, unlock));
+    };
   }
 
   const resizeObserver = new ResizeObserver(() => {
