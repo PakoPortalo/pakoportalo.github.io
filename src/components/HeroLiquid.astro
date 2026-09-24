@@ -17,6 +17,17 @@ const { copy } = Astro.props;
   El bloque de respaldo mantiene el texto en el DOM para lectores de pantalla
   y buscadores, y es lo que se ve si no hay WebGL2.
 */}
+{/*
+  Diagnóstico de sensores. Solo aparece con ?gyro en la URL. Va FUERA del
+  hero, ocupando su propio sitio: puesto encima tapaba justo lo que hay que
+  mirar. Y escucha por su cuenta —no a través del hero— para que lo que
+  informe sea lo que manda el aparato y no lo que el hero haya entendido.
+*/}
+<div class="probe" data-gyro-probe hidden>
+  <button type="button" data-gyro-ask>Activar sensores</button>
+  <pre data-gyro-out>…</pre>
+</div>
+
 <section class="hero" data-liquid-hero>
   <canvas class="hero__canvas" data-liquid-canvas aria-hidden="true"></canvas>
 
@@ -29,16 +40,6 @@ const { copy } = Astro.props;
 
   {/* Barra de color: cierra el hero y señala el paso al siguiente módulo. */}
   <div class="bar" aria-hidden="true"></div>
-
-  {/*
-    Diagnóstico de sensores. Solo aparece con ?gyro en la URL, y escucha por
-    su cuenta —no a través del hero— para que lo que informe sea lo que manda
-    el aparato y no lo que el hero haya entendido.
-  */}
-  <div class="probe" data-gyro-probe hidden>
-    <button type="button" data-gyro-ask>Activar sensores</button>
-    <pre data-gyro-out>…</pre>
-  </div>
 
 </section>
 
@@ -114,11 +115,11 @@ const { copy } = Astro.props;
   }
 
   /* Diagnóstico de sensores. Temporal. */
+  /* El display de la clase pisa al atributo hidden, así que hay que
+     devolvérselo a mano o el panel sale siempre. */
+  .probe[hidden] { display: none; }
+
   .probe {
-    position: absolute;
-    inset-block-start: 0;
-    inset-inline: 0;
-    z-index: 4;
     padding: 12px;
     display: flex;
     flex-direction: column;

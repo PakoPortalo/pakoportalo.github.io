@@ -955,12 +955,14 @@ export async function createLiquidHero(
     const gyroEase = 1 - Math.pow(0.25, delta);
     gyro.x += (gyro.rawX - gyro.x) * gyroEase;
     gyro.y += (gyro.rawY - gyro.y) * gyroEase;
-    rawX += gyro.x * aspect * 0.3;
-    rawY += gyro.y * 0.22;
+    rawX += gyro.x * aspect * 0.8;
+    rawY += gyro.y * 0.5;
 
     // Si la cadena persigue un punto que cae fuera, los doce eslabones se
     // amontonan contra la pared y se quedan ahí pegados.
-    const edge = 0.12;
+    // En fracción del ancho, no fijo: en vertical, 0.12 a cada lado se comía
+    // más de la mitad del encuadre y dejaba la masa sin sitio a donde ir.
+    const edge = Math.min(0.12, aspect * 0.16);
     rawX = Math.min(Math.max(rawX, edge), aspect - edge);
     rawY = Math.min(Math.max(rawY, edge), 1 - edge);
 
@@ -982,7 +984,10 @@ export async function createLiquidHero(
 
     const target = { x: aim.x, y: aim.y };
 
-    const centre = aspect * MASS_BIAS_X;
+    // El centro al que tiran las gotas sueltas también se va con la
+    // inclinación. Sin esto solo se movía la cadena, que es la mitad de la
+    // masa: la otra mitad se quedaba clavada y el efecto apenas se notaba.
+    const centre = aspect * (MASS_BIAS_X + gyro.x * 0.46);
 
     for (let index = 0; index < blobs.length; index += 1) {
       const blob = blobs[index]!;
@@ -1043,7 +1048,7 @@ export async function createLiquidHero(
         // Atracción floja a un centro desplazado hacia arriba: si no, el
         // campo las acaba echando fuera.
         blob.vx += (centre - blob.x) * 0.55 * delta;
-        blob.vy += (0.62 - blob.y) * 0.75 * delta;
+        blob.vy += (0.62 + gyro.y * 0.26 - blob.y) * 0.75 * delta;
 
         // Y el empuje del texto, aquí sí como fuerza: estas gotas sí
         // acumulan velocidad, al contrario que las de la cadena.
@@ -1258,9 +1263,10 @@ export async function createLiquidHero(
   function readTilt(across: number, along: number) {
     if (!gyro.base) gyro.base = [along, across];
     const [baseAlong, baseAcross] = gyro.base;
-    // Veintiséis grados de recorrido hasta el tope: un gesto de muñeca.
-    gyro.rawX = Math.min(Math.max((across - baseAcross) / 26, -1), 1);
-    gyro.rawY = Math.min(Math.max((along - baseAlong) / 26, -1), 1);
+    // Doce grados de recorrido hasta el tope: un gesto pequeño de muñeca ya
+    // lleva la masa de lado a lado.
+    gyro.rawX = Math.min(Math.max((across - baseAcross) / 12, -1), 1);
+    gyro.rawY = Math.min(Math.max((along - baseAlong) / 12, -1), 1);
   }
 
   function onOrientation(event: DeviceOrientationEvent) {
