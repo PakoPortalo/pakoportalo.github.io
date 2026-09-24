@@ -360,7 +360,14 @@ export async function createLiquidHero(
    */
   const textZone = { right: 0.9, top: 0.6, strength: 0.16 };
   /** Inclinación del móvil, ya suavizada. */
-  const gyro = { x: 0, y: 0, rawX: 0, rawY: 0, base: null as null | [number, number] };
+  const gyro = {
+    x: 0,
+    y: 0,
+    rawX: 0,
+    rawY: 0,
+    base: null as null | [number, number],
+    source: 'none' as 'none' | 'orientation' | 'motion',
+  };
   /**
    * Inclinación de la escena hacia el cursor, suavizada.
    *
@@ -1248,49 +1255,90 @@ export async function createLiquidHero(
    * inclinación absoluta. Sin eso, mirándolo tumbado en el sofá la masa se
    * iría a un lado y se quedaría ahí.
    */
+  function readTilt(across: number, along: number) {
+    if (!gyro.base) gyro.base = [along, across];
+    const [baseAlong, baseAcross] = gyro.base;
+    // Veintiséis grados de recorrido hasta el tope: un gesto de muñeca.
+    gyro.rawX = Math.min(Math.max((across - baseAcross) / 26, -1), 1);
+    gyro.rawY = Math.min(Math.max((along - baseAlong) / 26, -1), 1);
+  }
+
   function onOrientation(event: DeviceOrientationEvent) {
     const { beta, gamma } = event;
     if (beta === null || gamma === null) return;
-    if (!gyro.base) gyro.base = [beta, gamma];
-    const [baseBeta, baseGamma] = gyro.base;
-    // Veintiséis grados de recorrido hasta el tope: un gesto de muñeca.
-    gyro.rawX = Math.min(Math.max((gamma - baseGamma) / 26, -1), 1);
-    gyro.rawY = Math.min(Math.max((beta - baseBeta) / 26, -1), 1);
+    gyro.source = 'orientation';
+    readTilt(gamma, beta);
+  }
+
+  /**
+   * Respaldo por acelerómetro.
+   *
+   * Hay móviles que no emiten deviceorientation y sí devicemotion, y el
+   * vector de la gravedad dice la inclinación igual de bien: cuánta gravedad
+   * cae sobre el eje X es cuánto está ladeado el aparato. Se convierte a
+   * grados para que comparta el mismo recorrido que la otra fuente.
+   */
+  function onMotion(event: DeviceMotionEvent) {
+    // Si la orientación ya está informando, esta se aparta.
+    if (gyro.source === 'orientation') return;
+    const gravity = event.accelerationIncludingGravity;
+    if (!gravity || gravity.x === null || gravity.y === null) return;
+    gyro.source = 'motion';
+    readTilt((-gravity.x / 9.81) * 45, (gravity.y / 9.81) * 45);
   }
 
   let stopOrientation = () => {};
 
   if (
     !options.reducedMotion &&
-    window.matchMedia('(pointer: coarse)').matches &&
-    typeof DeviceOrientationEvent !== 'undefined'
+    (window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0)
   ) {
     const listen = () => {
+      // Se escuchan las tres fuentes: no todos los móviles emiten las mismas,
+      // y la que llegue primero manda.
       window.addEventListener('deviceorientation', onOrientation);
-      stopOrientation = () =>
+      window.addEventListener('deviceorientationabsolute', onOrientation);
+      window.addEventListener('devicemotion', onMotion);
+      stopOrientation = () => {
         window.removeEventListener('deviceorientation', onOrientation);
+        window.removeEventListener('deviceorientationabsolute', onOrientation);
+        window.removeEventListener('devicemotion', onMotion);
+      };
     };
 
-    const request = (
-      DeviceOrientationEvent as unknown as {
-        requestPermission?: () => Promise<'granted' | 'denied' | 'prompt'>;
-      }
-    ).requestPermission;
+    type Gated = { requestPermission?: () => Promise<string> };
+    const orientationApi =
+      typeof DeviceOrientationEvent === 'undefined'
+        ? undefined
+        : (DeviceOrientationEvent as unknown as Gated);
+    const motionApi =
+      typeof DeviceMotionEvent === 'undefined'
+        ? undefined
+        : (DeviceMotionEvent as unknown as Gated);
 
-    if (typeof request === 'function') {
-      // iOS solo lo concede dentro de un gesto del usuario, así que se pide
-      // en el primer toque. Si lo deniega no se rompe nada: queda el paseo
-      // autónomo, igual que en un ordenador.
-      const ask = () => {
-        request
-          .call(DeviceOrientationEvent)
-          .then((state) => {
-            if (state === 'granted') listen();
-          })
-          .catch(() => {});
+    const ask = (api?: Gated) =>
+      typeof api?.requestPermission === 'function'
+        ? api.requestPermission().catch(() => 'denied')
+        : Promise.resolve('granted');
+
+    const gated =
+      typeof orientationApi?.requestPermission === 'function' ||
+      typeof motionApi?.requestPermission === 'function';
+
+    if (gated) {
+      // iOS solo concede el sensor dentro de un gesto del usuario, y no
+      // siempre llega el mismo evento según se toque o se arrastre: se
+      // escuchan los tres y el primero que entre desbloquea.
+      const gestures = ['pointerdown', 'touchend', 'click'];
+      const unlock = () => {
+        gestures.forEach((name) => window.removeEventListener(name, unlock));
+        Promise.all([ask(orientationApi), ask(motionApi)]).then((states) => {
+          if (states.includes('granted')) listen();
+        });
       };
-      window.addEventListener('touchend', ask, { once: true });
-      stopOrientation = () => window.removeEventListener('touchend', ask);
+      gestures.forEach((name) => window.addEventListener(name, unlock));
+      stopOrientation = () =>
+        gestures.forEach((name) => window.removeEventListener(name, unlock));
     } else {
       listen();
     }

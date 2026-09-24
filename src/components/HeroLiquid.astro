@@ -30,6 +30,16 @@ const { copy } = Astro.props;
   {/* Barra de color: cierra el hero y señala el paso al siguiente módulo. */}
   <div class="bar" aria-hidden="true"></div>
 
+  {/*
+    Diagnóstico de sensores. Solo aparece con ?gyro en la URL, y escucha por
+    su cuenta —no a través del hero— para que lo que informe sea lo que manda
+    el aparato y no lo que el hero haya entendido.
+  */}
+  <div class="probe" data-gyro-probe hidden>
+    <button type="button" data-gyro-ask>Activar sensores</button>
+    <pre data-gyro-out>…</pre>
+  </div>
+
 </section>
 
 <style>
@@ -103,6 +113,40 @@ const { copy } = Astro.props;
     white-space: nowrap;
   }
 
+  /* Diagnóstico de sensores. Temporal. */
+  .probe {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    z-index: 4;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: rgb(8 8 8 / 0.88);
+    color: #fff;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .probe :global(button) {
+    appearance: none;
+    border: 1px solid rgb(255 255 255 / 0.3);
+    background: rgb(255 255 255 / 0.1);
+    color: #fff;
+    font: inherit;
+    font-size: 15px;
+    padding: 14px;
+    border-radius: 10px;
+  }
+
+  .probe :global(pre) {
+    margin: 0;
+    white-space: pre-wrap;
+    color: rgb(255 255 255 / 0.85);
+  }
+
   /* Barra de color: guiño a las tiras de control de color de imprenta. */
   .bar {
     position: absolute;
@@ -148,6 +192,92 @@ const { copy } = Astro.props;
     };
   }
 
+  /**
+   * Cuenta lo que el aparato manda de verdad por cada canal de sensores.
+   *
+   * Mide por su cuenta, sin pasar por el hero, para poder distinguir dos
+   * cosas que desde fuera se parecen: que el móvil no emita nada, o que
+   * emita y el hero no lo esté usando.
+   */
+  function mountProbe() {
+    const panel = document.querySelector<HTMLElement>('[data-gyro-probe]');
+    const out = document.querySelector<HTMLElement>('[data-gyro-out]');
+    const button = document.querySelector<HTMLButtonElement>('[data-gyro-ask]');
+    if (!panel || !out || !button) return;
+    panel.hidden = false;
+
+    type Gated = { requestPermission?: () => Promise<string> };
+    const orientation =
+      typeof DeviceOrientationEvent === 'undefined'
+        ? undefined
+        : (DeviceOrientationEvent as unknown as Gated);
+    const motion =
+      typeof DeviceMotionEvent === 'undefined'
+        ? undefined
+        : (DeviceMotionEvent as unknown as Gated);
+
+    const counts = { orientation: 0, absolute: 0, motion: 0 };
+    let last = '—';
+    let granted = 'sin pedir';
+
+    const report = () => {
+      out.textContent = [
+        `https (contexto seguro) : ${window.isSecureContext}`,
+        `pointer: coarse         : ${matchMedia('(pointer: coarse)').matches}`,
+        `puntos tactiles         : ${navigator.maxTouchPoints}`,
+        `DeviceOrientationEvent  : ${orientation ? 'si' : 'NO'}  pide permiso: ${typeof orientation?.requestPermission === 'function'}`,
+        `DeviceMotionEvent       : ${motion ? 'si' : 'NO'}  pide permiso: ${typeof motion?.requestPermission === 'function'}`,
+        `permiso                 : ${granted}`,
+        `eventos orientation     : ${counts.orientation}`,
+        `eventos absolute        : ${counts.absolute}`,
+        `eventos motion          : ${counts.motion}`,
+        `ultima lectura          : ${last}`,
+      ].join('\n');
+    };
+
+    const onOrientation = (event: DeviceOrientationEvent, absolute: boolean) => {
+      if (absolute) counts.absolute += 1;
+      else counts.orientation += 1;
+      last = `beta ${event.beta?.toFixed(1) ?? 'null'}  gamma ${event.gamma?.toFixed(1) ?? 'null'}`;
+      report();
+    };
+    const onMotion = (event: DeviceMotionEvent) => {
+      counts.motion += 1;
+      const g = event.accelerationIncludingGravity;
+      if (g) last = `gravedad x ${g.x?.toFixed(1) ?? 'null'}  y ${g.y?.toFixed(1) ?? 'null'}`;
+      report();
+    };
+
+    const listen = () => {
+      window.addEventListener('deviceorientation', (e) => onOrientation(e, false));
+      window.addEventListener('deviceorientationabsolute', (e) =>
+        onOrientation(e as DeviceOrientationEvent, true),
+      );
+      window.addEventListener('devicemotion', onMotion);
+    };
+
+    button.addEventListener('click', () => {
+      const ask = (api?: Gated) =>
+        typeof api?.requestPermission === 'function'
+          ? api.requestPermission().catch((error: Error) => `error: ${error.message}`)
+          : Promise.resolve('no hace falta');
+      Promise.all([ask(orientation), ask(motion)]).then((states) => {
+        granted = states.join(' / ');
+        report();
+        listen();
+      });
+    });
+
+    // En lo que no pide permiso, se escucha ya.
+    if (
+      typeof orientation?.requestPermission !== 'function' &&
+      typeof motion?.requestPermission !== 'function'
+    ) {
+      listen();
+    }
+    report();
+  }
+
   if (section && canvas) {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const params = new URLSearchParams(location.search);
@@ -156,6 +286,7 @@ const { copy } = Astro.props;
     // Se puede cambiar de composición con ?marks=N sin tocar el código; no
     // hay interfaz para ello porque ya está elegida.
     const marks = Number(params.get('marks') ?? '5');
+    if (params.has('gyro')) mountProbe();
 
     createLiquidHero(canvas, {
       copy: readCopy(),

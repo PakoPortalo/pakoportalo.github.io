@@ -437,7 +437,12 @@ export function dotFan(
   ctx.restore();
 }
 
-/** Disco de anillos concéntricos muy juntos. */
+/**
+ * Disco de anillos concéntricos muy juntos.
+ *
+ * Los de fuera van más apagados que los de dentro: con todos al mismo tono
+ * el disco se lee como una trama plana, y escalonándolos parece que gira.
+ */
 export function concentricRings(
   ctx: CanvasRenderingContext2D,
   centreX: number,
@@ -446,11 +451,12 @@ export function concentricRings(
   count: number,
 ) {
   ctx.save();
-  ctx.strokeStyle = WHITE(0.3);
-  ctx.lineWidth = Math.max(radius * 0.008, 0.6);
+  ctx.lineWidth = Math.max(radius * 0.012, 0.8);
   for (let index = 1; index <= count; index += 1) {
+    const t = index / count;
+    ctx.strokeStyle = WHITE(0.72 - t * 0.28);
     ctx.beginPath();
-    ctx.arc(centreX, centreY, (radius * index) / count, 0, Math.PI * 2);
+    ctx.arc(centreX, centreY, radius * t, 0, Math.PI * 2);
     ctx.stroke();
   }
   ctx.restore();
@@ -574,15 +580,13 @@ export const MARK_PRESETS: MarkPreset[] = [
       const columns = Math.round(18 - compact * 7);
       halftoneFade(ctx, margin, top, columns, rows, cell, 0);
 
+      // En pantalla estrecha el disco se cae de la composición: abajo a la
+      // derecha lo ocupa el texto, y en cualquier otro sitio queda flotando.
+      // Antes que colocarlo mal, no ponerlo.
+      if (compact > 0.45) return;
+
       const rings = Math.min(Math.max(width * 0.032, 26), 52);
-      // En pantalla estrecha el bloque de texto ocupa todo el ancho de abajo,
-      // así que el disco no cabe en esa esquina. Sube al hueco del medio, a
-      // la derecha, y la composición se sigue leyendo en diagonal.
-      const ringsY =
-        compact > 0.45
-          ? (top + cell * rows + (eyebrowBaseline - bigSize * 1.3)) / 2
-          : blockBottom - rings;
-      concentricRings(ctx, width - margin - rings, ringsY, rings, 11);
+      concentricRings(ctx, width - margin - rings, blockBottom - rings, rings, 11);
     },
   },
 ];
