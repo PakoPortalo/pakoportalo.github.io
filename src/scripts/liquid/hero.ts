@@ -34,16 +34,26 @@ const SMOKE_SCALE = 0.5;
  */
 const FLOW_SCALE = 0.25;
 /**
- * Cuánta gravedad mete la inclinación del móvil, en unidades de alto por
- * segundo al cuadrado. Es lo que convierte la pantalla en un recipiente.
+ * Cómo responde la masa a la inclinación, dicho en términos de tacto y no de
+ * constantes sueltas: de aquí salen luego el muelle y el rozamiento.
+ *
+ * - RESPONSE es la rapidez, en radianes por segundo. Con 13 la masa está
+ *   colocada en algo más de medio segundo, que es lo que hace falta para que
+ *   se lea como consecuencia de haber movido el móvil y no como casualidad.
+ * - DAMPING por debajo de 1 deja que se pase de largo y vuelva: eso es el
+ *   vaivén del agua. A 1 llegaría clavada y parecería un panel deslizándose.
  */
-const GRAVITY = 3.4;
+const POOL_RESPONSE = 13;
+const POOL_DAMPING = 0.55;
+
 /**
- * Lo que tira el líquido por volver al centro cuando el móvil está recto.
- * Junto con GRAVITY decide hasta dónde llega el charco: el reposo está en
- * GRAVITY / POOL_SPRING, o sea a un tercio de la pantalla del centro.
+ * Con el giroscopio dando datos, cuánto queda del paseo autónomo.
+ *
+ * Casi nada, y es deliberado: si el agua se mueve sola no hay forma de
+ * atribuirle al giro lo que ves moverse. Es la diferencia entre un fondo
+ * animado y un mando.
  */
-const POOL_SPRING = 9.5;
+const GYRO_DRIFT = 0.12;
 
 /** Radio de la brocha que estampa el cursor, en unidades de aspecto. */
 const FLOW_RADIUS = 0.19;
@@ -388,6 +398,8 @@ export async function createLiquidHero(
     rawY: 0,
     base: null as null | [number, number],
     source: 'none' as 'none' | 'orientation' | 'motion',
+    /** True en cuanto ha llegado alguna lectura: hay sensor de verdad. */
+    live: false,
   };
   /**
    * Inclinación de la escena hacia el cursor, suavizada.
@@ -972,8 +984,18 @@ export async function createLiquidHero(
     wander.y = Math.min(Math.max(wander.y, 0.42), 0.88);
 
     const blend = Math.min(Math.max((idle - 0.9) / 1.4, 0), 1);
-    let rawX = pointer.x * aspect * (1 - blend) + wander.x * blend;
-    let rawY = pointer.y * (1 - blend) + wander.y * blend;
+
+    // Con el sensor dando datos el paseo autónomo se apaga casi del todo y la
+    // masa se queda en un punto de reposo fijo. Es LO MÁS importante de todo
+    // esto: mientras el agua se movía sola, ningún movimiento que vieras
+    // podías atribuírselo al giro, por mucha fuerza que le metiera.
+    const restX = MASS_BIAS_X * aspect;
+    const drift = gyro.live ? GYRO_DRIFT : 1;
+    const idleX = restX + (wander.x - restX) * drift;
+    const idleY = 0.62 + (wander.y - 0.62) * drift;
+
+    let rawX = pointer.x * aspect * (1 - blend) + idleX * blend;
+    let rawY = pointer.y * (1 - blend) + idleY * blend;
 
     // Inclinación del móvil: desplaza el objetivo. Es el único mando que hay
     // cuando no se toca la pantalla, así que aquí sí conviene que empuje.
@@ -994,19 +1016,24 @@ export async function createLiquidHero(
     // arriba que la cadena copiaba tal cual.
     rawY += textLift(rawX, rawY);
 
-    // --- Gravedad de la inclinación ---
+    // --- Inclinación ---
     //
-    // Inclinar no mueve un punto de destino: añade gravedad. La masa cae
-    // hacia el lado bajo y se amontona contra la pared, con su inercia. Es
-    // la diferencia entre empujar el agua y ladear la bandeja.
-    const gravityX = gyro.x * GRAVITY;
-    const gravityY = gyro.y * GRAVITY;
+    // Inclinar no mueve un punto de destino al que la masa persigue: desplaza
+    // el sitio donde el agua quiere estar, y la masa va hasta allí con su
+    // inercia. La diferencia se nota al enderezar el móvil, que es cuando
+    // vuelve pasándose de largo.
+    //
+    // El alcance se mide contra el hueco que hay de verdad hasta la pared, no
+    // en unidades fijas. Pidiendo más de lo que cabe, el recorte contra el
+    // borde se comía la mitad del gesto: seguías inclinando y ya no pasaba
+    // nada, que es lo que hacía que no se entendiera el mando.
+    const reachX = Math.max(aspect * 0.5 - edge, 0.05);
+    const reachY = Math.max(0.5 - edge, 0.05) * 0.62;
 
-    pool.vx += (gravityX - pool.x * POOL_SPRING) * delta;
-    pool.vy += (gravityY - pool.y * POOL_SPRING) * delta;
-    // Amortiguado por debajo del crítico a propósito: pasarse un poco de
-    // largo y volver es exactamente el vaivén del agua en un recipiente.
-    const poolDrag = Math.pow(0.02, delta);
+    const spring = POOL_RESPONSE * POOL_RESPONSE;
+    const poolDrag = Math.exp(-2 * POOL_DAMPING * POOL_RESPONSE * delta);
+    pool.vx += (gyro.x * reachX - pool.x) * spring * delta;
+    pool.vy += (gyro.y * reachY - pool.y) * spring * delta;
     pool.vx *= poolDrag;
     pool.vy *= poolDrag;
     pool.x += pool.vx * delta;
@@ -1031,17 +1058,15 @@ export async function createLiquidHero(
       y: Math.min(Math.max(aim.y + pool.y, edge), 1 - edge),
     };
 
-    const centre = aspect * MASS_BIAS_X;
-    /**
-     * Con el móvil ladeado el centro deja de tirar.
-     *
-     * Si siguiera tirando, el agua no podría amontonarse en la esquina: hay
-     * que elegir entre que la masa se quede compuesta en su sitio o que se
-     * comporte como un líquido, y ladeando el aparato queremos lo segundo.
-     */
-    // No se anula del todo: aflojándolo entero las gotas se desperdigaban en
-    // cuentas sueltas por la pared, y eso ya no parece un líquido.
-    const levelness = 1 - Math.min(Math.hypot(gyro.x, gyro.y), 1) * 0.6;
+    // El sitio al que tiran las gotas sueltas se corre con el charco: el
+    // mismo desplazamiento que lleva la cadena.
+    //
+    // Antes cada gota recibía su propio empujón hacia el lado bajo, y la masa
+    // se deshacía en cuentas separadas: vistoso un segundo, pero deja de
+    // parecer líquido. Moviendo su centro en vez de empujarlas una a una, la
+    // masa entera se desplaza conservando su forma, y el vaivén se lo pone el
+    // muelle del charco.
+    const centre = aspect * MASS_BIAS_X + pool.x;
 
     for (let index = 0; index < blobs.length; index += 1) {
       const blob = blobs[index]!;
@@ -1101,14 +1126,9 @@ export async function createLiquidHero(
 
         // Atracción floja a un centro desplazado hacia arriba: si no, el
         // campo las acaba echando fuera. Se afloja al inclinar el móvil.
-        blob.vx += (centre - blob.x) * 0.55 * levelness * delta;
-        blob.vy += (0.62 - blob.y) * 0.75 * levelness * delta;
+        blob.vx += (centre - blob.x) * 0.55 * delta;
+        blob.vy += (0.62 + pool.y - blob.y) * 0.75 * delta;
 
-        // Y caen. Estas gotas sí acumulan velocidad, así que la gravedad
-        // entra aquí tal cual y se van apilando contra la pared de abajo.
-        // Un poco menos que la cadena, para que no la adelanten y se separen.
-        blob.vx += gravityX * 0.8 * delta;
-        blob.vy += gravityY * 0.8 * delta;
 
         // Y el empuje del texto, aquí sí como fuerza: estas gotas sí
         // acumulan velocidad, al contrario que las de la cadena.
@@ -1321,12 +1341,20 @@ export async function createLiquidHero(
    * iría a un lado y se quedaría ahí.
    */
   function readTilt(across: number, along: number) {
+    gyro.live = true;
     if (!gyro.base) gyro.base = [along, across];
     const [baseAlong, baseAcross] = gyro.base;
-    // Doce grados de recorrido hasta el tope: un gesto pequeño de muñeca ya
-    // lleva la masa de lado a lado.
-    gyro.rawX = Math.min(Math.max((across - baseAcross) / 12, -1), 1);
-    gyro.rawY = Math.min(Math.max((along - baseAlong) / 12, -1), 1);
+    // Doce grados de recorrido hasta el tope, pero con la curva expandida
+    // cerca del cero: a un tercio de la inclinación le corresponde la mitad
+    // del recorrido. Girar mucho el móvil no es una opción —a los pocos
+    // grados la pantalla se pone horizontal— así que lo que tiene que rendir
+    // es el gesto pequeño.
+    const curve = (degrees: number) => {
+      const t = Math.min(Math.max(degrees / 12, -1), 1);
+      return Math.sign(t) * Math.abs(t) ** 0.65;
+    };
+    gyro.rawX = curve(across - baseAcross);
+    gyro.rawY = curve(along - baseAlong);
   }
 
   function onOrientation(event: DeviceOrientationEvent) {
