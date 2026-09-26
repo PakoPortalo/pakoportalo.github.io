@@ -1384,13 +1384,31 @@ export async function createLiquidHero(
     // gesto del usuario. Se escuchan tres tipos de gesto porque según se
     // toque o se arrastre no siempre llega el mismo.
     const gestures = ['pointerdown', 'touchend', 'click'];
+
+    /**
+     * Se cuenta a quien quiera oírlo qué ha contestado el permiso.
+     *
+     * Es para que la pantalla de diagnóstico pueda informar del resultado sin
+     * volver a pedirlo por su cuenta: dos peticiones a la vez y iOS deniega
+     * la segunda, con lo que el diagnóstico acusaba al móvil de un problema
+     * que causaba él mismo.
+     */
+    const announce = (state: string) => {
+      window.dispatchEvent(new CustomEvent('hero:sensor', { detail: state }));
+    };
+
     const unlock = () => {
       gestures.forEach((name) => window.removeEventListener(name, unlock));
+      let asked = false;
       apis.forEach((api) => {
-        if (typeof api?.requestPermission === 'function') {
-          api.requestPermission().catch(() => {});
-        }
+        if (typeof api?.requestPermission !== 'function') return;
+        asked = true;
+        api
+          .requestPermission()
+          .then(announce)
+          .catch((error: Error) => announce(`error: ${error.message}`));
       });
+      if (!asked) announce('no hace falta');
     };
 
     if (apis.some((api) => typeof api?.requestPermission === 'function')) {

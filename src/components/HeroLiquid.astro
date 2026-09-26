@@ -229,6 +229,7 @@ const { copy } = Astro.props;
         `DeviceOrientationEvent  : ${orientation ? 'si' : 'NO'}  pide permiso: ${typeof orientation?.requestPermission === 'function'}`,
         `DeviceMotionEvent       : ${motion ? 'si' : 'NO'}  pide permiso: ${typeof motion?.requestPermission === 'function'}`,
         `permiso                 : ${granted}`,
+        `navegador               : ${navigator.userAgent}`,
         `eventos orientation     : ${counts.orientation}`,
         `eventos absolute        : ${counts.absolute}`,
         `eventos motion          : ${counts.motion}`,
@@ -257,25 +258,18 @@ const { copy } = Astro.props;
       window.addEventListener('devicemotion', onMotion);
     };
 
-    button.addEventListener('click', () => {
-      const ask = (api?: Gated) =>
-        typeof api?.requestPermission === 'function'
-          ? api.requestPermission().catch((error: Error) => `error: ${error.message}`)
-          : Promise.resolve('no hace falta');
-      Promise.all([ask(orientation), ask(motion)]).then((states) => {
-        granted = states.join(' / ');
-        report();
-        listen();
-      });
+    // El botón NO pide el permiso: solo hace de gesto, que es lo que el hero
+    // necesita para pedirlo él. Pidiéndolo los dos, iOS deniega la segunda
+    // petición y el diagnóstico acababa acusando al móvil de un problema que
+    // causaba él mismo.
+    window.addEventListener('hero:sensor', (event) => {
+      granted = String((event as CustomEvent).detail);
+      report();
     });
 
-    // En lo que no pide permiso, se escucha ya.
-    if (
-      typeof orientation?.requestPermission !== 'function' &&
-      typeof motion?.requestPermission !== 'function'
-    ) {
-      listen();
-    }
+    // Y se escucha siempre, con permiso o sin él: si no lo hay no llega nada,
+    // y si llega a haberlo los contadores lo cazan sin tener que reenganchar.
+    listen();
     report();
   }
 
