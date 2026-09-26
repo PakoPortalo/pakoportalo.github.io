@@ -62,6 +62,19 @@ const GYRO_DRIFT = 0.12;
  */
 const TILT_PUSH = 3.4;
 
+/**
+ * La postura de partida: el móvil cogido en la mano, no apoyado en la mesa.
+ *
+ * beta mide la inclinación adelante/atrás: vale 90 con el aparato de pie y 0
+ * tumbado boca arriba. Cogiéndolo para mirarlo se queda sobre los 55. Si el
+ * cero se tomara de la primera lectura —como hacía antes— la referencia
+ * acababa siendo la postura que tuviera al cargar la página, muchas veces
+ * encima de una mesa, y entonces el simple hecho de cogerlo ya contaba como
+ * una inclinación enorme y el agua se iba arriba y se quedaba ahí.
+ */
+const REST_BETA = 55;
+const REST_GAMMA = 0;
+
 /** Radio de la brocha que estampa el cursor, en unidades de aspecto. */
 const FLOW_RADIUS = 0.19;
 /** Qué fracción de la huella sobrevive cada segundo. */
@@ -1082,7 +1095,7 @@ export async function createLiquidHero(
     // parecer líquido. Moviendo su centro en vez de empujarlas una a una, la
     // masa entera se desplaza conservando su forma, y el vaivén se lo pone el
     // muelle del charco.
-    const centre = aspect * MASS_BIAS_X + pool.x;
+    const centreRest = aspect * MASS_BIAS_X;
 
     for (let index = 0; index < blobs.length; index += 1) {
       const blob = blobs[index]!;
@@ -1154,10 +1167,17 @@ export async function createLiquidHero(
           blob.vx += (aspect * MASS_BIAS_X - blob.x) * 0.55 * hold * delta;
           blob.vy += (0.62 - blob.y) * 0.75 * hold * delta;
         } else {
-          // Atracción floja a un centro desplazado hacia arriba: si no, el
-          // campo las acaba echando fuera.
-          blob.vx += (centre - blob.x) * 0.55 * delta;
-          blob.vy += (0.62 + pool.y - blob.y) * 0.75 * delta;
+          // Cada gota sigue el desplazamiento con su propia medida: las
+          // pequeñas se adelantan y las grandes se quedan atrás, así que la
+          // masa se estira al moverse en vez de trasladarse en bloque.
+          //
+          // Importa más de lo que parece: un bloque que se desplaza entero
+          // apenas se percibe, porque lo que el ojo caza no es el movimiento
+          // absoluto sino el de unas partes respecto a otras. Por eso el modo
+          // de cuentas se sentía y este no.
+          const follow = 1.3 - blob.radius * 2.4;
+          blob.vx += (centreRest + pool.x * follow - blob.x) * 0.55 * delta;
+          blob.vy += (0.62 + pool.y * follow - blob.y) * 0.75 * delta;
         }
 
 
@@ -1371,10 +1391,9 @@ export async function createLiquidHero(
    * inclinación absoluta. Sin eso, mirándolo tumbado en el sofá la masa se
    * iría a un lado y se quedaría ahí.
    */
-  function readTilt(across: number, along: number) {
+  function readTilt(across: number, along: number, rest: [number, number]) {
     gyro.live = true;
-    if (!gyro.base) gyro.base = [along, across];
-    const [baseAlong, baseAcross] = gyro.base;
+    const [baseAlong, baseAcross] = rest;
     // Doce grados de recorrido hasta el tope, pero con la curva expandida
     // cerca del cero: a un tercio de la inclinación le corresponde la mitad
     // del recorrido. Girar mucho el móvil no es una opción —a los pocos
@@ -1392,7 +1411,8 @@ export async function createLiquidHero(
     const { beta, gamma } = event;
     if (beta === null || gamma === null) return;
     gyro.source = 'orientation';
-    readTilt(gamma, beta);
+    // Referencia fija: la postura en la que se sostiene un móvil para mirarlo.
+    readTilt(gamma, beta, [REST_BETA, REST_GAMMA]);
   }
 
   /**
@@ -1409,7 +1429,12 @@ export async function createLiquidHero(
     const gravity = event.accelerationIncludingGravity;
     if (!gravity || gravity.x === null || gravity.y === null) return;
     gyro.source = 'motion';
-    readTilt((-gravity.x / 9.81) * 45, (gravity.y / 9.81) * 45);
+    // Este es el respaldo y sus unidades no son grados de verdad, así que
+    // aquí sí vale tomar la primera lectura como referencia.
+    const across = (-gravity.x / 9.81) * 45;
+    const along = (gravity.y / 9.81) * 45;
+    if (!gyro.base) gyro.base = [along, across];
+    readTilt(across, along, gyro.base);
   }
 
   let stopOrientation = () => {};
