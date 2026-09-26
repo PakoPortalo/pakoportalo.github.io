@@ -1383,7 +1383,13 @@ export async function createLiquidHero(
     // Y aparte se pide el permiso, que en iOS solo se concede dentro de un
     // gesto del usuario. Se escuchan tres tipos de gesto porque según se
     // toque o se arrastre no siempre llega el mismo.
-    const gestures = ['pointerdown', 'touchend', 'click'];
+    // Solo touchend y click.
+    //
+    // WebKit no considera pointerdown un gesto válido para pedir el sensor:
+    // contesta "requires a user gesture to prompt" y no llega a enseñar la
+    // ventana. Como pointerdown se dispara ANTES que touchend, bastaba con
+    // tenerlo en la lista para que se llevara el único intento.
+    const gestures = ['touchend', 'click'];
 
     /**
      * Se cuenta a quien quiera oírlo qué ha contestado el permiso.
@@ -1397,19 +1403,38 @@ export async function createLiquidHero(
       window.dispatchEvent(new CustomEvent('hero:sensor', { detail: state }));
     };
 
-    const unlock = () => {
+    // Y no se deja de escuchar hasta que haya una respuesta de verdad.
+    //
+    // Antes se soltaban los oyentes al primer gesto, hubiera contestado o no.
+    // Si ese intento fallaba —porque el gesto no valía, o porque el usuario
+    // descartó la ventana— ya no había segunda oportunidad en toda la sesión.
+    let settled = false;
+    const detach = () => {
       gestures.forEach((name) => window.removeEventListener(name, unlock));
+    };
+
+    function unlock() {
+      if (settled) return;
       let asked = false;
       apis.forEach((api) => {
         if (typeof api?.requestPermission !== 'function') return;
         asked = true;
         api
           .requestPermission()
-          .then(announce)
-          .catch((error: Error) => announce(`error: ${error.message}`));
+          .then((state) => {
+            settled = true;
+            detach();
+            announce(state);
+          })
+          // Sin soltar los oyentes: al próximo toque se vuelve a intentar.
+          .catch((error: Error) => announce(`reintentando (${error.message})`));
       });
-      if (!asked) announce('no hace falta');
-    };
+      if (!asked) {
+        settled = true;
+        detach();
+        announce('no hace falta');
+      }
+    }
 
     if (apis.some((api) => typeof api?.requestPermission === 'function')) {
       gestures.forEach((name) => window.addEventListener(name, unlock));
@@ -1419,7 +1444,7 @@ export async function createLiquidHero(
       window.removeEventListener('deviceorientation', onOrientation);
       window.removeEventListener('deviceorientationabsolute', onOrientation);
       window.removeEventListener('devicemotion', onMotion);
-      gestures.forEach((name) => window.removeEventListener(name, unlock));
+      detach();
     };
   }
 
