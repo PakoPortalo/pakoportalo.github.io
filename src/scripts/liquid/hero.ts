@@ -55,6 +55,13 @@ const POOL_DAMPING = 0.55;
  */
 const GYRO_DRIFT = 0.12;
 
+/**
+ * Cuánto empuja la inclinación a cada gota en el modo de cuentas sueltas.
+ * Va aparte del muelle del desplazamiento: a una gota, eso le llegaría como
+ * aceleración bruta y saldría disparada.
+ */
+const TILT_PUSH = 3.4;
+
 /** Radio de la brocha que estampa el cursor, en unidades de aspecto. */
 const FLOW_RADIUS = 0.19;
 /** Qué fracción de la huella sobrevive cada segundo. */
@@ -72,6 +79,13 @@ export interface LiquidOptions {
   reducedMotion: boolean;
   /** Cuál de las composiciones de marcas se pinta. 0 = ninguna. */
   marks?: number;
+  /**
+   * Cómo reacciona el líquido al inclinar el móvil.
+   *
+   * - 'masa' desplaza el conjunto entero conservando su forma.
+   * - 'cuentas' suelta cada gota por su cuenta y se separan rodando.
+   */
+  water?: 'masa' | 'cuentas';
   /**
    * Apaga el líquido y deja solo humo y texto. Sirve para juzgar la
    * maquetación: con el líquido encima no se puede leer nada.
@@ -1058,6 +1072,8 @@ export async function createLiquidHero(
       y: Math.min(Math.max(aim.y + pool.y, edge), 1 - edge),
     };
 
+    const beads = options.water === 'cuentas';
+
     // El sitio al que tiran las gotas sueltas se corre con el charco: el
     // mismo desplazamiento que lleva la cadena.
     //
@@ -1124,10 +1140,25 @@ export async function createLiquidHero(
         blob.vx += (cx * 0.5 * delta) / blob.drag;
         blob.vy += (cy * 0.5 * delta) / blob.drag;
 
-        // Atracción floja a un centro desplazado hacia arriba: si no, el
-        // campo las acaba echando fuera. Se afloja al inclinar el móvil.
-        blob.vx += (centre - blob.x) * 0.55 * delta;
-        blob.vy += (0.62 + pool.y - blob.y) * 0.75 * delta;
+        if (beads) {
+          // Cada gota rueda por su cuenta hacia el lado bajo, y las grandes
+          // van más perezosas. Esa variación es lo que hace que se lean como
+          // cuentas sueltas: respondiendo todas igual se moverían en
+          // formación y se verían como una pieza troceada, no como gotas.
+          const roll = TILT_PUSH / (0.5 + blob.radius * 3.4);
+          blob.vx += gyro.x * roll * delta;
+          blob.vy += gyro.y * roll * delta;
+
+          // Y el centro casi deja de tirar, o no llegarían a separarse.
+          const hold = 1 - Math.min(Math.hypot(gyro.x, gyro.y), 1) * 0.85;
+          blob.vx += (aspect * MASS_BIAS_X - blob.x) * 0.55 * hold * delta;
+          blob.vy += (0.62 - blob.y) * 0.75 * hold * delta;
+        } else {
+          // Atracción floja a un centro desplazado hacia arriba: si no, el
+          // campo las acaba echando fuera.
+          blob.vx += (centre - blob.x) * 0.55 * delta;
+          blob.vy += (0.62 + pool.y - blob.y) * 0.75 * delta;
+        }
 
 
         // Y el empuje del texto, aquí sí como fuerza: estas gotas sí

@@ -282,6 +282,8 @@ const { copy } = Astro.props;
     // hay interfaz para ello porque ya está elegida.
     const marks = Number(params.get('marks') ?? '5');
     if (params.has('gyro')) mountProbe();
+    // ?water=cuentas suelta cada gota por su cuenta al inclinar el móvil.
+    const water = params.get('water') === 'cuentas' ? 'cuentas' : 'masa';
 
     createLiquidHero(canvas, {
       copy: readCopy(),
@@ -289,6 +291,7 @@ const { copy } = Astro.props;
       reducedMotion,
       plain,
       marks,
+      water,
     })
       .then(() => {
         section.classList.add('is-live');
