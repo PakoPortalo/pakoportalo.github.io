@@ -718,13 +718,30 @@ export async function createLiquidHero(
     // La segunda línea tiene su propio tipo y su propia escala. Y NO se pinta
     // aquí: se mide aquí y se pinta en drawSubtitle(), sobre su propio
     // lienzo, porque tiene que poder repintarse sola.
-    const subtitleSize = bigSize * (subtitleFont.sizeScale / titleFont.sizeScale);
+    let subtitleSize = bigSize * (subtitleFont.sizeScale / titleFont.sizeScale);
     const weightGap = subtitleFont.titleWeight - subtitleFont.subtitleWeight;
     const subtitleAlpha = weightGap < 150 ? 0.62 : 0.9;
-    const subtitleCss = `${subtitleFont.subtitleWeight} ${subtitleSize}px ${subtitleStack}`;
-    const subtitleSpacing = `${subtitleSize * subtitleFont.tracking}px`;
+
+    // Y se encaja igual que el título.
+    //
+    // Antes solo se encajaba el título y la segunda línea heredaba su cuerpo
+    // a ciegas, así que en cuanto el texto de abajo era más largo que el
+    // nombre se salía del margen. Eso convertía la elección del copy en un
+    // problema de anchura: cualquier frase que no cupiera había que
+    // descartarla por una razón que no tenía nada que ver con lo que decía.
+    let subtitleCss = `${subtitleFont.subtitleWeight} ${subtitleSize}px ${subtitleStack}`;
+    let subtitleSpacing = `${subtitleSize * subtitleFont.tracking}px`;
     textContext.font = subtitleCss;
     textContext.letterSpacing = subtitleSpacing;
+
+    const naturalSubtitle = textContext.measureText(copy.subtitle).width;
+    if (naturalSubtitle > available) {
+      subtitleSize *= available / naturalSubtitle;
+      subtitleCss = `${subtitleFont.subtitleWeight} ${subtitleSize}px ${subtitleStack}`;
+      subtitleSpacing = `${subtitleSize * subtitleFont.tracking}px`;
+      textContext.font = subtitleCss;
+      textContext.letterSpacing = subtitleSpacing;
+    }
 
     // La tira que ocupa la línea. Subirla pisa lo que hubiera ahí, así que se
     // recorta para no llegar ni a las colas del título ni a la primera línea

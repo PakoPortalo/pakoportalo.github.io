@@ -4,13 +4,29 @@
  *
  * Va aquí y no al final por una razón: quien entra decide en unos segundos si
  * esto es para él, y esa decisión la toma con los nombres, no con el
- * portfolio. Enterrarla abajo es pedirle que se convenza solo y luego le
- * demos la prueba.
- *
- * Tipografía y no imágenes, de momento. Un logotipo mal recortado o a media
- * resolución resta más de lo que suma, y el nombre compuesto en tipo cumple
- * igual mientras no estén los archivos.
+ * portfolio. Enterrarla abajo es pedirle que se convenza solo y darle la
+ * prueba después.
  */
+
+interface Cliente {
+  nombre: string;
+  /**
+   * Archivo dentro de /logos. Sin él, el nombre se compone en tipografía.
+   * Así la fila no se rompe mientras falten archivos: cada logotipo que
+   * aparezca sustituye a su nombre y el resto siguen funcionando.
+   */
+  logo?: string;
+  /**
+   * Alto relativo del logotipo.
+   *
+   * Los logotipos no se pueden poner todos al mismo alto: uno apaisado como
+   * el de Red Bull mide cuatro veces más de ancho que de alto, y al mismo
+   * alto que uno cuadrado pesaría el cuádruple en la fila. Este número
+   * iguala el peso óptico, que es lo que hace que una fila de marcas se lea
+   * ordenada en vez de como un cajón de sastre.
+   */
+  escala?: number;
+}
 
 interface Reconocimiento {
   texto: string;
@@ -19,17 +35,21 @@ interface Reconocimiento {
   color: 'verde' | 'morado';
 }
 
-const clientes = [
-  'Red Bull',
-  'BBVA',
-  'Xiaomi',
-  'Junta de Andalucía',
-  'Mayumana',
-  'Farmaindustria',
-  'Sickhouse',
-  'Galicia R',
-  'Shaman Garage',
-  'Te falta calle',
+const clientes: Cliente[] = [
+  { nombre: 'Red Bull', logo: 'redbull.svg', escala: 0.52 },
+  { nombre: 'BBVA', logo: 'bbva.svg', escala: 0.58 },
+  // Xiaomi y la Junta se quedan en tipografía de momento. El de Xiaomi es la
+  // "MI" calada sobre un cuadrado de color: al pasarlo a blanco se tapa el
+  // hueco y queda un cuadrado macizo. El de la Junta es un escudo con letra
+  // pequeña dentro, y a cuarenta píxeles de alto es una mancha.
+  { nombre: 'Xiaomi' },
+  { nombre: 'Junta de Andalucía' },
+  { nombre: 'Mayumana' },
+  { nombre: 'Farmaindustria' },
+  { nombre: 'Sickhouse' },
+  { nombre: 'Galicia R' },
+  { nombre: 'Shaman Garage' },
+  { nombre: 'Te falta calle' },
 ];
 
 const reconocimientos: Reconocimiento[] = [
@@ -44,13 +64,30 @@ const reconocimientos: Reconocimiento[] = [
     color: 'morado',
   },
 ];
+
+const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
 ---
 
 <section class="creds" aria-labelledby="creds-titulo">
   <h2 class="creds__titulo" id="creds-titulo">Han contado conmigo</h2>
 
   <ul class="creds__clientes">
-    {clientes.map((cliente) => <li>{cliente}</li>)}
+    {
+      clientes.map((cliente) =>
+        cliente.logo ? (
+          <li class="creds__marca">
+            <img
+              src={`${base}logos/${cliente.logo}`}
+              alt={cliente.nombre}
+              loading="lazy"
+              style={`--escala: ${cliente.escala ?? 1}`}
+            />
+          </li>
+        ) : (
+          <li class="creds__nombre">{cliente.nombre}</li>
+        ),
+      )
+    }
   </ul>
 
   <ul class="creds__premios">
@@ -99,12 +136,30 @@ const reconocimientos: Reconocimiento[] = [
   }
 
   .creds__clientes li {
+    display: flex;
+    align-items: center;
+  }
+
+  .creds__nombre {
     font-family: InstrumentSans, ui-sans-serif, system-ui, sans-serif;
     font-size: clamp(17px, 1.75vw, 30px);
     font-weight: 380;
     letter-spacing: -0.015em;
     color: rgb(255 255 255 / 0.72);
     white-space: nowrap;
+  }
+
+  .creds__marca img {
+    /* Todos a blanco. Vienen cada uno de su color y de su fuente, y en una
+       fila con seis tonos distintos lo que se lee es el desorden, no las
+       marcas. En negativo sobre negro además es como se usan casi siempre. */
+    filter: brightness(0) invert(1);
+    opacity: 0.66;
+    height: calc(clamp(26px, 2.6vw, 44px) * var(--escala, 1));
+    width: auto;
+    max-width: clamp(110px, 12vw, 190px);
+    object-fit: contain;
+    display: block;
   }
 
   .creds__premios {
