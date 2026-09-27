@@ -1,4 +1,30 @@
 /* ---------------------------------------------------------------------------
+   Tipografías.
+
+   Las mismas que usa el hero. Hasta ahora solo las cargaba el canvas por
+   JavaScript, que es otro camino: para que el HTML normal pueda usarlas hacen
+   falta estas declaraciones. Son variables, de ahí el rango de peso en vez de
+   un valor suelto.
+
+   swap: el texto aparece de inmediato con la de respaldo y cambia al cargar.
+   Con block se quedaría invisible un instante, y aquí abajo no hay nada que
+   dependa del ancho exacto como en el lienzo del hero.
+   --------------------------------------------------------------------------- */
+@font-face {
+  font-family: 'InstrumentSans';
+  src: url('/fonts/InstrumentSans.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'ClashDisplay';
+  src: url('/fonts/ClashDisplay.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+/* ---------------------------------------------------------------------------
    Tokens. Paleta neutra de arranque: la afinaremos con los MCP de diseño.
    --------------------------------------------------------------------------- */
 :root {

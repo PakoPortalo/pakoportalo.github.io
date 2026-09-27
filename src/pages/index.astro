@@ -1,5 +1,6 @@
 ---
 import HeroLiquid from '../components/HeroLiquid.astro';
+import Credenciales from '../components/Credenciales.astro';
 import '../styles/global.css';
 ---
 
@@ -8,10 +9,10 @@ import '../styles/global.css';
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Pako Portalo — Música y desarrollo web</title>
+    <title>Pako Portalo — Composición musical y diseño sonoro</title>
     <meta
       name="description"
-      content="Efectos, bandas sonoras para spots y videojuegos, ambientes para cine — y las webs donde todo eso se ve."
+      content="Composiciones originales para spots y videojuegos, diseño sonoro para cine, y la mezcla que hace que todo encaje con la imagen."
     />
     <meta name="theme-color" content="#050505" />
     <style>
@@ -21,13 +22,14 @@ import '../styles/global.css';
   <body>
     <HeroLiquid
       copy={{
-        eyebrowLeft: 'Sound design',
-        eyebrowRight: 'Web solutions',
+        eyebrowLeft: 'Composición musical',
+        eyebrowRight: 'Diseño sonoro',
         title: 'Pako Portalo.',
-        subtitle: 'Music & Web.',
+        subtitle: 'Sonido & Música.',
         paragraph:
-          'Efectos, bandas sonoras para spots y videojuegos, ambientes para cine — y las webs donde todo eso se ve.',
+          'Composiciones originales para spots y videojuegos, diseño sonoro para cine, y la mezcla que hace que todo encaje con la imagen.',
       }}
     />
+    <Credenciales />
   </body>
 </html>

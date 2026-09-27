@@ -1,0 +1,156 @@
+---
+/**
+ * Franja de credenciales, justo debajo del hero.
+ *
+ * Va aquí y no al final por una razón: quien entra decide en unos segundos si
+ * esto es para él, y esa decisión la toma con los nombres, no con el
+ * portfolio. Enterrarla abajo es pedirle que se convenza solo y luego le
+ * demos la prueba.
+ *
+ * Tipografía y no imágenes, de momento. Un logotipo mal recortado o a media
+ * resolución resta más de lo que suma, y el nombre compuesto en tipo cumple
+ * igual mientras no estén los archivos.
+ */
+
+interface Reconocimiento {
+  texto: string;
+  detalle: string;
+  /** El mismo verde y morado de los puntos del hero. */
+  color: 'verde' | 'morado';
+}
+
+const clientes = [
+  'Red Bull',
+  'BBVA',
+  'Xiaomi',
+  'Junta de Andalucía',
+  'Mayumana',
+  'Farmaindustria',
+  'Sickhouse',
+  'Galicia R',
+  'Shaman Garage',
+  'Te falta calle',
+];
+
+const reconocimientos: Reconocimiento[] = [
+  {
+    texto: 'Lista corta — Festival El Sol 2026',
+    detalle: 'Producción Craft / Film Craft / Sound Design, por The Revelation',
+    color: 'verde',
+  },
+  {
+    texto: 'Nominado a mejor debut — Dutch Game Awards 2024',
+    detalle: 'Por Data Garden, de Shaman Garage',
+    color: 'morado',
+  },
+];
+---
+
+<section class="creds" aria-labelledby="creds-titulo">
+  <h2 class="creds__titulo" id="creds-titulo">Han contado conmigo</h2>
+
+  <ul class="creds__clientes">
+    {clientes.map((cliente) => <li>{cliente}</li>)}
+  </ul>
+
+  <ul class="creds__premios">
+    {
+      reconocimientos.map((premio) => (
+        <li class={`creds__premio creds__premio--${premio.color}`}>
+          <span class="creds__texto">{premio.texto}</span>
+          <span class="creds__detalle">{premio.detalle}</span>
+        </li>
+      ))
+    }
+  </ul>
+</section>
+
+<style>
+  .creds {
+    --gutter: max(24px, 5.5vw);
+    padding: clamp(56px, 7vw, 110px) var(--gutter) clamp(48px, 6vw, 90px);
+    background: #050505;
+    color: #fff;
+    /* Las mismas dos del hero y con el mismo reparto: la de titular para los
+       nombres, que son lo que tiene que pesar, y la de texto para el resto. */
+    font-family: ClashDisplay, ui-sans-serif, system-ui, sans-serif;
+    border-block-start: 1px solid rgb(255 255 255 / 0.08);
+  }
+
+  .creds__titulo {
+    margin: 0 0 clamp(24px, 2.6vw, 40px);
+    font-size: clamp(9.5px, 0.85vw, 13px);
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.45);
+  }
+
+  .creds__clientes {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    /* El hueco entre nombres hace de separador: con una línea o un punto en
+       medio, diez nombres se leerían como una lista de la compra. */
+    column-gap: clamp(28px, 3.4vw, 64px);
+    row-gap: clamp(14px, 1.4vw, 22px);
+  }
+
+  .creds__clientes li {
+    font-family: InstrumentSans, ui-sans-serif, system-ui, sans-serif;
+    font-size: clamp(17px, 1.75vw, 30px);
+    font-weight: 380;
+    letter-spacing: -0.015em;
+    color: rgb(255 255 255 / 0.72);
+    white-space: nowrap;
+  }
+
+  .creds__premios {
+    margin: clamp(40px, 4.4vw, 72px) 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: clamp(14px, 1.4vw, 20px);
+  }
+
+  .creds__premio {
+    display: grid;
+    /* El punto en su propia columna para que las dos líneas de texto queden
+       alineadas entre sí y no colgando del punto. */
+    grid-template-columns: auto 1fr;
+    column-gap: 14px;
+    align-items: baseline;
+  }
+
+  .creds__premio::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    /* Desplazado para que caiga a la altura de la equis, no de la base. */
+    transform: translateY(-2px);
+  }
+
+  .creds__premio--verde::before {
+    background: #5ff7c6;
+    box-shadow: 0 0 10px 2px rgb(95 247 198 / 0.5);
+  }
+
+  .creds__premio--morado::before {
+    background: #b660ff;
+    box-shadow: 0 0 10px 2px rgb(182 96 255 / 0.5);
+  }
+
+  .creds__texto {
+    font-size: clamp(14px, 1.15vw, 19px);
+    color: rgb(255 255 255 / 0.9);
+  }
+
+  .creds__detalle {
+    grid-column: 2;
+    font-size: clamp(12.5px, 0.95vw, 15px);
+    color: rgb(255 255 255 / 0.48);
+  }
+</style>
