@@ -21,7 +21,7 @@ interface Cliente {
    *
    * Los logotipos no se pueden poner todos al mismo alto: uno apaisado como
    * el de Red Bull mide cuatro veces más de ancho que de alto, y al mismo
-   * alto que uno cuadrado pesaría el cuádruple en la fila.
+   * alto que uno cuadrado pesaría el cuádruple.
    *
    * Los números están puestos a ojo y no con una fórmula. Probé a igualar el
    * área de cada uno y salió mal: un logotipo que es una palabra necesita
@@ -29,52 +29,60 @@ interface Cliente {
    * llevan letra fina.
    */
   escala?: number;
+  /** Palabra que acompaña al logotipo cuando el símbolo no dice el nombre. */
+  coletilla?: string;
   /**
-   * Pinta el nombre al lado del logotipo. Para las marcas cuyo símbolo no
-   * dice su nombre: el de Xiaomi es una "MI", y suelto no se lee "Xiaomi".
-   */
-  conNombre?: boolean;
-  /**
-   * Para los de trazo muy fino. A la misma opacidad que un logotipo macizo
-   * casi desaparecen: no es que estén más apagados, es que tienen menos
-   * tinta con la que estarlo.
+   * Para los de trazo muy fino. Necesitan ir menos apagados que uno macizo:
+   * no es que estén más tenues, es que tienen menos tinta con la que estarlo.
    */
   tenue?: boolean;
+  /**
+   * Conserva los tonos en vez de pasarlo a blanco plano.
+   *
+   * Para los que dependen del contraste interno: el de Xiaomi es una "MI"
+   * blanca calada sobre un cuadrado de color, y aplanándolo a blanco el
+   * cuadrado se traga las letras y queda un bloque. En gris aclarado el
+   * cuadrado se queda a medio tono, la "MI" sigue siendo blanca, y el
+   * conjunto convive con los demás sin desentonar.
+   */
+  tonos?: boolean;
 }
 
 interface Reconocimiento {
-  texto: string;
-  detalle: string;
+  /** Dónde: el festival y el año. */
+  donde: string;
+  /** Qué: la distinción, que es lo que hay que leer primero. */
+  que: string;
+  /** Sobre qué pieza, y con quién. */
+  pieza: string;
   /** El mismo verde y morado de los puntos del hero. */
   color: 'verde' | 'morado';
 }
 
 const clientes: Cliente[] = [
-  { nombre: 'Red Bull', logo: 'redbull.svg', escala: 0.52 },
-  { nombre: 'BBVA', logo: 'bbva.svg', escala: 0.58 },
-  { nombre: 'Xiaomi', logo: 'xiaomi.svg', escala: 1.05, conNombre: true },
-  // La Junta, Sickhouse y Te falta calle siguen en tipografía: del primero
-  // solo hay en abierto el escudo antiguo, que a este tamaño es una mancha,
-  // y de los otros dos no hay archivo en ninguna fuente abierta.
-  { nombre: 'Junta de Andalucía' },
-  { nombre: 'VivaGym', logo: 'vivagym.png', escala: 0.6 },
+  { nombre: 'Xiaomi', logo: 'xiaomi.png', escala: 0.72, tonos: true },
+  { nombre: 'BBVA', logo: 'bbva.svg', escala: 0.6 },
+  { nombre: 'Red Bull', logo: 'redbull.svg', escala: 0.54 },
+  { nombre: 'Junta de Andalucía', logo: 'junta.png', escala: 1.3 },
+  { nombre: 'VivaGym', logo: 'vivagym.png', escala: 0.62 },
   { nombre: 'Mayumana', logo: 'mayumana.svg', escala: 1.15 },
-  { nombre: 'Farmaindustria', logo: 'farmaindustria.png', escala: 1.0 },
-  { nombre: 'Sickhouse' },
-  { nombre: 'Galicia R', logo: 'galiciar.svg', escala: 0.95, conNombre: true },
-  { nombre: 'Shaman Garage', logo: 'shamangarage.png', escala: 0.8, tenue: true },
-  { nombre: 'Te falta calle' },
+  { nombre: 'Farmaindustria', logo: 'farmaindustria.png', escala: 1 },
+  { nombre: 'Galicia R', logo: 'galiciar.svg', escala: 0.95, coletilla: 'Televisión' },
+  { nombre: 'Shaman Garage', logo: 'shamangarage.png', escala: 0.85, tenue: true },
+  { nombre: 'Te falta calle', logo: 'tefaltacalle.png', escala: 1 },
 ];
 
 const reconocimientos: Reconocimiento[] = [
   {
-    texto: 'Lista corta — Festival El Sol 2026',
-    detalle: 'Producción Craft / Film Craft / Sound Design, por The Revelation',
+    donde: 'Festival El Sol 2026',
+    que: 'Lista corta en Sound Design',
+    pieza: 'The Revelation · Casanova para la Junta de Andalucía',
     color: 'verde',
   },
   {
-    texto: 'Nominado a mejor debut — Dutch Game Awards 2024',
-    detalle: 'Por Data Garden, de Shaman Garage',
+    donde: 'Dutch Game Awards 2024',
+    que: 'Nominado a mejor juego debut',
+    pieza: 'Data Garden · Shaman Garage',
     color: 'morado',
   },
 ];
@@ -87,22 +95,26 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
 
   <ul class="creds__clientes">
     {
-      clientes.map((cliente) =>
-        cliente.logo ? (
-          <li class="creds__marca">
-            <img
-              src={`${base}logos/${cliente.logo}`}
-              alt={cliente.conNombre ? '' : cliente.nombre}
-              loading="lazy"
-              class={cliente.tenue ? 'es-tenue' : undefined}
-              style={`--escala: ${cliente.escala ?? 1}`}
-            />
-            {cliente.conNombre && <span>{cliente.nombre}</span>}
-          </li>
-        ) : (
-          <li class="creds__nombre">{cliente.nombre}</li>
-        ),
-      )
+      clientes.map((cliente) => (
+        <li>
+          {cliente.logo ? (
+            <>
+              <img
+                src={`${base}logos/${cliente.logo}`}
+                alt={cliente.nombre}
+                loading="lazy"
+                class={[cliente.tenue && 'es-tenue', cliente.tonos && 'es-tonos']
+                  .filter(Boolean)
+                  .join(' ')}
+                style={`--escala: ${cliente.escala ?? 1}`}
+              />
+              {cliente.coletilla && <span>{cliente.coletilla}</span>}
+            </>
+          ) : (
+            <span class="creds__nombre">{cliente.nombre}</span>
+          )}
+        </li>
+      ))
     }
   </ul>
 
@@ -110,8 +122,9 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     {
       reconocimientos.map((premio) => (
         <li class={`creds__premio creds__premio--${premio.color}`}>
-          <span class="creds__texto">{premio.texto}</span>
-          <span class="creds__detalle">{premio.detalle}</span>
+          <p class="creds__donde">{premio.donde}</p>
+          <p class="creds__que">{premio.que}</p>
+          <p class="creds__pieza">{premio.pieza}</p>
         </li>
       ))
     }
@@ -121,124 +134,151 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
 <style>
   .creds {
     --gutter: max(24px, 5.5vw);
-    padding: clamp(56px, 7vw, 110px) var(--gutter) clamp(48px, 6vw, 90px);
+    padding: clamp(72px, 9vw, 150px) var(--gutter) clamp(64px, 8vw, 130px);
     background: #050505;
     color: #fff;
-    /* Las mismas dos del hero y con el mismo reparto: la de titular para los
-       nombres, que son lo que tiene que pesar, y la de texto para el resto. */
-    font-family: ClashDisplay, ui-sans-serif, system-ui, sans-serif;
-    border-block-start: 1px solid rgb(255 255 255 / 0.08);
+    /* Aquí manda la tipografía de titular y no la de texto.
+       La de texto es muy fina, y a cuerpo pequeño en una pantalla grande se
+       lee con esfuerzo. En el hero funciona porque va a cuerpos enormes. */
+    font-family: InstrumentSans, ui-sans-serif, system-ui, sans-serif;
+    text-align: center;
   }
 
   .creds__titulo {
-    margin: 0 0 clamp(24px, 2.6vw, 40px);
-    font-size: clamp(9.5px, 0.85vw, 13px);
+    margin: 0 0 clamp(40px, 4.5vw, 72px);
+    font-size: clamp(10px, 0.8vw, 13px);
     font-weight: 500;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: rgb(255 255 255 / 0.45);
+    color: rgb(255 255 255 / 0.4);
   }
 
+  /*
+    Cuatro por fila, y la última se queda centrada con las que sobren.
+    Con una rejilla de cuatro columnas fijas, las dos últimas se irían a la
+    izquierda y la fila quedaría coja.
+  */
   .creds__clientes {
-    margin: 0;
+    margin: 0 auto;
     padding: 0;
     list-style: none;
+    max-width: 1080px;
     display: flex;
     flex-wrap: wrap;
-    /* El hueco entre nombres hace de separador: con una línea o un punto en
-       medio, diez nombres se leerían como una lista de la compra. */
-    column-gap: clamp(28px, 3.4vw, 64px);
-    row-gap: clamp(14px, 1.4vw, 22px);
+    justify-content: center;
+    column-gap: clamp(16px, 2vw, 40px);
+    row-gap: clamp(34px, 3.6vw, 62px);
   }
 
   .creds__clientes li {
+    flex: 0 0 calc(25% - clamp(16px, 2vw, 40px));
+    min-height: clamp(32px, 3.4vw, 58px);
     display: flex;
     align-items: center;
+    justify-content: center;
+    gap: 0.4em;
   }
 
-  .creds__nombre {
-    font-family: InstrumentSans, ui-sans-serif, system-ui, sans-serif;
-    font-size: clamp(17px, 1.75vw, 30px);
-    font-weight: 380;
-    letter-spacing: -0.015em;
-    color: rgb(255 255 255 / 0.72);
-    white-space: nowrap;
-  }
-
-  .creds__marca {
-    gap: 0.45em;
-  }
-
-  .creds__marca span {
-    font-family: InstrumentSans, ui-sans-serif, system-ui, sans-serif;
-    font-size: clamp(17px, 1.75vw, 30px);
-    font-weight: 380;
-    letter-spacing: -0.015em;
-    color: rgb(255 255 255 / 0.72);
-    white-space: nowrap;
-  }
-
-  .creds__marca img {
+  .creds__clientes img {
     /* Todos a blanco. Vienen cada uno de su color y de su fuente, y en una
-       fila con seis tonos distintos lo que se lee es el desorden, no las
-       marcas. En negativo sobre negro además es como se usan casi siempre. */
+       fila con seis tonos distintos lo que se lee es el desorden. */
     filter: brightness(0) invert(1);
     opacity: 0.66;
-    height: calc(clamp(26px, 2.6vw, 44px) * var(--escala, 1));
+    height: calc(clamp(28px, 3.1vw, 54px) * var(--escala, 1));
     width: auto;
-    max-width: clamp(120px, 15vw, 240px);
+    max-width: 100%;
     object-fit: contain;
     display: block;
   }
 
-  .creds__marca img.es-tenue {
-    opacity: 1;
+  .creds__clientes img.es-tenue {
+    opacity: 0.82;
+  }
+
+  .creds__clientes img.es-tonos {
+    filter: grayscale(1) brightness(1.55);
+    opacity: 0.78;
+  }
+
+  .creds__clientes span {
+    font-size: clamp(14px, 1.3vw, 22px);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    color: rgb(255 255 255 / 0.66);
+    white-space: nowrap;
+  }
+
+  .creds__nombre {
+    font-size: clamp(16px, 1.5vw, 26px);
   }
 
   .creds__premios {
-    margin: clamp(40px, 4.4vw, 72px) 0 0;
-    padding: 0;
+    margin: clamp(56px, 6vw, 108px) auto 0;
+    padding: clamp(36px, 3.6vw, 60px) 0 0;
+    border-block-start: 1px solid rgb(255 255 255 / 0.1);
+    max-width: 1080px;
     list-style: none;
     display: grid;
-    gap: clamp(14px, 1.4vw, 20px);
+    grid-template-columns: repeat(2, 1fr);
+    gap: clamp(30px, 3vw, 60px);
   }
 
   .creds__premio {
     display: grid;
-    /* El punto en su propia columna para que las dos líneas de texto queden
-       alineadas entre sí y no colgando del punto. */
-    grid-template-columns: auto 1fr;
-    column-gap: 14px;
-    align-items: baseline;
+    justify-items: center;
+    gap: 7px;
   }
 
   .creds__premio::before {
     content: '';
-    width: 7px;
-    height: 7px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
-    /* Desplazado para que caiga a la altura de la equis, no de la base. */
-    transform: translateY(-2px);
+    margin-block-end: 12px;
   }
 
   .creds__premio--verde::before {
     background: #5ff7c6;
-    box-shadow: 0 0 10px 2px rgb(95 247 198 / 0.5);
+    box-shadow: 0 0 12px 3px rgb(95 247 198 / 0.45);
   }
 
   .creds__premio--morado::before {
     background: #b660ff;
-    box-shadow: 0 0 10px 2px rgb(182 96 255 / 0.5);
+    box-shadow: 0 0 12px 3px rgb(182 96 255 / 0.45);
   }
 
-  .creds__texto {
-    font-size: clamp(14px, 1.15vw, 19px);
-    color: rgb(255 255 255 / 0.9);
+  .creds__donde {
+    margin: 0;
+    font-size: clamp(9.5px, 0.75vw, 12px);
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.42);
   }
 
-  .creds__detalle {
-    grid-column: 2;
-    font-size: clamp(12.5px, 0.95vw, 15px);
-    color: rgb(255 255 255 / 0.48);
+  .creds__que {
+    margin: 0;
+    font-size: clamp(17px, 1.5vw, 25px);
+    font-weight: 450;
+    letter-spacing: -0.015em;
+    color: #fff;
+  }
+
+  .creds__pieza {
+    margin: 0;
+    font-size: clamp(13px, 1vw, 16px);
+    /* Bastante más marcada que antes: a menos opacidad esta línea se leía a
+       duras penas, y es la que dice de qué trabajo se trata. */
+    color: rgb(255 255 255 / 0.62);
+  }
+
+  @media (max-width: 760px) {
+    .creds__clientes li {
+      flex-basis: calc(50% - clamp(16px, 2vw, 40px));
+    }
+
+    .creds__premios {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
