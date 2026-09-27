@@ -21,11 +21,25 @@ interface Cliente {
    *
    * Los logotipos no se pueden poner todos al mismo alto: uno apaisado como
    * el de Red Bull mide cuatro veces más de ancho que de alto, y al mismo
-   * alto que uno cuadrado pesaría el cuádruple en la fila. Este número
-   * iguala el peso óptico, que es lo que hace que una fila de marcas se lea
-   * ordenada en vez de como un cajón de sastre.
+   * alto que uno cuadrado pesaría el cuádruple en la fila.
+   *
+   * Los números están puestos a ojo y no con una fórmula. Probé a igualar el
+   * área de cada uno y salió mal: un logotipo que es una palabra necesita
+   * ancho para leerse, no área, y por área quedaban ilegibles justo los que
+   * llevan letra fina.
    */
   escala?: number;
+  /**
+   * Pinta el nombre al lado del logotipo. Para las marcas cuyo símbolo no
+   * dice su nombre: el de Xiaomi es una "MI", y suelto no se lee "Xiaomi".
+   */
+  conNombre?: boolean;
+  /**
+   * Para los de trazo muy fino. A la misma opacidad que un logotipo macizo
+   * casi desaparecen: no es que estén más apagados, es que tienen menos
+   * tinta con la que estarlo.
+   */
+  tenue?: boolean;
 }
 
 interface Reconocimiento {
@@ -38,17 +52,17 @@ interface Reconocimiento {
 const clientes: Cliente[] = [
   { nombre: 'Red Bull', logo: 'redbull.svg', escala: 0.52 },
   { nombre: 'BBVA', logo: 'bbva.svg', escala: 0.58 },
-  // Xiaomi y la Junta se quedan en tipografía de momento. El de Xiaomi es la
-  // "MI" calada sobre un cuadrado de color: al pasarlo a blanco se tapa el
-  // hueco y queda un cuadrado macizo. El de la Junta es un escudo con letra
-  // pequeña dentro, y a cuarenta píxeles de alto es una mancha.
-  { nombre: 'Xiaomi' },
+  { nombre: 'Xiaomi', logo: 'xiaomi.svg', escala: 1.05, conNombre: true },
+  // La Junta, Sickhouse y Te falta calle siguen en tipografía: del primero
+  // solo hay en abierto el escudo antiguo, que a este tamaño es una mancha,
+  // y de los otros dos no hay archivo en ninguna fuente abierta.
   { nombre: 'Junta de Andalucía' },
-  { nombre: 'Mayumana' },
-  { nombre: 'Farmaindustria' },
+  { nombre: 'VivaGym', logo: 'vivagym.png', escala: 0.6 },
+  { nombre: 'Mayumana', logo: 'mayumana.svg', escala: 1.15 },
+  { nombre: 'Farmaindustria', logo: 'farmaindustria.png', escala: 1.0 },
   { nombre: 'Sickhouse' },
-  { nombre: 'Galicia R' },
-  { nombre: 'Shaman Garage' },
+  { nombre: 'Galicia R', logo: 'galiciar.svg', escala: 0.95, conNombre: true },
+  { nombre: 'Shaman Garage', logo: 'shamangarage.png', escala: 0.8, tenue: true },
   { nombre: 'Te falta calle' },
 ];
 
@@ -78,10 +92,12 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
           <li class="creds__marca">
             <img
               src={`${base}logos/${cliente.logo}`}
-              alt={cliente.nombre}
+              alt={cliente.conNombre ? '' : cliente.nombre}
               loading="lazy"
+              class={cliente.tenue ? 'es-tenue' : undefined}
               style={`--escala: ${cliente.escala ?? 1}`}
             />
+            {cliente.conNombre && <span>{cliente.nombre}</span>}
           </li>
         ) : (
           <li class="creds__nombre">{cliente.nombre}</li>
@@ -149,6 +165,19 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     white-space: nowrap;
   }
 
+  .creds__marca {
+    gap: 0.45em;
+  }
+
+  .creds__marca span {
+    font-family: InstrumentSans, ui-sans-serif, system-ui, sans-serif;
+    font-size: clamp(17px, 1.75vw, 30px);
+    font-weight: 380;
+    letter-spacing: -0.015em;
+    color: rgb(255 255 255 / 0.72);
+    white-space: nowrap;
+  }
+
   .creds__marca img {
     /* Todos a blanco. Vienen cada uno de su color y de su fuente, y en una
        fila con seis tonos distintos lo que se lee es el desorden, no las
@@ -157,9 +186,13 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     opacity: 0.66;
     height: calc(clamp(26px, 2.6vw, 44px) * var(--escala, 1));
     width: auto;
-    max-width: clamp(110px, 12vw, 190px);
+    max-width: clamp(120px, 15vw, 240px);
     object-fit: contain;
     display: block;
+  }
+
+  .creds__marca img.es-tenue {
+    opacity: 1;
   }
 
   .creds__premios {
