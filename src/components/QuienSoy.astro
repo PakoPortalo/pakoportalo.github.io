@@ -1,0 +1,301 @@
+---
+/**
+ * Quién soy.
+ *
+ * Cabe entero en una pantalla. En la primera página, a la izquierda el
+ * rótulo y la versión corta de la biografía, y a la derecha la foto. "Leer
+ * más" pasa de página: el módulo entero se desliza a la izquierda y en la
+ * segunda queda otra foto a la izquierda y la biografía completa a la
+ * derecha.
+ *
+ * El rótulo mezcla dos familias: "Quién soy" como el resto de rótulos de
+ * módulo, el nombre en Times New Roman negrita y un poco condensado, y el
+ * lema en Times New Roman cursiva. Los textos, en la de toda la web.
+ *
+ * En tercera persona, como la escribió Pako.
+ */
+const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
+/** Provisionales, sin personas, hasta tener las suyas. */
+const fotos = [`${base}sobre/foto-provisional.webp`, `${base}sobre/foto-provisional-2.webp`];
+
+const corta =
+  'Músico y productor especializado en composición. Del conservatorio y el jazz a los escenarios de medio mundo con Mayumana; de las bandas sonoras de videojuegos con Shaman Garage a los spots de Xiaomi o Red Bull.';
+
+const completa = [
+  'Pako Portalo es músico y productor, especializado en composición musical. Empezó de niño en el conservatorio, con el violín; después estudió jazz y armonía contemporánea con la guitarra, y aprendió producción musical por su cuenta. Toca también flauta, piano, mandolina y bajo, y con ellos ha dado conciertos en España, Portugal, Francia, Inglaterra, Italia e Israel. Ha sido músico y compositor en la compañía internacional Mayumana, y ha formado parte de proyectos nacionales como Dinohaurios y Papawanda.',
+  'Como compositor forma parte de Shaman Garage, un estudio de videojuegos holandés, para el que crea bandas sonoras, diseño sonoro y efectos de sonido. Con el estudio ha pasado por festivales europeos como A MAZE. (Berlín) y Overkill (Enschede), y su primer juego, Data Garden, fue nominado a Best Debut Game en los Dutch Game Awards 2024.',
+  'Ese recorrido le ha llevado a la publicidad, donde ha puesto música y sonido a spots para marcas como Xiaomi o Red Bull. Su diseño sonoro para The Revelation entró en la lista corta del Festival El Sol 2026.',
+];
+---
+
+<section class="sobre" aria-labelledby="sobre-titulo" data-sobre>
+  <div class="sobre__pista">
+    <div class="sobre__pagina">
+      <div class="sobre__izq">
+        <h2 class="sobre__rotulo" id="sobre-titulo">
+          <span class="sobre__etiqueta">Quién soy</span>
+          <span class="sobre__nombre">Pako</span>
+          <span class="sobre__nombre">Portalo</span>
+          <span class="sobre__lema">Músico, productor y compositor.</span>
+        </h2>
+        <p class="sobre__corta">{corta}</p>
+        <button class="sobre__boton" type="button" data-abrir aria-expanded="false">Leer más</button>
+      </div>
+      <figure class="sobre__foto">
+        <img src={fotos[0]} alt="" loading="lazy" width="640" height="800" />
+      </figure>
+    </div>
+
+    <div class="sobre__pagina sobre__pagina--dos">
+      <figure class="sobre__foto">
+        <img src={fotos[1]} alt="" loading="lazy" width="640" height="800" />
+      </figure>
+      <div class="sobre__completa">
+        <p class="sobre__etiqueta">Pako Portalo</p>
+        {completa.map((parrafo) => <p>{parrafo}</p>)}
+        <button class="sobre__boton sobre__boton--volver" type="button" data-cerrar>Volver</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .sobre {
+    position: relative;
+    z-index: 1;
+    /* Una pantalla exacta: el módulo se ve entero, sin cortes. */
+    height: 100svh;
+    min-height: 560px;
+    overflow: hidden;
+    background: #050505;
+    color: #f4f1ec;
+    font-family: InstrumentSans, ui-sans-serif, system-ui, sans-serif;
+    --romana: 'Times New Roman', Times, 'Liberation Serif', 'Nimbus Roman', serif;
+    --verde: #5ff7c6;
+    --margen: clamp(40px, 7svh, 96px);
+  }
+
+  /* Las dos páginas, una al lado de la otra; pasar página es mover la
+     pista entera media longitud a la izquierda. */
+  .sobre__pista {
+    display: flex;
+    width: 200%;
+    height: 100%;
+    transition: translate 1100ms cubic-bezier(0.7, 0, 0.2, 1);
+  }
+
+  .sobre[data-abierto] .sobre__pista {
+    translate: -50% 0;
+  }
+
+  .sobre__pagina {
+    flex: 0 0 50%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: clamp(32px, 5vw, 96px);
+    padding: var(--margen) max(24px, 5.5vw);
+    box-sizing: border-box;
+  }
+
+  /* La página que no se ve no se puede tabular. Se oculta al terminar de
+     irse, no antes: si no, desaparecería a mitad del deslizamiento. */
+  .sobre__pagina--dos,
+  .sobre[data-abierto] .sobre__pagina:first-child {
+    visibility: hidden;
+    transition: visibility 0s 1100ms;
+  }
+
+  .sobre[data-abierto] .sobre__pagina--dos {
+    visibility: visible;
+    transition: visibility 0s;
+  }
+
+  .sobre__izq {
+    display: grid;
+    justify-items: start;
+    align-content: center;
+  }
+
+  /* ── El rótulo ────────────────────────────────────────────── */
+  .sobre__rotulo {
+    display: grid;
+    justify-items: start;
+    margin: 0 0 clamp(24px, 4svh, 44px);
+    font-weight: normal;
+  }
+
+  /* Como los rótulos del resto de módulos. */
+  .sobre__etiqueta {
+    margin: 0 0 clamp(14px, 2svh, 22px);
+    font-size: clamp(10px, 0.8vw, 13px);
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.45);
+  }
+
+  /*
+    El nombre, condensado un pelo. Times New Roman no tiene versión
+    estrecha, así que se aprieta de dos maneras pequeñas que juntas se
+    notan sin deformar: menos espacio entre letras y un 6 % menos de ancho.
+  */
+  .sobre__nombre {
+    font-family: var(--romana);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: clamp(52px, min(8vw, 14svh), 148px);
+    letter-spacing: -0.05em;
+    line-height: 0.8;
+    transform: scaleX(0.94);
+    transform-origin: 0 50%;
+  }
+
+  /*
+    El lema se monta sobre el pie del nombre: chocan a propósito. Para que
+    el cruce no sea un amasijo blanco, cada letra lleva un contorno grueso
+    del color del fondo por debajo del relleno (paint-order): donde pisa
+    al nombre, lo recorta y deja un filo negro alrededor de la letra.
+    Condensado también, para que case con el nombre.
+  */
+  .sobre__lema {
+    position: relative;
+    margin-block-start: -0.5em;
+    margin-inline-start: 0.5em;
+    font-family: var(--romana);
+    font-style: italic;
+    font-size: clamp(26px, min(3.2vw, 5.4svh), 54px);
+    letter-spacing: -0.035em;
+    line-height: 1.1;
+    transform: scaleX(0.88);
+    transform-origin: 0 50%;
+    -webkit-text-stroke: 0.2em #050505;
+    paint-order: stroke fill;
+  }
+
+  /* ── Textos: la tipografía de toda la web ─────────────────── */
+  .sobre__corta {
+    margin: 0 0 clamp(16px, 2.4svh, 28px);
+    max-width: 40ch;
+    font-size: clamp(17px, 1.35vw, 22px);
+    line-height: 1.45;
+    color: rgb(255 255 255 / 0.85);
+  }
+
+  .sobre__completa p:not(.sobre__etiqueta) {
+    margin: 0 0 0.9em;
+    max-width: 64ch;
+    font-size: clamp(14px, 1vw, 16px);
+    line-height: 1.55;
+    color: rgb(255 255 255 / 0.78);
+  }
+
+  .sobre__boton {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: rgb(255 255 255 / 0.7);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 300ms ease;
+  }
+
+  .sobre__boton::before {
+    content: '+';
+    display: grid;
+    place-items: center;
+    width: 26px;
+    aspect-ratio: 1;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    font-size: 15px;
+    letter-spacing: 0;
+    transition:
+      background-color 300ms ease,
+      border-color 300ms ease,
+      color 300ms ease;
+  }
+
+  .sobre__boton--volver::before {
+    content: '←';
+    font-size: 13px;
+  }
+
+  .sobre__boton:hover,
+  .sobre__boton:focus-visible {
+    color: #f4f1ec;
+  }
+
+  .sobre__boton:hover::before,
+  .sobre__boton:focus-visible::before {
+    background: var(--verde);
+    border-color: var(--verde);
+    color: #050505;
+  }
+
+  /* ── Las fotos ─────────────────────────────────────────────── */
+  .sobre__foto {
+    justify-self: end;
+    width: 100%;
+    max-width: calc((100svh - 2 * var(--margen)) * 0.8);
+    aspect-ratio: 4 / 5;
+    margin: 0;
+    overflow: hidden;
+    border-radius: 4px;
+    background: #111;
+  }
+
+  .sobre__pagina--dos .sobre__foto {
+    justify-self: start;
+  }
+
+  .sobre__foto img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sobre__pista {
+      transition: none;
+    }
+  }
+
+  @media (max-width: 760px) {
+    .sobre {
+      height: auto;
+    }
+
+    .sobre__pagina {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-sobre]').forEach((seccion) => {
+    const abrir = seccion.querySelector<HTMLButtonElement>('[data-abrir]')!;
+    const cerrar = seccion.querySelector<HTMLButtonElement>('[data-cerrar]')!;
+
+    const poner = (abierto: boolean) => {
+      seccion.toggleAttribute('data-abierto', abierto);
+      abrir.setAttribute('aria-expanded', String(abierto));
+      // El foco pasa al botón de la página que queda a la vista.
+      window.setTimeout(() => (abierto ? cerrar : abrir).focus({ preventScroll: true }), abierto ? 700 : 0);
+    };
+
+    abrir.addEventListener('click', () => poner(true));
+    cerrar.addEventListener('click', () => poner(false));
+    seccion.addEventListener('keydown', (evento) => {
+      if (evento.key === 'Escape' && seccion.hasAttribute('data-abierto')) poner(false);
+    });
+  });
+</script>

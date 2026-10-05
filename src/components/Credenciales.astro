@@ -3,7 +3,7 @@
  * Franja de credenciales, después de los proyectos destacados.
  *
  * Es un "mira con quién trabajo", no un módulo protagonista: compacta, con
- * los reconocimientos arriba y los logotipos debajo en dos filas de cinco.
+ * los reconocimientos arriba y los logotipos debajo, cuatro por fila.
  * El humo de fondo la separa del módulo anterior, que es negro liso, sin
  * hacerla más alta.
  */
@@ -198,9 +198,9 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
   }
 
   /*
-    Cinco por fila: con diez logotipos salen dos filas justas. Con flex y
-    centrado, si un día son nueve u once, la fila que sobre se queda en el
-    centro en vez de coja a la izquierda.
+    Cuatro por fila, y la última se queda centrada con las que sobren: con
+    diez logotipos, 4 + 4 + 2. Con una rejilla de columnas fijas las dos
+    últimas se irían a la izquierda y la fila quedaría coja.
   */
   .creds__clientes {
     margin: 0 auto;
@@ -215,8 +215,8 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
   }
 
   .creds__clientes li {
-    flex: 0 0 calc(20% - clamp(16px, 2vw, 40px));
-    min-height: clamp(26px, 2.6vw, 44px);
+    flex: 0 0 calc(25% - clamp(16px, 2vw, 40px));
+    min-height: clamp(30px, 3vw, 50px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -228,7 +228,9 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
        fila con seis tonos distintos lo que se lee es el desorden. */
     filter: brightness(0) invert(1);
     opacity: 0.66;
-    height: calc(clamp(20px, 2.2vw, 38px) * var(--escala, 1));
+    /* Un punto por encima de la versión compacta, sin volver al tamaño de
+       cuando el módulo ocupaba una pantalla entera. */
+    height: calc(clamp(24px, 2.6vw, 46px) * var(--escala, 1));
     width: auto;
     max-width: 100%;
     object-fit: contain;
