@@ -7,8 +7,22 @@
  * frase —para quién— se enciende en color: morado los spots, verde
  * videojuegos y cine. A la izquierda de cada línea, un punto de su color que
  * se prende cuando esa línea empieza a leerse.
+ *
+ * Opcionalmente, un clip de fondo detrás del texto: en blanco y negro, muy
+ * transparente y fundido por los bordes, para dar textura sin competir.
  */
 import { entradilla, servicios } from '../data/encargos';
+import ClipVideo from './ClipVideo.astro';
+
+interface Props {
+  /** Clip de /public/proyectos/fondos/ para el fondo. Sin él, negro liso. */
+  fondo?: string;
+  /** Cuánto se ve el fondo, de 0 a 1. */
+  opacidadFondo?: number;
+  id?: string;
+}
+
+const { fondo, opacidadFondo = 0.22, id = 'encargos' } = Astro.props;
 
 /*
   Se numeran todas las palabras seguidas, de las dos frases, porque el
@@ -26,9 +40,21 @@ const lineas = servicios.map((servicio) => {
 });
 ---
 
-<section class="encargos" aria-labelledby="encargos-titulo" data-encargos style={`--n: ${contador}`}>
+<section
+  class="encargos"
+  aria-labelledby={`${id}-titulo`}
+  data-encargos
+  style={`--n: ${contador}; --opacidad-fondo: ${opacidadFondo}`}
+>
   <div class="encargos__fijo">
-    <h2 class="encargos__entradilla" id="encargos-titulo">{entradilla}</h2>
+    {
+      fondo && (
+        <div class="encargos__fondo" aria-hidden="true">
+          <ClipVideo clip={fondo} carpeta="fondos" />
+        </div>
+      )
+    }
+    <h2 class="encargos__entradilla" id={`${id}-titulo`}>{entradilla}</h2>
     {
       lineas.map((linea) => (
         <p class={`encargos__linea encargos__linea--${linea.color}`} style={`--inicio: ${linea.inicio}`}>
@@ -72,6 +98,25 @@ const lineas = servicios.map((servicio) => {
     align-content: center;
     gap: clamp(20px, 3vw, 44px);
     padding-inline: max(24px, 5.5vw);
+  }
+
+  /*
+    El fondo va dentro de la parte fija, así que se queda quieto mientras
+    se lee. Se funde arriba y abajo para no tener bordes, y el gris lo pone
+    el propio clip, que ya viene en blanco y negro.
+  */
+  .encargos__fondo {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    opacity: var(--opacidad-fondo);
+    pointer-events: none;
+    mask-image: linear-gradient(to bottom, transparent, #000 22%, #000 78%, transparent);
+  }
+
+  .encargos__fijo > :not(.encargos__fondo) {
+    position: relative;
+    z-index: 1;
   }
 
   .encargos__entradilla {

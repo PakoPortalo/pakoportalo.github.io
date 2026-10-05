@@ -1,29 +1,33 @@
 ---
 /**
- * Atajo a contacto, justo después de los proyectos: es el momento en que
- * alguien se convence, y no tiene que bajar hasta el final para escribir.
+ * Franja de contacto: una pregunta en grande que, al pasar el ratón, rueda
+ * letra a letra y deja ver la respuesta. Lleva a la página de contacto.
  *
- * Es una franja, no el módulo de contacto repetido: una pregunta en grande
- * que, al pasar el ratón, rueda letra a letra y deja ver la respuesta. Lleva
- * al bloque de contacto completo del final (#contacto).
+ * Sale dos veces: justo después de los proyectos, que es cuando alguien se
+ * convence y no tiene por qué bajar hasta el final para escribir, y como
+ * cierre de la página, con otra frase.
  */
 
 interface Props {
   pregunta?: string;
   respuesta?: string;
   destino?: string;
+  id?: string;
 }
+
+const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
 
 const {
   pregunta = '¿Tienes alguna pregunta?',
   respuesta = '¡Contacta aquí!',
-  destino = '#contacto',
+  destino = `${base}contacto/`,
+  id,
 } = Astro.props;
 
 const letras = (texto: string) => Array.from(texto);
 ---
 
-<section class="atajo" aria-label="Contacto">
+<section class="atajo" aria-label="Contacto" id={id}>
   <a class="atajo__enlace" href={destino} aria-label={`${pregunta} ${respuesta}`}>
     <span class="atajo__frases" aria-hidden="true">
       <span class="atajo__frase atajo__frase--pregunta">

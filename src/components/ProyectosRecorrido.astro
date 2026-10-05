@@ -45,8 +45,8 @@ const posicion = (i: number) => (obras.length > 1 ? i / (obras.length - 1) : 0);
               rel="noreferrer"
               data-proyecto={obra.slug}
             >
-              <div class="recorrido__marco" data-origen>
-                <ClipVideo obra={obra} class="recorrido__video" />
+              <div class="recorrido__marco" data-origen data-cursor-ver>
+                <ClipVideo clip={obra.slug} class="recorrido__video" />
               </div>
               <div class="recorrido__ficha">
                 <span class="recorrido__num">
@@ -183,7 +183,7 @@ const posicion = (i: number) => (obras.length > 1 ? i / (obras.length - 1) : 0);
   /* Al señalarlo crece un pelo: lo justo para decir que se puede pinchar. */
   .recorrido__pieza:hover .recorrido__marco,
   .recorrido__pieza:focus-visible .recorrido__marco {
-    scale: 1.03;
+    scale: 1.015;
   }
 
   :global(.recorrido__video) {

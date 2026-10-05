@@ -1,20 +1,21 @@
 ---
 /**
- * Un clip de proyecto: mudo, en bucle y sin src hasta que hace falta.
+ * Un clip: mudo, en bucle y sin src hasta que hace falta.
  * La carga y el play los lleva src/scripts/clips.ts.
  */
-import type { Obra } from '../data/obras';
-
 interface Props {
-  obra: Obra;
+  /** Nombre de sus archivos en /public/proyectos/<carpeta>/. */
+  clip: string;
+  /** clips (los de los proyectos) o fondos (los de fondo de módulo). */
+  carpeta?: 'clips' | 'fondos';
   class?: string;
   /** Lo gobierna su módulo en vez del observador general. */
   manual?: boolean;
 }
 
-const { obra, class: clase, manual = false } = Astro.props;
+const { clip, carpeta = 'clips', class: clase, manual = false } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
-const ruta = `${base}proyectos/clips/${obra.slug}`;
+const ruta = `${base}proyectos/${carpeta}/${clip}`;
 ---
 
 <video

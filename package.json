@@ -13,15 +13,13 @@
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",
-    "astro": "^7.3.3",
-    "three": "^0.186.0"
+    "astro": "^7.3.3"
   },
   "allowScripts": {
     "esbuild": true
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
-    "@types/three": "^0.186.0",
     "playwright": "^1.63.0",
     "typescript": "^6.0.3"
   }

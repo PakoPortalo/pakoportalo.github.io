@@ -1,7 +1,7 @@
 ---
 /**
  * El cursor del módulo de vídeos: un punto verde neón que deja una estela corta y
- * se va apagando por la cola. Encima de un proyecto (data-proyecto) el punto
+ * se va apagando por la cola. Encima de un vídeo (data-cursor-ver) el punto
  * crece y dice "Ver".
  *
  * Solo existe dentro de las zonas marcadas con data-cursor-zona; en el resto
@@ -125,7 +125,7 @@
       // La palabra entra cuando el punto ya ha crecido lo bastante para
       // contenerla; antes se saldría del círculo.
       const crecido = (radio - RADIO) / (RADIO_PROYECTO - RADIO);
-      if (crecido > 0.6) {
+      if (sobreProyecto && crecido > 0.6) {
         ctx.globalAlpha = (crecido - 0.6) / 0.4;
         ctx.fillStyle = '#050505';
         ctx.font = '600 9px InstrumentSans, ui-sans-serif, system-ui, sans-serif';
@@ -145,7 +145,10 @@
       const k = 1 - Math.pow(0.55, dt);
       x += (destinoX - x) * k;
       y += (destinoY - y) * k;
-      radio += ((sobreProyecto ? RADIO_PROYECTO : RADIO) - radio) * (1 - Math.pow(0.78, dt));
+      // Crece con calma y encoge rápido: al salir del vídeo no tiene que
+      // quedarse grande por encima del hueco.
+      const meta = sobreProyecto ? RADIO_PROYECTO : RADIO;
+      radio += (meta - radio) * (1 - Math.pow(meta > radio ? 0.78 : 0.55, dt));
 
       // Solo se apunta si se ha movido: con el ratón quieto la estela tiene
       // que consumirse, y el bucle pararse cuando acabe.
@@ -190,7 +193,9 @@
       }
       if (!dentro) estela.length = 0;
       visible = dentro;
-      sobreProyecto = dentro && Boolean(elemento?.closest('[data-proyecto]'));
+      // Solo encima del vídeo, no de toda la ficha: en el hueco entre dos
+      // vídeos, o junto al título, el "Ver" no señala nada.
+      sobreProyecto = dentro && Boolean(elemento?.closest('[data-cursor-ver]'));
     };
 
     document.addEventListener('pointermove', (evento) => {

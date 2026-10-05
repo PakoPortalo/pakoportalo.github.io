@@ -1,53 +1,83 @@
 ---
-import { useTranslations } from '../i18n/ui';
-import { path } from '../i18n/utils';
-import Base from '../layouts/Base.astro';
+/**
+ * Página no encontrada. En negro como la portada, con un solo camino: volver.
+ */
+import '../styles/global.css';
 
-const es = useTranslations('es');
-const en = useTranslations('en');
+const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
 ---
 
-<Base locale="es" title={es('404.title')} description={es('404.body')}>
-  <div class="wrap notfound">
-    <p class="code" aria-hidden="true">404</p>
-
-    <div class="block">
-      <h1>{es('404.title')}</h1>
-      <p class="muted">{es('404.body')}</p>
-      <a class="button button--accent" href={path('es')}>{es('404.home')}</a>
-    </div>
-
-    <div class="block" lang="en">
-      <h2>{en('404.title')}</h2>
-      <p class="muted">{en('404.body')}</p>
-      <a class="button" href={path('en')}>{en('404.home')}</a>
-    </div>
-  </div>
-</Base>
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Página no encontrada — Pako Portalo</title>
+    <meta name="theme-color" content="#050505" />
+    <style is:global>
+      body {
+        margin: 0;
+        background: #050505;
+        color: #f4f1ec;
+        font-family: InstrumentSans, ui-sans-serif, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="perdida">
+      <p class="perdida__codigo" aria-hidden="true">404</p>
+      <h1 class="perdida__titulo">Aquí no suena nada.</h1>
+      <p class="perdida__texto">La página que buscas no existe o ha cambiado de sitio.</p>
+      <a class="perdida__volver" href={base}>Volver al inicio <span aria-hidden="true">→</span></a>
+    </main>
+  </body>
+</html>
 
 <style>
-  .notfound {
-    max-width: var(--measure);
-    display: flex;
-    flex-direction: column;
-    gap: 2.5rem;
+  .perdida {
+    min-height: 100svh;
+    display: grid;
+    align-content: center;
+    justify-items: start;
+    gap: 18px;
+    padding: 0 max(24px, 5.5vw);
   }
 
-  .code {
-    font-family: var(--font-mono);
-    font-size: var(--step-3);
-    color: var(--accent);
-    line-height: 1;
+  .perdida__codigo {
+    margin: 0;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    color: rgb(255 255 255 / 0.45);
   }
 
-  .block {
-    display: flex;
-    flex-direction: column;
-    align-items: start;
-    gap: 0.75rem;
+  .perdida__titulo {
+    margin: 0;
+    font-family: ClashDisplay, InstrumentSans, sans-serif;
+    font-size: clamp(40px, 6.4vw, 112px);
+    font-weight: 500;
+    letter-spacing: -0.035em;
+    line-height: 0.98;
   }
 
-  .block h2 {
-    font-size: var(--step-1);
+  .perdida__texto {
+    margin: 0;
+    font-size: clamp(15px, 1.2vw, 18px);
+    color: rgb(255 255 255 / 0.6);
+  }
+
+  .perdida__volver {
+    margin-block-start: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #5ff7c6;
+    text-decoration: none;
+  }
+
+  .perdida__volver:hover,
+  .perdida__volver:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 4px;
   }
 </style>

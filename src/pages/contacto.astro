@@ -1,0 +1,192 @@
+---
+/**
+ * Página de contacto: a la que llevan las dos franjas de la portada.
+ *
+ * Limpia y en claro, como las franjas: un texto corto y el correo en
+ * grande. Sin formulario, que es una cosa más que mantener y un paso más
+ * para quien solo quiere escribir.
+ */
+import '../styles/global.css';
+
+const correo = 'pakoportalo@gmail.com';
+const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Contacto — Pako Portalo</title>
+    <meta
+      name="description"
+      content="Escríbeme para música original, bandas sonoras y diseño sonoro para spots, videojuegos y cine."
+    />
+    <meta name="theme-color" content="#f4f1ec" />
+    <style is:global>
+      body {
+        margin: 0;
+        background: #f4f1ec;
+        color: #050505;
+        font-family: InstrumentSans, ui-sans-serif, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="contacto">
+      <a class="contacto__volver" href={base}>
+        <span aria-hidden="true">←</span> Volver
+      </a>
+
+      <div class="contacto__cuerpo">
+        <p class="contacto__antetitulo">Contacto</p>
+        <h1 class="contacto__titulo">Cuéntame qué tienes entre manos.</h1>
+        <p class="contacto__texto">
+          Un spot, un videojuego, una película. Escríbeme con lo que tengas —la pieza, las referencias, los plazos— y
+          vemos cómo hacer que suene.
+        </p>
+
+        <a class="contacto__correo" href={`mailto:${correo}`}>
+          {correo}
+          <span class="contacto__flecha" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="24" height="24">
+              <path
+                d="M7 17 17 7M9 7h8v8"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"></path>
+            </svg>
+          </span>
+        </a>
+      </div>
+    </main>
+  </body>
+</html>
+
+<style>
+  .contacto {
+    min-height: 100svh;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    padding: clamp(24px, 3vw, 44px) max(24px, 5.5vw) clamp(48px, 8vw, 120px);
+    box-sizing: border-box;
+    --verde: #5ff7c6;
+  }
+
+  .contacto__volver {
+    justify-self: start;
+    display: inline-flex;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: inherit;
+    text-decoration: none;
+    opacity: 0.6;
+    transition: opacity 300ms ease;
+  }
+
+  .contacto__volver:hover,
+  .contacto__volver:focus-visible {
+    opacity: 1;
+  }
+
+  .contacto__cuerpo {
+    align-self: center;
+    display: grid;
+    justify-items: start;
+    gap: clamp(16px, 2vw, 28px);
+  }
+
+  .contacto__antetitulo {
+    margin: 0;
+    font-size: clamp(10px, 0.8vw, 13px);
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgb(5 5 5 / 0.5);
+  }
+
+  .contacto__titulo {
+    margin: 0;
+    max-width: 16ch;
+    font-family: ClashDisplay, InstrumentSans, sans-serif;
+    font-size: clamp(40px, 6.4vw, 112px);
+    font-weight: 500;
+    letter-spacing: -0.035em;
+    line-height: 0.98;
+  }
+
+  .contacto__texto {
+    margin: 0;
+    max-width: 44ch;
+    font-size: clamp(16px, 1.3vw, 20px);
+    line-height: 1.5;
+    color: rgb(5 5 5 / 0.72);
+  }
+
+  /* El correo, en grande y como enlace: un clic y se abre el programa de
+     correo. Al pasar el ratón, el subrayado se llena de verde con trazo,
+     como el "¡Contacta aquí!" de la portada. */
+  .contacto__correo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    margin-block-start: clamp(16px, 3vw, 48px);
+    padding-block-end: 0.12em;
+    font-family: ClashDisplay, InstrumentSans, sans-serif;
+    font-size: clamp(24px, 3.6vw, 60px);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    color: inherit;
+    text-decoration: none;
+    background: linear-gradient(var(--verde), var(--verde)) 0 100% / 0% 0.18em no-repeat;
+    border-block-end: 2px solid #050505;
+    transition: background-size 600ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .contacto__correo:hover,
+  .contacto__correo:focus-visible {
+    background-size: 100% 0.18em;
+  }
+
+  .contacto__flecha {
+    display: grid;
+    place-items: center;
+    width: 1.2em;
+    aspect-ratio: 1;
+    border: 1px solid rgb(5 5 5 / 0.3);
+    border-radius: 50%;
+    transition:
+      background-color 500ms ease,
+      border-color 500ms ease,
+      rotate 600ms cubic-bezier(0.7, 0, 0.2, 1);
+  }
+
+  .contacto__flecha svg {
+    width: 45%;
+    height: auto;
+  }
+
+  .contacto__correo:hover .contacto__flecha,
+  .contacto__correo:focus-visible .contacto__flecha {
+    background: var(--verde);
+    border-color: #050505;
+    rotate: 45deg;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .contacto__correo,
+    .contacto__flecha {
+      transition: none;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .contacto__correo {
+      font-size: 22px;
+    }
+  }
+</style>

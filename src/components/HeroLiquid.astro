@@ -45,6 +45,16 @@ const { copy } = Astro.props;
     </div>
   </div>
 
+  {/*
+    La señal de que hay más abajo. Va en el hero y no en la capa fija: así
+    se va con el scroll y la tapa el módulo siguiente, en vez de quedarse
+    flotando encima de todo.
+  */}
+  <span class="hero__bajar" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="22" height="22">
+      <path d="M5 9l7 7 7-7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+    </svg>
+  </span>
 </section>
 
 <style>
@@ -169,6 +179,40 @@ const { copy } = Astro.props;
     color: rgb(255 255 255 / 0.85);
   }
 
+
+  .hero__bajar {
+    position: absolute;
+    z-index: 1;
+    inset-inline-start: 50%;
+    inset-block-end: clamp(18px, 3svh, 32px);
+    translate: -50% 0;
+    color: rgb(255 255 255 / 0.7);
+    pointer-events: none;
+    animation: tira 1.8s ease-in-out infinite;
+  }
+
+  .hero__bajar svg {
+    display: block;
+  }
+
+  /* Baja, se queda un instante abajo y vuelve: un tirón suave, no un bote. */
+  @keyframes tira {
+    0%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.55;
+    }
+    50% {
+      transform: translateY(7px);
+      opacity: 1;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero__bajar {
+      animation: none;
+    }
+  }
 </style>
 
 <script>

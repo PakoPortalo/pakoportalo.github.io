@@ -25,7 +25,7 @@ export const obras: Obra[] = [
     slug: 'xiaomi',
     marca: 'Xiaomi',
     titulo: 'Porque sí',
-    ano: '2023',
+    ano: '2025',
     papel: 'Música original',
     youtube: 'J1EePtijHD0',
   },
