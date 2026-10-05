@@ -1,0 +1,35 @@
+---
+/**
+ * La barra de color que hace de filo entre el hero y el módulo que le sigue.
+ *
+ * Va en el canto de arriba de ese módulo, no en el hero: en el hero se
+ * quedaba fija detrás y el módulo se la comía al subir. Puesta aquí, sube con
+ * él. El módulo que la lleve tiene que tener position: relative.
+ *
+ * Guiño a las tiras de control de color de imprenta.
+ */
+---
+
+<div class="barra-color" aria-hidden="true"></div>
+
+<style>
+  .barra-color {
+    position: absolute;
+    z-index: 2;
+    inset-inline: 0;
+    inset-block-start: 0;
+    height: var(--barra);
+    background: linear-gradient(
+      90deg,
+      #18c6d4 0%,
+      #2f3ad0 12%,
+      #7b2fd0 22%,
+      #d92b6a 31%,
+      #e8603a 39%,
+      #e8e030 46%,
+      rgb(255 255 255 / 0.5) 52%,
+      rgb(255 255 255 / 0.12) 62%,
+      rgb(255 255 255 / 0.12) 100%
+    );
+  }
+</style>

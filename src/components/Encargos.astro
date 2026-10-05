@@ -1,0 +1,178 @@
+---
+/**
+ * Especializado en: lo que se le puede encargar.
+ *
+ * El módulo se queda clavado y el scroll va encendiendo las palabras una a
+ * una, de gris a blanco, como si se estuvieran leyendo. El final de cada
+ * frase —para quién— se enciende en color: morado los spots, verde
+ * videojuegos y cine. A la izquierda de cada línea, un punto de su color que
+ * se prende cuando esa línea empieza a leerse.
+ */
+import { entradilla, servicios } from '../data/encargos';
+
+/*
+  Se numeran todas las palabras seguidas, de las dos frases, porque el
+  encendido recorre el texto entero de principio a fin. Las del acento
+  llevan su color; el resto, el blanco.
+*/
+let contador = 0;
+const lineas = servicios.map((servicio) => {
+  const corte = servicio.texto.length - servicio.acento.length;
+  const palabras = [
+    ...servicio.texto.slice(0, corte).trim().split(' ').map((palabra) => ({ palabra, acento: false })),
+    ...servicio.acento.split(' ').map((palabra) => ({ palabra, acento: true })),
+  ].map((p) => ({ ...p, i: contador++ }));
+  return { color: servicio.color, inicio: palabras[0]!.i, palabras };
+});
+---
+
+<section class="encargos" aria-labelledby="encargos-titulo" data-encargos style={`--n: ${contador}`}>
+  <div class="encargos__fijo">
+    <h2 class="encargos__entradilla" id="encargos-titulo">{entradilla}</h2>
+    {
+      lineas.map((linea) => (
+        <p class={`encargos__linea encargos__linea--${linea.color}`} style={`--inicio: ${linea.inicio}`}>
+          <span class="encargos__punto" aria-hidden="true" />
+          <span>
+            {linea.palabras.map(({ palabra, acento, i }) => (
+              <span class:list={['encargos__palabra', acento && 'es-acento']} style={`--i: ${i}`}>
+                {palabra}{' '}
+              </span>
+            ))}
+          </span>
+        </p>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .encargos {
+    position: relative;
+    z-index: 1;
+    /* Pantalla y media de recorrido: lo justo para leer sin prisa. */
+    height: 250svh;
+    /*
+      El texto va centrado en la pantalla, así que al soltarse deja debajo
+      casi media pantalla de negro. El módulo siguiente sube por encima de
+      ese tramo vacío, como una lámina, en vez de esperar a que pase.
+    */
+    margin-block-end: -14svh;
+    background: #050505;
+    color: #f4f1ec;
+    font-family: InstrumentSans, ui-sans-serif, system-ui, sans-serif;
+    --p: 0;
+  }
+
+  .encargos__fijo {
+    position: sticky;
+    inset-block-start: 0;
+    height: 100svh;
+    display: grid;
+    align-content: center;
+    gap: clamp(20px, 3vw, 44px);
+    padding-inline: max(24px, 5.5vw);
+  }
+
+  .encargos__entradilla {
+    margin: 0;
+    font-size: clamp(10px, 0.8vw, 13px);
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.45);
+  }
+
+  .encargos__linea {
+    display: grid;
+    grid-template-columns: clamp(36px, 4vw, 64px) 1fr;
+    align-items: baseline;
+    margin: 0;
+    max-width: 22ch;
+    font-family: ClashDisplay, InstrumentSans, sans-serif;
+    font-size: clamp(34px, 5.4vw, 96px);
+    font-weight: 500;
+    letter-spacing: -0.035em;
+    line-height: 1;
+  }
+
+  .encargos__linea + .encargos__linea {
+    max-width: 30ch;
+  }
+
+  .encargos__linea--morado {
+    --color: #b660ff;
+    --halo: rgb(182 96 255 / 0.55);
+  }
+
+  .encargos__linea--verde {
+    --color: #5ff7c6;
+    --halo: rgb(95 247 198 / 0.45);
+  }
+
+  /*
+    Cuánto se ha leído: el progreso total por el número de palabras, menos
+    las que van antes. Por debajo de 0 no ha llegado, por encima de 1 ya
+    está. Así el borde entre leído y sin leer avanza suave, a media palabra.
+  */
+  .encargos__palabra {
+    --leida: clamp(0, var(--p) * var(--n) - var(--i), 1);
+    opacity: calc(0.14 + 0.86 * var(--leida));
+  }
+
+  /*
+    Las del acento son blancas como las demás hasta que se leen; entonces
+    viran a su color y se encienden como un neón: un halo pegado a la letra
+    y otro más ancho y tenue alrededor. Las dos cosas crecen con --leida,
+    así que el color llega a la vez que la palabra se ilumina, no antes.
+  */
+  .encargos__palabra.es-acento {
+    color: color-mix(in oklab, #f4f1ec, var(--color) calc(var(--leida) * 100%));
+    text-shadow:
+      0 0 calc(var(--leida) * 0.06em) var(--color),
+      0 0 calc(var(--leida) * 0.35em) var(--halo);
+  }
+
+  /* El punto: apagado hasta que su línea empieza a leerse, y entonces se
+     prende con su halo. Va a la altura de la primera línea de texto. */
+  .encargos__punto {
+    align-self: start;
+    width: 0.16em;
+    aspect-ratio: 1;
+    margin-block-start: 0.42em;
+    border-radius: 50%;
+    background: var(--color);
+    box-shadow: 0 0 0.24em 0.06em var(--halo);
+    opacity: calc(0.15 + 0.85 * clamp(0, (var(--p) * var(--n) - var(--inicio)) * 2, 1));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .encargos__palabra,
+    .encargos__punto {
+      opacity: 1;
+    }
+  }
+</style>
+
+<script>
+  const limitar = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+
+  document.querySelectorAll<HTMLElement>('[data-encargos]').forEach((seccion) => {
+    let pendiente = 0;
+    const actualizar = () => {
+      pendiente = 0;
+      const caja = seccion.getBoundingClientRect();
+      const recorrible = caja.height - window.innerHeight;
+      // Termina un poco antes del final, para que el texto entero se quede
+      // encendido un rato antes de irse.
+      const p = recorrible > 0 ? limitar(-caja.top / (recorrible * 0.8), 0, 1) : 1;
+      seccion.style.setProperty('--p', p.toFixed(4));
+    };
+    const pedir = () => {
+      if (!pendiente) pendiente = requestAnimationFrame(actualizar);
+    };
+    window.addEventListener('scroll', pedir, { passive: true });
+    window.addEventListener('resize', pedir);
+    actualizar();
+  });
+</script>

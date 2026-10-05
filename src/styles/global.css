@@ -27,6 +27,17 @@
 /* ---------------------------------------------------------------------------
    Tokens. Paleta neutra de arranque: la afinaremos con los MCP de diseño.
    --------------------------------------------------------------------------- */
+/**
+ * Grosor de la tira de color que separa el hero del módulo siguiente.
+ *
+ * La comparten los dos: el módulo la dibuja en su canto de arriba, y el hero
+ * se descuenta ese grosor de su alto para que asome por abajo nada más
+ * cargar. Con un valor en cada sitio, al tocar uno se desalineaban.
+ */
+:root {
+  --barra: 3px;
+}
+
 :root {
   --bg: #fbfaf9;
   --bg-raised: #ffffff;

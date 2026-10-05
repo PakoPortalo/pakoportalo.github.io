@@ -1,0 +1,206 @@
+---
+/**
+ * Humo de fondo para un módulo: volutas blancas y grises, sutiles, por
+ * detrás del contenido y con la opacidad baja. Sirve para que el módulo se
+ * distinga del anterior, que es negro liso, sin competir con lo que hay
+ * encima.
+ *
+ * Por donde pasa el ratón el humo se arremolina un poco, como si lo apartara
+ * la mano. Solo el fondo: el contenido no se mueve.
+ *
+ * El módulo que lo lleve tiene que tener position: relative, y su contenido
+ * position: relative para quedar por encima.
+ */
+---
+
+<div class="humo" aria-hidden="true" data-humo>
+  <canvas class="humo__lienzo"></canvas>
+</div>
+
+<style>
+  .humo {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+    /* Se apaga hacia arriba: el canto superior es el que toca al módulo
+       anterior, y ahí la lámina tiene que verse limpia. */
+    mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.25), #000 40%);
+  }
+
+  .humo__lienzo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.3;
+  }
+</style>
+
+<script>
+  const limitar = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+
+  /*
+    El humo: ruido fractal deformado por otro ruido (domain warping), que es
+    lo que da las volutas en vez de manchas redondas.
+
+    El ratón entra como un remolino: alrededor de su posición las
+    coordenadas giran un poco, con una caída gaussiana para que no haya
+    borde. `fuerza` sube al entrar y baja al salir, y además crece con la
+    velocidad: un ratón quieto apenas toca el humo, uno que pasa lo arrastra.
+  */
+  const VERTICES = `
+    attribute vec2 p;
+    void main() { gl_Position = vec4(p, 0.0, 1.0); }
+  `;
+
+  const FRAGMENTOS = `
+    precision mediump float;
+    uniform vec2 res;
+    uniform float t;
+    uniform vec2 raton;
+    uniform float fuerza;
+
+    float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+
+    float ruido(vec2 p) {
+      vec2 i = floor(p), f = fract(p);
+      vec2 u = f * f * (3.0 - 2.0 * f);
+      return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x),
+                 mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+    }
+
+    float fbm(vec2 p) {
+      float v = 0.0, a = 0.5;
+      for (int i = 0; i < 5; i++) { v += a * ruido(p); p = p * 2.03 + 17.0; a *= 0.5; }
+      return v;
+    }
+
+    void main() {
+      vec2 uv = gl_FragCoord.xy / res.y * 1.6;
+
+      vec2 d = (gl_FragCoord.xy - raton) / res.y;
+      float cerca = exp(-dot(d, d) / 0.018);
+      float angulo = fuerza * cerca * 1.1;
+      float s = sin(angulo), c = cos(angulo);
+      vec2 centro = raton / res.y * 1.6;
+      uv = centro + mat2(c, -s, s, c) * (uv - centro);
+
+      float tt = t * 0.035;
+      vec2 q = vec2(fbm(uv + vec2(0.0, tt)), fbm(uv + vec2(5.2, -tt)));
+      vec2 r = vec2(fbm(uv + 3.0 * q + vec2(1.7, 9.2) + tt), fbm(uv + 3.0 * q + vec2(8.3, 2.8) - tt));
+      float humo = smoothstep(0.35, 0.95, fbm(uv + 2.5 * r));
+
+      gl_FragColor = vec4(vec3(0.92) * humo, humo);
+    }
+  `;
+
+  document.querySelectorAll<HTMLElement>('[data-humo]').forEach((caja) => {
+    const lienzo = caja.querySelector('canvas')!;
+    const gl = lienzo.getContext('webgl', { premultipliedAlpha: true, alpha: true });
+    if (!gl) return;
+
+    const compilar = (tipo: number, fuente: string) => {
+      const s = gl.createShader(tipo)!;
+      gl.shaderSource(s, fuente);
+      gl.compileShader(s);
+      return s;
+    };
+    const programa = gl.createProgram()!;
+    gl.attachShader(programa, compilar(gl.VERTEX_SHADER, VERTICES));
+    gl.attachShader(programa, compilar(gl.FRAGMENT_SHADER, FRAGMENTOS));
+    gl.linkProgram(programa);
+    gl.useProgram(programa);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    const p = gl.getAttribLocation(programa, 'p');
+    gl.enableVertexAttribArray(p);
+    gl.vertexAttribPointer(p, 2, gl.FLOAT, false, 0, 0);
+
+    const uRes = gl.getUniformLocation(programa, 'res');
+    const uT = gl.getUniformLocation(programa, 't');
+    const uRaton = gl.getUniformLocation(programa, 'raton');
+    const uFuerza = gl.getUniformLocation(programa, 'fuerza');
+
+    // A media resolución: el humo no tiene bordes que se noten borrosos.
+    const ESCALA = 0.5;
+    const medir = () => {
+      lienzo.width = Math.max(1, Math.round(caja.clientWidth * ESCALA));
+      lienzo.height = Math.max(1, Math.round(caja.clientHeight * ESCALA));
+      gl.viewport(0, 0, lienzo.width, lienzo.height);
+      gl.uniform2f(uRes, lienzo.width, lienzo.height);
+    };
+    medir();
+    new ResizeObserver(medir).observe(caja);
+
+    /*
+      El ratón se escucha en el módulo y no en el lienzo, que no recibe
+      eventos para no tapar los enlaces de encima. La posición se pasa a
+      píxeles del lienzo, con la y al revés, que es como cuenta WebGL.
+    */
+    const modulo = caja.parentElement!;
+    let destinoX = 0;
+    let destinoY = 0;
+    let x = 0;
+    let y = 0;
+    let dentro = false;
+    let empuje = 0;
+    let fuerza = 0;
+
+    modulo.addEventListener('pointermove', (evento) => {
+      const rect = caja.getBoundingClientRect();
+      const nuevoX = (evento.clientX - rect.left) * ESCALA;
+      const nuevoY = (rect.bottom - evento.clientY) * ESCALA;
+      if (!dentro) {
+        x = nuevoX;
+        y = nuevoY;
+      }
+      // Cuánto se ha movido, en proporción al alto: alimenta el empuje.
+      empuje = Math.min(1, empuje + Math.hypot(nuevoX - destinoX, nuevoY - destinoY) / lienzo.height * 4);
+      destinoX = nuevoX;
+      destinoY = nuevoY;
+      dentro = true;
+    });
+    modulo.addEventListener('pointerleave', () => {
+      dentro = false;
+    });
+
+    const quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const inicio = performance.now();
+    let bucle = 0;
+    let anterior = 0;
+
+    const pintar = (ahora: number) => {
+      const dt = anterior ? limitar((ahora - anterior) / 16.67, 0, 2.5) : 1;
+      anterior = ahora;
+
+      // El remolino sigue al ratón con retraso: el humo es lento.
+      const k = 1 - Math.pow(0.9, dt);
+      x += (destinoX - x) * k;
+      y += (destinoY - y) * k;
+      // El empuje se disipa solo; la fuerza va hacia él, y a cero al salir.
+      empuje *= Math.pow(0.96, dt);
+      const meta = dentro ? 0.25 + 0.75 * empuje : 0;
+      fuerza += (meta - fuerza) * (1 - Math.pow(0.94, dt));
+
+      gl.uniform1f(uT, (ahora - inicio) / 1000);
+      gl.uniform2f(uRaton, x, y);
+      gl.uniform1f(uFuerza, quieto ? 0 : fuerza);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      bucle = quieto ? 0 : requestAnimationFrame(pintar);
+    };
+
+    // Solo se pinta mientras el módulo está a la vista.
+    new IntersectionObserver(([entrada]) => {
+      if (entrada!.isIntersecting && !bucle) {
+        anterior = 0;
+        bucle = requestAnimationFrame(pintar);
+      } else if (!entrada!.isIntersecting && bucle) {
+        cancelAnimationFrame(bucle);
+        bucle = 0;
+      }
+    }).observe(caja);
+  });
+</script>

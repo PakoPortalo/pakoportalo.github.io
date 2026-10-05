@@ -1,12 +1,19 @@
 ---
 /**
- * Franja de credenciales, justo debajo del hero.
+ * Franja de credenciales, después de los proyectos destacados.
  *
- * Va aquí y no al final por una razón: quien entra decide en unos segundos si
- * esto es para él, y esa decisión la toma con los nombres, no con el
- * portfolio. Enterrarla abajo es pedirle que se convenza solo y darle la
- * prueba después.
+ * Es un "mira con quién trabajo", no un módulo protagonista: compacta, con
+ * los reconocimientos arriba y los logotipos debajo en dos filas de cinco.
+ * El humo de fondo la separa del módulo anterior, que es negro liso, sin
+ * hacerla más alta.
  */
+import HumoFondo from './HumoFondo.astro';
+
+interface Props {
+  id?: string;
+}
+
+const { id = 'creds' } = Astro.props;
 
 interface Cliente {
   nombre: string;
@@ -29,60 +36,61 @@ interface Cliente {
    * llevan letra fina.
    */
   escala?: number;
-  /** Palabra que acompaña al logotipo cuando el símbolo no dice el nombre. */
-  coletilla?: string;
   /**
    * Para los de trazo muy fino. Necesitan ir menos apagados que uno macizo:
    * no es que estén más tenues, es que tienen menos tinta con la que estarlo.
    */
   tenue?: boolean;
-  /**
-   * Conserva los tonos en vez de pasarlo a blanco plano.
-   *
-   * Para los que dependen del contraste interno: el de Xiaomi es una "MI"
-   * blanca calada sobre un cuadrado de color, y aplanándolo a blanco el
-   * cuadrado se traga las letras y queda un bloque. En gris aclarado el
-   * cuadrado se queda a medio tono, la "MI" sigue siendo blanca, y el
-   * conjunto convive con los demás sin desentonar.
-   */
-  tonos?: boolean;
 }
 
 interface Reconocimiento {
+  /**
+   * Finalista o nominado, con la palabra exacta que usa cada certamen.
+   * El Sol llama "lista corta" a su selección de finalistas, y decir
+   * "nominado" ahí sería decir algo que su palmarés no dice.
+   */
+  estado: string;
   /** Dónde: el festival y el año. */
   donde: string;
   /** Qué: la distinción, que es lo que hay que leer primero. */
   que: string;
-  /** Sobre qué pieza, y con quién. */
+  /**
+   * La pieza. Se queda corta a propósito: comparte línea con el certamen, y
+   * si una de las dos se alarga los bloques dejan de tener la misma silueta.
+   */
   pieza: string;
   /** El mismo verde y morado de los puntos del hero. */
   color: 'verde' | 'morado';
 }
 
 const clientes: Cliente[] = [
-  { nombre: 'Xiaomi', logo: 'xiaomi.png', escala: 0.72, tonos: true },
+  { nombre: 'Xiaomi', logo: 'xiaomi.png', escala: 0.34 },
   { nombre: 'BBVA', logo: 'bbva.svg', escala: 0.6 },
   { nombre: 'Red Bull', logo: 'redbull.svg', escala: 0.54 },
   { nombre: 'Junta de Andalucía', logo: 'junta.png', escala: 1.3 },
   { nombre: 'VivaGym', logo: 'vivagym.png', escala: 0.62 },
   { nombre: 'Mayumana', logo: 'mayumana.svg', escala: 1.15 },
   { nombre: 'Farmaindustria', logo: 'farmaindustria.png', escala: 1 },
-  { nombre: 'Galicia R', logo: 'galiciar.svg', escala: 0.95, coletilla: 'Televisión' },
-  { nombre: 'Shaman Garage', logo: 'shamangarage.png', escala: 0.85, tenue: true },
-  { nombre: 'Te falta calle', logo: 'tefaltacalle.png', escala: 1 },
+  { nombre: 'Galicia R Televisión', logo: 'galiciar.png', escala: 0.5 },
+  { nombre: 'Shaman Garage', logo: 'shamangarage.png', escala: 0.5, tenue: true },
+  { nombre: 'Te falta calle', logo: 'tefaltacalle.png', escala: 0.82 },
 ];
 
 const reconocimientos: Reconocimiento[] = [
   {
+    estado: 'Finalista',
     donde: 'Festival El Sol 2026',
-    que: 'Lista corta en Sound Design',
-    pieza: 'The Revelation · Casanova para la Junta de Andalucía',
+    // En inglés porque así se llama la categoría en el palmarés de El Sol.
+    que: 'Sound Design',
+    pieza: 'The Revelation',
     color: 'verde',
   },
   {
+    estado: 'Nominado',
     donde: 'Dutch Game Awards 2024',
-    que: 'Nominado a mejor juego debut',
-    pieza: 'Data Garden · Shaman Garage',
+    // En inglés porque así se llama la categoría en su certamen.
+    que: 'Best debut game',
+    pieza: 'Data Garden',
     color: 'morado',
   },
 ];
@@ -90,51 +98,67 @@ const reconocimientos: Reconocimiento[] = [
 const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
 ---
 
-<section class="creds" aria-labelledby="creds-titulo">
-  <h2 class="creds__titulo" id="creds-titulo">Han contado conmigo</h2>
+<section class="creds" aria-labelledby={`${id}-titulo`}>
+  <HumoFondo />
 
-  <ul class="creds__clientes">
-    {
-      clientes.map((cliente) => (
-        <li>
-          {cliente.logo ? (
-            <>
+  <div class="creds__contenido">
+    <h2 class="creds__titulo" id={`${id}-titulo`}>Reconocimientos</h2>
+
+    <ul class="creds__premios">
+      {
+        reconocimientos.map((premio) => (
+          <li class={`creds__premio creds__premio--${premio.color}`}>
+            <p class="creds__estado">{premio.estado}</p>
+            <p class="creds__que">{premio.que}</p>
+            <p class="creds__pieza">
+              <span class="creds__certamen">{premio.donde}</span> · {premio.pieza}
+            </p>
+          </li>
+        ))
+      }
+    </ul>
+
+    <h2 class="creds__titulo creds__titulo--clientes">Clientes</h2>
+
+    <ul class="creds__clientes">
+      {
+        clientes.map((cliente) => (
+          <li>
+            {cliente.logo ? (
               <img
                 src={`${base}logos/${cliente.logo}`}
                 alt={cliente.nombre}
                 loading="lazy"
-                class={[cliente.tenue && 'es-tenue', cliente.tonos && 'es-tonos']
-                  .filter(Boolean)
-                  .join(' ')}
+                class={cliente.tenue ? 'es-tenue' : undefined}
                 style={`--escala: ${cliente.escala ?? 1}`}
               />
-              {cliente.coletilla && <span>{cliente.coletilla}</span>}
-            </>
-          ) : (
-            <span class="creds__nombre">{cliente.nombre}</span>
-          )}
-        </li>
-      ))
-    }
-  </ul>
-
-  <ul class="creds__premios">
-    {
-      reconocimientos.map((premio) => (
-        <li class={`creds__premio creds__premio--${premio.color}`}>
-          <p class="creds__donde">{premio.donde}</p>
-          <p class="creds__que">{premio.que}</p>
-          <p class="creds__pieza">{premio.pieza}</p>
-        </li>
-      ))
-    }
-  </ul>
+            ) : (
+              <span class="creds__nombre">{cliente.nombre}</span>
+            )}
+          </li>
+        ))
+      }
+    </ul>
+  </div>
 </section>
 
 <style>
   .creds {
+    /*
+      Por encima del hero, que va en una capa fija por detrás.
+      La sombra cae hacia arriba, sobre el hero, y es lo que hace que este
+      módulo se lea como una lámina que se le echa encima y no como otro
+      trozo del mismo fondo.
+    */
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+    box-shadow: 0 -34px 80px -12px rgb(0 0 0 / 0.92);
+    /* 0 cuando el módulo asoma por abajo, 1 cuando ya está colocado. */
+    --entrada: 1;
     --gutter: max(24px, 5.5vw);
-    padding: clamp(72px, 9vw, 150px) var(--gutter) clamp(64px, 8vw, 130px);
+    /* Poco aire: es una franja de apoyo, no una pantalla. */
+    padding: clamp(56px, 6vw, 104px) var(--gutter) clamp(88px, 9vw, 160px);
     background: #050505;
     color: #fff;
     /* Aquí manda la tipografía de titular y no la de texto.
@@ -144,8 +168,28 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     text-align: center;
   }
 
+  /*
+    El contenido llega de frente: entra un poco más grande y se va colocando
+    según sube. Se escala el contenido y no la sección entera para que el
+    fondo se quede quieto; escalando la sección, el propio fondo crecería y
+    se vería el borde moverse.
+  */
+  .creds__contenido {
+    position: relative;
+    z-index: 1;
+    transform: scale(calc(1 + var(--zoom, 0.5) * (1 - var(--entrada))));
+    transform-origin: 50% 0;
+    will-change: transform;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .creds__contenido {
+      transform: none;
+    }
+  }
+
   .creds__titulo {
-    margin: 0 0 clamp(40px, 4.5vw, 72px);
+    margin: 0 0 clamp(24px, 2.6vw, 40px);
     font-size: clamp(10px, 0.8vw, 13px);
     font-weight: 500;
     letter-spacing: 0.2em;
@@ -154,9 +198,9 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
   }
 
   /*
-    Cuatro por fila, y la última se queda centrada con las que sobren.
-    Con una rejilla de cuatro columnas fijas, las dos últimas se irían a la
-    izquierda y la fila quedaría coja.
+    Cinco por fila: con diez logotipos salen dos filas justas. Con flex y
+    centrado, si un día son nueve u once, la fila que sobre se queda en el
+    centro en vez de coja a la izquierda.
   */
   .creds__clientes {
     margin: 0 auto;
@@ -167,12 +211,12 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     flex-wrap: wrap;
     justify-content: center;
     column-gap: clamp(16px, 2vw, 40px);
-    row-gap: clamp(34px, 3.6vw, 62px);
+    row-gap: clamp(22px, 2.4vw, 40px);
   }
 
   .creds__clientes li {
-    flex: 0 0 calc(25% - clamp(16px, 2vw, 40px));
-    min-height: clamp(32px, 3.4vw, 58px);
+    flex: 0 0 calc(20% - clamp(16px, 2vw, 40px));
+    min-height: clamp(26px, 2.6vw, 44px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -184,20 +228,53 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
        fila con seis tonos distintos lo que se lee es el desorden. */
     filter: brightness(0) invert(1);
     opacity: 0.66;
-    height: calc(clamp(28px, 3.1vw, 54px) * var(--escala, 1));
+    height: calc(clamp(20px, 2.2vw, 38px) * var(--escala, 1));
     width: auto;
     max-width: 100%;
     object-fit: contain;
     display: block;
+    transition: filter 780ms ease, opacity 780ms ease;
+  }
+
+  /*
+    El acercamiento va en la celda y no en la imagen.
+    Aplicándolo solo a la imagen, en los que llevan palabra al lado —la R de
+    Televisión— se acercaba el símbolo y la palabra se quedaba plantada.
+  */
+  .creds__clientes li {
+    transition: transform 780ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .creds__clientes li:hover,
+  .creds__clientes li:focus-within {
+    transform: translateY(-2px) scale(1.02);
+  }
+
+  .creds__clientes li:hover img,
+  .creds__clientes li:focus-within img {
+    opacity: 0.92;
+    filter: brightness(0) invert(1) drop-shadow(0 0 10px rgb(255 255 255 / 0.12));
+  }
+
+  .creds__clientes li:hover span,
+  .creds__clientes li:focus-within span {
+    color: rgb(255 255 255 / 0.88);
+    transition: color 780ms ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .creds__clientes li,
+    .creds__clientes img {
+      transition: none;
+    }
+
+    .creds__clientes li:hover {
+      transform: none;
+    }
   }
 
   .creds__clientes img.es-tenue {
     opacity: 0.82;
-  }
-
-  .creds__clientes img.es-tonos {
-    filter: grayscale(1) brightness(1.55);
-    opacity: 0.78;
   }
 
   .creds__clientes span {
@@ -212,10 +289,16 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     font-size: clamp(16px, 1.5vw, 26px);
   }
 
-  .creds__premios {
-    margin: clamp(56px, 6vw, 108px) auto 0;
-    padding: clamp(36px, 3.6vw, 60px) 0 0;
+  .creds__titulo--clientes {
+    margin: clamp(36px, 4vw, 64px) auto clamp(24px, 2.6vw, 40px);
+    padding-block-start: clamp(28px, 3vw, 48px);
     border-block-start: 1px solid rgb(255 255 255 / 0.1);
+    max-width: 1080px;
+  }
+
+  .creds__premios {
+    margin: 0 auto;
+    padding: 0;
     max-width: 1080px;
     list-style: none;
     display: grid;
@@ -227,37 +310,94 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     display: grid;
     justify-items: center;
     gap: 7px;
+    /* Al mismo ritmo que el color, para que sea un solo gesto y no dos. */
+    transition: transform 950ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
-  .creds__premio::before {
+  .creds__premio:hover,
+  .creds__premio:focus-within {
+    transform: scale(1.035);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .creds__premio {
+      transition: none;
+    }
+
+    .creds__premio:hover {
+      transform: none;
+    }
+  }
+
+  /*
+    Al pasar por encima se enciende solo el nombre del certamen, no el bloque
+    entero. Y despacio: casi un segundo. A la velocidad de un hover normal el
+    cambio de color se lee como un parpadeo; así parece que va subiendo.
+  */
+  .creds__certamen {
+    transition: color 950ms ease;
+  }
+
+  .creds__premio--verde:hover .creds__certamen,
+  .creds__premio--verde:focus-within .creds__certamen {
+    color: #5ff7c6;
+  }
+
+  .creds__premio--morado:hover .creds__certamen,
+  .creds__premio--morado:focus-within .creds__certamen {
+    color: #b660ff;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .creds__certamen {
+      transition: none;
+    }
+  }
+
+  /*
+    El punto va pegado al título, a su izquierda, y los dos se centran como
+    un solo bloque. Encima del todo hacía de viñeta y separaba; al lado
+    marca el título, que es lo que hay que leer primero.
+  */
+  .creds__que::before {
     content: '';
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    margin-block-end: 12px;
+    flex: none;
   }
 
-  .creds__premio--verde::before {
+  .creds__premio--verde .creds__que::before {
     background: #5ff7c6;
     box-shadow: 0 0 12px 3px rgb(95 247 198 / 0.45);
   }
 
-  .creds__premio--morado::before {
+  .creds__premio--morado .creds__que::before {
     background: #b660ff;
     box-shadow: 0 0 12px 3px rgb(182 96 255 / 0.45);
   }
 
-  .creds__donde {
-    margin: 0;
+  /*
+    Una sola palabra arriba, el título en grande, y el detalle en una línea.
+    Repartido de otra forma los dos bloques no rimaban: en uno la línea más
+    ancha caía en el título y en el otro en la del medio, y aunque los dos
+    tuvieran tres líneas, la silueta no era la misma.
+  */
+  .creds__estado {
+    margin: 0 0 2px;
     font-size: clamp(9.5px, 0.75vw, 12px);
     font-weight: 500;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: rgb(255 255 255 / 0.42);
+    color: rgb(255 255 255 / 0.5);
   }
 
   .creds__que {
     margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 13px;
     font-size: clamp(17px, 1.5vw, 25px);
     font-weight: 450;
     letter-spacing: -0.015em;
@@ -274,7 +414,7 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
 
   @media (max-width: 760px) {
     .creds__clientes li {
-      flex-basis: calc(50% - clamp(16px, 2vw, 40px));
+      flex-basis: calc(33.333% - clamp(16px, 2vw, 40px));
     }
 
     .creds__premios {
@@ -282,3 +422,43 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     }
   }
 </style>
+
+<script>
+  /**
+   * Da la sensación de que el módulo llega de frente.
+   *
+   * Se escribe una variable con lo colocado que está y de ahí tira el CSS.
+   * Va en requestAnimationFrame porque el scroll se dispara muchas más veces
+   * de las que hay fotogramas.
+   */
+  document.querySelectorAll<HTMLElement>('.creds').forEach((seccion) => {
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      let pedido = false;
+
+      const actualizar = () => {
+        pedido = false;
+        const alto = Math.max(window.innerHeight, 1);
+        const arriba = seccion.getBoundingClientRect().top;
+        // 0 con el canto del módulo en el borde de abajo, 1 al llegar al de arriba.
+        const avance = Math.min(Math.max((alto - arriba) / alto, 0), 1);
+        seccion.style.setProperty('--entrada', avance.toFixed(4));
+      };
+
+      // ?zoom=0.7 en la URL para probar cuánto conviene sin tocar el código.
+      const pedidoZoom = Number(new URLSearchParams(location.search).get('zoom'));
+      if (Number.isFinite(pedidoZoom) && pedidoZoom > 0 && pedidoZoom <= 1.5) {
+        seccion.style.setProperty('--zoom', String(pedidoZoom));
+      }
+
+      const alHacerScroll = () => {
+        if (pedido) return;
+        pedido = true;
+        requestAnimationFrame(actualizar);
+      };
+
+      window.addEventListener('scroll', alHacerScroll, { passive: true });
+      window.addEventListener('resize', alHacerScroll, { passive: true });
+      actualizar();
+    }
+  });
+</script>

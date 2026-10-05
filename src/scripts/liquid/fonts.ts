@@ -116,7 +116,12 @@ export interface HeroFonts {
 export const HERO_FONTS: HeroFonts = {
   title: findFont('instrumentsans'),
   subtitle: findFont('clash'),
-  body: findFont('clash'),
+  /*
+    El texto pequeño va en la del titular y no en la de la segunda línea.
+    Clash Display es muy fina y de formas muy abiertas: a cuerpo grande luce,
+    pero en el párrafo y en las etiquetas se deshace y cuesta leerla.
+  */
+  body: findFont('instrumentsans'),
 };
 
 /** Los textos del bloque del hero, en el orden en que se leen. */

@@ -1,0 +1,189 @@
+---
+/**
+ * Atajo a contacto, justo después de los proyectos: es el momento en que
+ * alguien se convence, y no tiene que bajar hasta el final para escribir.
+ *
+ * Es una franja, no el módulo de contacto repetido: una pregunta en grande
+ * que, al pasar el ratón, rueda letra a letra y deja ver la respuesta. Lleva
+ * al bloque de contacto completo del final (#contacto).
+ */
+
+interface Props {
+  pregunta?: string;
+  respuesta?: string;
+  destino?: string;
+}
+
+const {
+  pregunta = '¿Tienes alguna pregunta?',
+  respuesta = '¡Contacta aquí!',
+  destino = '#contacto',
+} = Astro.props;
+
+const letras = (texto: string) => Array.from(texto);
+---
+
+<section class="atajo" aria-label="Contacto">
+  <a class="atajo__enlace" href={destino} aria-label={`${pregunta} ${respuesta}`}>
+    <span class="atajo__frases" aria-hidden="true">
+      <span class="atajo__frase atajo__frase--pregunta">
+        {letras(pregunta).map((letra, i) => <span style={`--i: ${i}`}>{letra}</span>)}
+      </span>
+      <span class="atajo__frase atajo__frase--respuesta">
+        {letras(respuesta).map((letra, i) => (
+          <span class:list={{ 'es-cierre': letra === '!' || letra === '?' }} style={`--i: ${i}`}>
+            {letra}
+          </span>
+        ))}
+      </span>
+    </span>
+    <span class="atajo__flecha" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="24" height="24">
+        <path d="M7 17 17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
+    </span>
+  </a>
+  <p class="atajo__movil" aria-hidden="true">{respuesta}</p>
+</section>
+
+<style>
+  .atajo {
+    /* Por encima del hero, que es una capa fija, como todos los módulos. */
+    position: relative;
+    /* Un nivel por encima del módulo siguiente: su sombra cae hacia arriba
+       para leerse como una lámina sobre el negro, y sobre este fondo claro
+       se quedaba como una mancha gris. */
+    z-index: 2;
+    /* Al revés que el resto: una franja clara entre módulos negros. Es el
+       único corte de color de la página, y por eso se ve sin buscarla. */
+    background: #f4f1ec;
+    color: #050505;
+    padding: clamp(26px, 3vw, 48px) max(24px, 5.5vw);
+    --verde: #5ff7c6;
+  }
+
+  .atajo__enlace {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 32px;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  /* Las dos frases ocupan la misma celda: una se va por arriba mientras la
+     otra entra por abajo. El recorte es de la línea, no de cada letra. */
+  .atajo__frases {
+    flex: 1;
+    display: grid;
+    overflow: hidden;
+    font-family: ClashDisplay, InstrumentSans, sans-serif;
+    font-size: clamp(36px, 6.6vw, 116px);
+    font-weight: 500;
+    letter-spacing: -0.035em;
+    line-height: 1.1;
+  }
+
+  .atajo__frase {
+    grid-area: 1 / 1;
+    white-space: pre;
+  }
+
+  /* La respuesta entra centrada: no sustituye a la pregunta en su sitio,
+     aparece como lo que es, otra cosa. Con menos apretura entre letras
+     porque el trazo engorda cada una, y con el interletrado de la pregunta
+     la exclamación final se montaba sobre la í. */
+  .atajo__frase--respuesta {
+    justify-self: center;
+    letter-spacing: 0;
+  }
+
+  /* El signo de cierre necesita aire propio: el acento de la í se sale de
+     su caja por la derecha y, con el trazo, se pisaban. */
+  .atajo__frase--respuesta .es-cierre {
+    margin-inline-start: 0.2em;
+  }
+
+  .atajo__frase span {
+    display: inline-block;
+    /* Escalonado: cada letra sale un poco después de la anterior, y así la
+       frase rueda como un marcador en vez de saltar entera. */
+    transition: translate 620ms cubic-bezier(0.7, 0, 0.2, 1) calc(var(--i) * 16ms);
+  }
+
+  /* El verde neón sobre claro se lava y no se lee: lleva un trazo negro
+     fino por fuera, que le da el contorno sin oscurecer el color. */
+  .atajo__frase--respuesta {
+    color: var(--verde);
+    -webkit-text-stroke: 1.5px #050505;
+    paint-order: stroke fill;
+  }
+
+  .atajo__frase--respuesta span {
+    translate: 0 110%;
+  }
+
+  .atajo__enlace:hover .atajo__frase--pregunta span,
+  .atajo__enlace:focus-visible .atajo__frase--pregunta span {
+    translate: 0 -110%;
+  }
+
+  .atajo__enlace:hover .atajo__frase--respuesta span,
+  .atajo__enlace:focus-visible .atajo__frase--respuesta span {
+    translate: 0 0;
+  }
+
+  .atajo__flecha {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: clamp(56px, 6vw, 96px);
+    aspect-ratio: 1;
+    border: 1px solid rgb(5 5 5 / 0.3);
+    border-radius: 50%;
+    transition:
+      background-color 500ms ease,
+      border-color 500ms ease,
+      color 500ms ease,
+      rotate 620ms cubic-bezier(0.7, 0, 0.2, 1);
+  }
+
+  .atajo__flecha svg {
+    width: 38%;
+    height: auto;
+  }
+
+  .atajo__enlace:hover .atajo__flecha,
+  .atajo__enlace:focus-visible .atajo__flecha {
+    background: var(--verde);
+    border-color: var(--verde);
+    color: #050505;
+    rotate: 45deg;
+  }
+
+  .atajo__movil {
+    display: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .atajo__frase span,
+    .atajo__flecha {
+      transition: none;
+    }
+  }
+
+  /* Sin ratón no hay hover que descubra la respuesta: se enseña debajo. */
+  @media (hover: none) {
+    .atajo__frase--respuesta {
+      display: none;
+    }
+
+    .atajo__movil {
+      display: block;
+      margin: 14px 0 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #050505;
+    }
+  }
+</style>

@@ -29,28 +29,49 @@ const { copy } = Astro.props;
 </div>
 
 <section class="hero" data-liquid-hero>
-  <canvas class="hero__canvas" data-liquid-canvas aria-hidden="true"></canvas>
+  {/*
+    Todo lo que se ve del hero va dentro de una misma capa, para poder
+    alejarlo como una sola pieza al hacer scroll. Escalando cada cosa por su
+    lado se separarían entre ellas, que es lo contrario del efecto.
+  */}
+  <div class="hero__escena">
+    <canvas class="hero__canvas" data-liquid-canvas aria-hidden="true"></canvas>
 
-  <div class="hero__fallback">
-    <p class="hero__eyebrow">{copy.eyebrowLeft} — {copy.eyebrowRight}</p>
-    <h1 class="hero__title">{copy.title}</h1>
-    <p class="hero__subtitle">{copy.subtitle}</p>
-    <p class="hero__paragraph">{copy.paragraph}</p>
+    <div class="hero__fallback">
+      <p class="hero__eyebrow">{copy.eyebrowLeft} — {copy.eyebrowRight}</p>
+      <h1 class="hero__title">{copy.title}</h1>
+      <p class="hero__subtitle">{copy.subtitle}</p>
+      <p class="hero__paragraph">{copy.paragraph}</p>
+    </div>
   </div>
-
-  {/* Barra de color: cierra el hero y señala el paso al siguiente módulo. */}
-  <div class="bar" aria-hidden="true"></div>
 
 </section>
 
 <style>
+  /*
+    El hero solo reserva su hueco en el flujo; lo que se ve va en una capa
+    fija detrás. El módulo de abajo le pasa por encima y el hero se queda
+    quieto, que es lo que hace que se lea como que se aleja.
+
+    Se probó con position: sticky y daba problemas: el lienzo de WebGL se
+    componía desplazado y dejaba una franja sin pintar arriba. Una capa fija
+    no tiene ese problema y da el mismo resultado.
+  */
   .hero {
     position: relative;
     width: 100%;
-    height: 100svh;
+    /* Menos el grosor de la tira: así asoma por abajo nada más cargar, que es
+       lo que anuncia que hay más página debajo. */
+    height: calc(100svh - var(--barra));
     background: #050505;
-    overflow: hidden;
     --gutter: max(24px, 5.5vw);
+  }
+
+  .hero__escena {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
   }
 
   .hero__canvas {
@@ -148,30 +169,10 @@ const { copy } = Astro.props;
     color: rgb(255 255 255 / 0.85);
   }
 
-  /* Barra de color: guiño a las tiras de control de color de imprenta. */
-  .bar {
-    position: absolute;
-    inset-inline: 0;
-    inset-block-end: 0;
-    height: 3px;
-    background: linear-gradient(
-      90deg,
-      #18c6d4 0%,
-      #2f3ad0 12%,
-      #7b2fd0 22%,
-      #d92b6a 31%,
-      #e8603a 39%,
-      #e8e030 46%,
-      rgb(255 255 255 / 0.5) 52%,
-      rgb(255 255 255 / 0.12) 62%,
-      rgb(255 255 255 / 0.12) 100%
-    );
-  }
-
 </style>
 
 <script>
-  import { createLiquidHero } from '../scripts/liquid/hero';
+  import { createLiquidHero, type LiquidHandle } from '../scripts/liquid/hero';
   import { HERO_FONTS, type HeroCopy } from '../scripts/liquid/fonts';
 
   const section = document.querySelector<HTMLElement>('[data-liquid-hero]');
@@ -273,6 +274,38 @@ const { copy } = Astro.props;
     report();
   }
 
+  /**
+   * Aleja el hero a medida que se baja.
+   *
+   * Se escribe una sola variable en CSS y el resto lo resuelve la hoja de
+   * estilos. Va dentro de requestAnimationFrame porque el evento de scroll se
+   * dispara muchas más veces de las que hay fotogramas, y tocar estilos en
+   * cada una obliga al navegador a recalcular de más.
+   */
+  function montarSalida(hero: LiquidHandle) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    let pedido = false;
+
+    const actualizar = () => {
+      pedido = false;
+      // El recorrido es una pantalla: bajada una, el alejamiento está al tope.
+      const recorrido = Math.max(window.innerHeight, 1);
+      const salida = Math.min(Math.max(window.scrollY / recorrido, 0), 1);
+      hero.setZoom(1 - 0.24 * salida);
+    };
+
+    const alHacerScroll = () => {
+      if (pedido) return;
+      pedido = true;
+      requestAnimationFrame(actualizar);
+    };
+
+    window.addEventListener('scroll', alHacerScroll, { passive: true });
+    window.addEventListener('resize', alHacerScroll, { passive: true });
+    actualizar();
+  }
+
   if (section && canvas) {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const params = new URLSearchParams(location.search);
@@ -293,8 +326,9 @@ const { copy } = Astro.props;
       marks,
       water,
     })
-      .then(() => {
+      .then((hero) => {
         section.classList.add('is-live');
+        montarSalida(hero);
       })
       .catch((error) => {
         // Sin WebGL2 o si algo falla, se queda el hero de texto. Nada roto.

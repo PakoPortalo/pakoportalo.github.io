@@ -1,0 +1,321 @@
+---
+/**
+ * La ventana de proyecto: al hacer clic en cualquier [data-proyecto="<slug>"]
+ * se abre encima de la página con el vídeo completo, con sonido, y su ficha.
+ *
+ * No hay corte entre la página y la ventana: el reproductor sale del sitio
+ * exacto que ocupaba el clip y crece hasta su tamaño, con el póster del clip
+ * dentro para que la imagen no desaparezca mientras YouTube carga. Al cerrar
+ * hace el camino de vuelta.
+ *
+ * Los enlaces siguen apuntando a YouTube: sin JavaScript, o con Cmd/Ctrl+clic
+ * para abrir en otra pestaña, funcionan como enlaces normales.
+ */
+import { obras } from '../data/obras';
+
+const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
+const datos = Object.fromEntries(
+  obras.map((obra) => [
+    obra.slug,
+    {
+      marca: obra.marca,
+      detalle: [obra.titulo, obra.agencia, obra.ano, obra.papel].filter(Boolean).join(' · '),
+      youtube: obra.youtube,
+      poster: `${base}proyectos/clips/${obra.slug}.webp`,
+    },
+  ]),
+);
+---
+
+<dialog class="ventana" data-ventana data-obras={JSON.stringify(datos)} aria-labelledby="ventana-marca">
+  <div class="ventana__contenido">
+    <div class="ventana__pantalla" data-pantalla>
+      <img class="ventana__poster" data-poster src={Object.values(datos)[0]?.poster} alt="" />
+      <iframe
+        class="ventana__video"
+        data-video
+        title="Vídeo del proyecto"
+        allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+        allowfullscreen></iframe>
+    </div>
+    <div class="ventana__ficha" data-ficha>
+      <h2 class="ventana__marca" id="ventana-marca" data-marca></h2>
+      <p class="ventana__detalle" data-detalle></p>
+    </div>
+  </div>
+  <!-- autofocus: si no, showModal() da el foco al iframe y YouTube se queda
+       con el Esc. -->
+  <button class="ventana__cerrar" type="button" data-cerrar autofocus>Cerrar</button>
+</dialog>
+
+<style>
+  .ventana {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100svh;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #f4f1ec;
+    overflow: hidden;
+  }
+
+  .ventana::backdrop {
+    background: rgb(5 5 5 / 0.94);
+    opacity: 0;
+    transition: opacity 500ms ease;
+  }
+
+  .ventana[data-abierta]::backdrop {
+    opacity: 1;
+  }
+
+  .ventana__contenido {
+    display: grid;
+    place-content: center;
+    gap: clamp(18px, 2.4svh, 28px);
+    height: 100%;
+    padding: 72px max(16px, 5.5vw);
+    box-sizing: border-box;
+  }
+
+  .ventana__pantalla {
+    position: relative;
+    /* Más pequeña que la pantalla a propósito: la ficha de debajo, con la
+       marca, tiene que caber siempre entera, también en portátiles bajos.
+       Lo que se le reserva en alto (300 px) es para el aire de arriba y
+       abajo, el botón de cerrar y la ficha. */
+    width: min(1040px, 72vw, calc((100svh - 300px) * 16 / 9));
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: 4px;
+    background: #111;
+    transform-origin: 0 0;
+  }
+
+  .ventana__poster,
+  .ventana__video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+
+  .ventana__poster {
+    object-fit: cover;
+  }
+
+  .ventana__video {
+    opacity: 0;
+    transition: opacity 400ms ease;
+  }
+
+  .ventana__video[data-cargado] {
+    opacity: 1;
+  }
+
+  .ventana__ficha {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 24px;
+    opacity: 0;
+    translate: 0 12px;
+    transition:
+      opacity 400ms ease,
+      translate 600ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .ventana[data-abierta] .ventana__ficha {
+    opacity: 1;
+    translate: 0 0;
+    transition-delay: 250ms;
+  }
+
+  .ventana__marca {
+    margin: 0;
+    font-family: ClashDisplay, InstrumentSans, sans-serif;
+    font-size: clamp(28px, 3.6vw, 60px);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .ventana__detalle {
+    margin: 0;
+    font-size: clamp(12px, 0.95vw, 15px);
+    color: rgb(255 255 255 / 0.6);
+    text-align: end;
+  }
+
+  .ventana__cerrar {
+    position: absolute;
+    inset-block-start: clamp(16px, 2.4vw, 32px);
+    inset-inline-end: max(16px, 5.5vw);
+    padding: 10px 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    opacity: 0;
+    transition: opacity 300ms ease;
+  }
+
+  .ventana[data-abierta] .ventana__cerrar {
+    opacity: 0.7;
+  }
+
+  .ventana__cerrar:hover,
+  .ventana__cerrar:focus-visible {
+    opacity: 1 !important;
+  }
+
+  @media (max-width: 760px) {
+    .ventana__pantalla {
+      width: calc(100vw - 32px);
+    }
+
+    .ventana__ficha {
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .ventana__detalle {
+      text-align: start;
+    }
+  }
+</style>
+
+<script>
+  interface Datos {
+    marca: string;
+    detalle: string;
+    youtube: string;
+    poster: string;
+  }
+
+  const ventana = document.querySelector<HTMLDialogElement>('[data-ventana]');
+
+  if (ventana) {
+    const obras = JSON.parse(ventana.dataset.obras!) as Record<string, Datos>;
+    const pantalla = ventana.querySelector<HTMLElement>('[data-pantalla]')!;
+    const poster = ventana.querySelector<HTMLImageElement>('[data-poster]')!;
+    const video = ventana.querySelector<HTMLIFrameElement>('[data-video]')!;
+    const marca = ventana.querySelector<HTMLElement>('[data-marca]')!;
+    const detalle = ventana.querySelector<HTMLElement>('[data-detalle]')!;
+    const quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /** De dónde salió la ventana, para volver allí al cerrar. */
+    let origen: HTMLElement | null = null;
+    let cerrando = false;
+
+    const avisar = (abierta: boolean) =>
+      document.dispatchEvent(new CustomEvent('ventana-proyecto', { detail: abierta }));
+
+    /*
+      El vuelo entre el clip y el reproductor: se mide dónde acaba la
+      pantalla, se coloca encima del clip con una transformación y se suelta.
+      Escala por separado en ancho y alto porque el clip no tiene por qué
+      tener la misma proporción que el reproductor.
+    */
+    const desdeOrigen = () => {
+      if (!origen) return null;
+      const de = origen.getBoundingClientRect();
+      const a = pantalla.getBoundingClientRect();
+      if (!de.width || !a.width) return null;
+      return `translate(${de.left - a.left}px, ${de.top - a.top}px) scale(${de.width / a.width}, ${de.height / a.height})`;
+    };
+
+    const volar = (desde: string, hasta: string) =>
+      pantalla.animate([{ transform: desde }, { transform: hasta }], {
+        duration: quieto ? 0 : 720,
+        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+      }).finished;
+
+    /*
+      El fotograma que se estaba viendo en el clip, para que la imagen que
+      vuela sea la misma que había y no el póster genérico. Si el clip aún no
+      tiene imagen, vale el póster.
+    */
+    const fotograma = (desde: HTMLElement) => {
+      const clip = desde.querySelector('video');
+      if (!clip || clip.readyState < 2 || !clip.videoWidth) return null;
+      const lienzo = document.createElement('canvas');
+      lienzo.width = clip.videoWidth;
+      lienzo.height = clip.videoHeight;
+      lienzo.getContext('2d')!.drawImage(clip, 0, 0);
+      return lienzo.toDataURL('image/jpeg', 0.85);
+    };
+
+    const abrir = (slug: string, desde: HTMLElement) => {
+      const obra = obras[slug];
+      if (!obra) return;
+      origen = desde;
+      marca.textContent = obra.marca;
+      detalle.textContent = obra.detalle;
+      poster.src = fotograma(desde) ?? obra.poster;
+      video.removeAttribute('data-cargado');
+      video.src = `https://www.youtube-nocookie.com/embed/${obra.youtube}?autoplay=1&rel=0&playsinline=1`;
+
+      document.documentElement.style.overflow = 'hidden';
+      ventana.showModal();
+      avisar(true);
+      requestAnimationFrame(() => ventana.setAttribute('data-abierta', ''));
+      const inicio = desdeOrigen();
+      if (inicio) volar(inicio, 'none');
+    };
+
+    const cerrar = async () => {
+      if (cerrando || !ventana.open) return;
+      cerrando = true;
+      ventana.removeAttribute('data-abierta');
+      // Se corta el sonido ya, sin esperar a que acabe la animación.
+      video.src = 'about:blank';
+      video.removeAttribute('data-cargado');
+      const fin = desdeOrigen();
+      if (fin) await volar('none', fin).catch(() => {});
+      ventana.close();
+      document.documentElement.style.overflow = '';
+      avisar(false);
+      origen?.closest<HTMLElement>('[data-proyecto]')?.focus({ preventScroll: true });
+      cerrando = false;
+    };
+
+    video.addEventListener('load', () => {
+      if (video.src.startsWith('https://')) video.setAttribute('data-cargado', '');
+    });
+
+    document.addEventListener('click', (evento) => {
+      if (evento.defaultPrevented || evento.button !== 0) return;
+      if (evento.metaKey || evento.ctrlKey || evento.shiftKey || evento.altKey) return;
+      const enlace = (evento.target as Element).closest<HTMLElement>('[data-proyecto]');
+      if (!enlace) return;
+      evento.preventDefault();
+      const desde = enlace.querySelector<HTMLElement>('[data-origen]') ?? enlace;
+      abrir(enlace.dataset.proyecto!, desde);
+    });
+
+    ventana.querySelector('[data-cerrar]')!.addEventListener('click', cerrar);
+
+    // Esc: el diálogo se cerraría de golpe; se intercepta para que vuelva.
+    ventana.addEventListener('cancel', (evento) => {
+      evento.preventDefault();
+      cerrar();
+    });
+
+    // Clic fuera del vídeo y de la ficha: en el fondo.
+    ventana.addEventListener('click', (evento) => {
+      const t = evento.target as Element;
+      if (t === ventana || t.classList.contains('ventana__contenido')) cerrar();
+    });
+  }
+</script>

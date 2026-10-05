@@ -1,0 +1,234 @@
+---
+/**
+ * El cursor del módulo de vídeos: un punto verde neón que deja una estela corta y
+ * se va apagando por la cola. Encima de un proyecto (data-proyecto) el punto
+ * crece y dice "Ver".
+ *
+ * Solo existe dentro de las zonas marcadas con data-cursor-zona; en el resto
+ * de la página se queda la flecha normal. Es un gesto de ese módulo, no de la
+ * web entera.
+ *
+ * Todo en un único lienzo a pantalla completa: la estela son muchos tramos de
+ * grosor y opacidad decrecientes, y con elementos del DOM serían decenas de
+ * nodos moviéndose a cada fotograma. Solo con ratón; en táctil no existe.
+ */
+---
+
+<canvas class="cursor-rastro" data-cursor-rastro aria-hidden="true"></canvas>
+
+<style>
+  .cursor-rastro {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+  }
+
+  :global(html.con-cursor-rastro [data-cursor-zona]),
+  :global(html.con-cursor-rastro [data-cursor-zona] *) {
+    cursor: none !important;
+  }
+
+  @media (hover: none), (pointer: coarse) {
+    .cursor-rastro {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  const limitar = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+
+  const lienzo = document.querySelector<HTMLCanvasElement>('[data-cursor-rastro]');
+  const conRaton = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+  if (lienzo && conRaton) {
+    const ctx = lienzo.getContext('2d')!;
+    const quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const raiz = document.documentElement;
+    raiz.classList.add('con-cursor-rastro');
+
+    /** El verde neón de los puntos del hero. */
+    const VERDE = '#5ff7c6';
+    const RADIO = 7;
+    const RADIO_PROYECTO = 24;
+    /** Lo que dura un punto de la estela antes de apagarse del todo, en ms. */
+    const VIDA = quieto ? 0 : 320;
+
+    let ancho = 0;
+    let alto = 0;
+    const medir = () => {
+      const ppp = Math.min(window.devicePixelRatio || 1, 2);
+      ancho = window.innerWidth;
+      alto = window.innerHeight;
+      lienzo.width = ancho * ppp;
+      lienzo.height = alto * ppp;
+      ctx.setTransform(ppp, 0, 0, ppp, 0, 0);
+    };
+    medir();
+    window.addEventListener('resize', medir);
+
+    let x = -100;
+    let y = -100;
+    let destinoX = -100;
+    let destinoY = -100;
+    let radio = RADIO;
+    let sobreProyecto = false;
+    let visible = false;
+    const estela: { x: number; y: number; t: number }[] = [];
+    let bucle = 0;
+    let anterior = 0;
+
+    const dibujar = (ahora: number) => {
+      ctx.clearRect(0, 0, ancho, alto);
+      if (!visible) return;
+
+      /*
+        La estela es UNA sola forma rellena, opaca: una cinta que nace con el
+        ancho del punto y se afila hasta cero en la cola. Pintada a tramos
+        sueltos, cada junta se solapaba con la siguiente y la línea se leía
+        como una ristra de puntos; así no hay juntas.
+
+        Para cada punto guardado se calcula hacia dónde va la línea y se
+        abre a los dos lados la mitad de su ancho; la cinta es el borde
+        izquierdo de ida y el derecho de vuelta.
+      */
+      ctx.fillStyle = VERDE;
+      const puntos = [...estela, { x, y, t: ahora }];
+      if (puntos.length > 2) {
+        const izquierda: [number, number][] = [];
+        const derecha: [number, number][] = [];
+        for (let i = 0; i < puntos.length; i += 1) {
+          const p = puntos[i]!;
+          const antes = puntos[Math.max(0, i - 1)]!;
+          const despues = puntos[Math.min(puntos.length - 1, i + 1)]!;
+          const dx = despues.x - antes.x;
+          const dy = despues.y - antes.y;
+          const largo = Math.hypot(dx, dy) || 1;
+          const medio = RADIO * Math.max(0, 1 - (ahora - p.t) / VIDA);
+          izquierda.push([p.x - (dy / largo) * medio, p.y + (dx / largo) * medio]);
+          derecha.push([p.x + (dy / largo) * medio, p.y - (dx / largo) * medio]);
+        }
+        ctx.beginPath();
+        izquierda.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
+        for (let i = derecha.length - 1; i >= 0; i -= 1) ctx.lineTo(derecha[i]![0], derecha[i]![1]);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      ctx.beginPath();
+      ctx.arc(x, y, radio, 0, Math.PI * 2);
+      ctx.fill();
+
+      // La palabra entra cuando el punto ya ha crecido lo bastante para
+      // contenerla; antes se saldría del círculo.
+      const crecido = (radio - RADIO) / (RADIO_PROYECTO - RADIO);
+      if (crecido > 0.6) {
+        ctx.globalAlpha = (crecido - 0.6) / 0.4;
+        ctx.fillStyle = '#050505';
+        ctx.font = '600 9px InstrumentSans, ui-sans-serif, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('VER', x, y + 0.5);
+        ctx.globalAlpha = 1;
+      }
+    };
+
+    const paso = (ahora: number) => {
+      const dt = anterior ? limitar((ahora - anterior) / 16.67, 0, 2.5) : 1;
+      anterior = ahora;
+
+      // El punto va casi pegado a la flecha: la sensación de arrastre la da
+      // la estela, no el retraso.
+      const k = 1 - Math.pow(0.55, dt);
+      x += (destinoX - x) * k;
+      y += (destinoY - y) * k;
+      radio += ((sobreProyecto ? RADIO_PROYECTO : RADIO) - radio) * (1 - Math.pow(0.78, dt));
+
+      // Solo se apunta si se ha movido: con el ratón quieto la estela tiene
+      // que consumirse, y el bucle pararse cuando acabe.
+      const ultimo = estela[estela.length - 1];
+      if (VIDA && (!ultimo || Math.hypot(x - ultimo.x, y - ultimo.y) > 0.3)) {
+        estela.push({ x, y, t: ahora });
+      }
+      while (estela.length && ahora - estela[0]!.t > VIDA) estela.shift();
+
+      dibujar(ahora);
+
+      const asentado =
+        Math.abs(destinoX - x) < 0.1 &&
+        Math.abs(destinoY - y) < 0.1 &&
+        Math.abs((sobreProyecto ? RADIO_PROYECTO : RADIO) - radio) < 0.1 &&
+        estela.length < 2;
+      bucle = asentado ? 0 : requestAnimationFrame(paso);
+    };
+
+    const arrancar = () => {
+      if (bucle) return;
+      anterior = 0;
+      bucle = requestAnimationFrame(paso);
+    };
+
+    /** Si se sabe dónde está el ratón: hasta el primer movimiento, no. */
+    let conPosicion = false;
+    let ventanaAbierta = false;
+
+    /*
+      Qué hay debajo del ratón decide las dos cosas: si el punto existe
+      (dentro de una zona) y si está crecido (encima de un proyecto). Al
+      entrar en la zona aparece directamente bajo la flecha, sin estela: si
+      viniera volando desde donde se fue, cruzaría media pantalla.
+    */
+    const mirar = (elemento: Element | null) => {
+      const dentro = !ventanaAbierta && Boolean(elemento?.closest('[data-cursor-zona]'));
+      if (dentro && !visible) {
+        x = destinoX;
+        y = destinoY;
+        estela.length = 0;
+      }
+      if (!dentro) estela.length = 0;
+      visible = dentro;
+      sobreProyecto = dentro && Boolean(elemento?.closest('[data-proyecto]'));
+    };
+
+    document.addEventListener('pointermove', (evento) => {
+      if (evento.pointerType !== 'mouse') return;
+      destinoX = evento.clientX;
+      destinoY = evento.clientY;
+      conPosicion = true;
+      mirar(evento.target as Element);
+      arrancar();
+    });
+
+    // Con scroll la zona entra y sale de debajo del ratón sin que se mueva.
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (!conPosicion) return;
+        mirar(document.elementFromPoint(destinoX, destinoY));
+        arrancar();
+      },
+      { passive: true },
+    );
+
+    raiz.addEventListener('pointerleave', () => {
+      visible = false;
+      estela.length = 0;
+      arrancar();
+    });
+
+    /*
+      Encima del vídeo de YouTube el ratón es del iframe: la página deja de
+      recibir movimiento y el punto se quedaría clavado en el borde. Mientras
+      la ventana está abierta, vuelve la flecha normal.
+    */
+    document.addEventListener('ventana-proyecto', (evento) => {
+      ventanaAbierta = (evento as CustomEvent<boolean>).detail;
+      raiz.classList.toggle('con-cursor-rastro', !ventanaAbierta);
+      mirar(ventanaAbierta ? null : document.elementFromPoint(destinoX, destinoY));
+      arrancar();
+    });
+  }
+</script>

@@ -1,0 +1,51 @@
+---
+/**
+ * Un clip de proyecto: mudo, en bucle y sin src hasta que hace falta.
+ * La carga y el play los lleva src/scripts/clips.ts.
+ */
+import type { Obra } from '../data/obras';
+
+interface Props {
+  obra: Obra;
+  class?: string;
+  /** Lo gobierna su módulo en vez del observador general. */
+  manual?: boolean;
+}
+
+const { obra, class: clase, manual = false } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
+const ruta = `${base}proyectos/clips/${obra.slug}`;
+---
+
+<video
+  class={clase}
+  data-clip
+  data-manual={manual ? '' : undefined}
+  muted
+  loop
+  playsinline
+  disablepictureinpicture
+  preload="none"
+  poster={`${ruta}.webp`}
+  aria-hidden="true"
+>
+  <source data-src={`${ruta}.webm`} type='video/webm; codecs="av01.0.05M.08"' />
+  <source data-src={`${ruta}.mp4`} type="video/mp4" />
+</video>
+
+<style>
+  /* Rellena siempre su caja y reencuadra. Las clases que le pasa cada módulo
+     no llevan el ámbito de ese módulo, así que lo común va aquí y lo
+     particular lo apuntan ellos con :global(). */
+  video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+</style>
+
+<script>
+  import { observarClips } from '../scripts/clips';
+  observarClips();
+</script>

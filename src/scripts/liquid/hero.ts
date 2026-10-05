@@ -110,6 +110,8 @@ export interface LiquidHandle {
   destroy(): void;
   /** Cambia la composición de marcas y repinta el texto. */
   setMarks(index: number): void;
+  /** Aleja el texto y el líquido sin tocar el humo. 1 es tamaño completo. */
+  setZoom(valor: number): void;
 }
 
 interface Blob {
@@ -408,6 +410,8 @@ export async function createLiquidHero(
    * rechaza al líquido. Lo calcula drawText().
    */
   const textZone = { right: 0.9, top: 0.6, strength: 0.16 };
+  /** Alejamiento del texto y el líquido. Lo mueve el scroll de la página. */
+  let zoom = 1;
   /**
    * El charco: cuánto se ha corrido la masa por la gravedad.
    *
@@ -1347,6 +1351,7 @@ export async function createLiquidHero(
     gl!.uniform1f(liquidUniforms.get('uAberration')!, 0.0034);
     gl!.uniform1f(liquidUniforms.get('uIridescence')!, 0.16);
     gl!.uniform1f(liquidUniforms.get('uFlowStrength')!, 0.85);
+    gl!.uniform1f(liquidUniforms.get('uZoom')!, zoom);
     gl!.uniform4fv(liquidUniforms.get('uBigBox')!, bigTextBox);
     gl!.uniform4fv(liquidUniforms.get('uBlobs')!, blobData);
     gl!.uniform4fv(liquidUniforms.get('uBlobVel')!, velData);
@@ -1582,6 +1587,14 @@ export async function createLiquidHero(
   render(0, 1 / 60);
 
   return {
+    setZoom(valor: number) {
+      const nuevo = Math.min(Math.max(valor, 0.2), 1);
+      if (Math.abs(nuevo - zoom) < 0.0005) return;
+      zoom = nuevo;
+      // Si la animación está parada hay que repintar a mano; si no, el
+      // siguiente fotograma ya lo recoge.
+      if (!running) render(elapsed, 1 / 60);
+    },
     setMarks(index: number) {
       marksIndex = Math.min(Math.max(index, 0), MARK_PRESETS.length - 1);
       drawText();

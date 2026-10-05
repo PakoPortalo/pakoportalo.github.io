@@ -171,6 +171,15 @@ uniform sampler2D uFlow;
 /** Cuánto arrastra esa huella a la masa líquida. */
 uniform float uFlowStrength;
 /**
+ * Alejamiento al hacer scroll. 1 es tamaño completo.
+ *
+ * Va aquí dentro y no en un transform de CSS porque el humo y el texto se
+ * pintan en el MISMO lienzo: escalando el elemento se irían los dos, y lo
+ * que se busca es que el humo se quede quieto y encoja lo demás. Aquí se
+ * puede, porque cada capa se muestrea por separado.
+ */
+uniform float uZoom;
+/**
  * Caja del título y el subtítulo, en UV: xy esquina inferior izquierda,
  * zw superior derecha. Fuera de ella la aberración se baja mucho.
  */
@@ -212,7 +221,9 @@ vec3 smokeAt(vec2 uv) {
 }
 
 vec4 textAt(vec2 uv) {
-  vec2 t = tilt(uv, 1.0);
+  // Muestrear un área mayor es lo que hace que el dibujo salga más pequeño.
+  vec2 alejado = (uv - 0.5) / uZoom + 0.5;
+  vec2 t = tilt(alejado, 1.0);
   return texture(uText, vec2(t.x, 1.0 - t.y));
 }
 
@@ -280,7 +291,10 @@ void main() {
   // masa el campo vale cero, así que desplazar dónde se evalúa no cambia
   // nada. El humo y el texto se muestrean aparte y no se enteran.
   vec2 flow = texture(uFlow, vUv).xy * 2.0 - 1.0;
-  vec2 p = vec2(vUv.x * aspect, vUv.y) - flow * uFlowStrength;
+  vec2 p = vec2(vUv.x * aspect, vUv.y);
+  // El líquido se aleja con el texto; el humo no, porque se muestrea aparte.
+  vec2 centro = vec2(aspect * 0.5, 0.5);
+  p = (p - centro) / uZoom + centro - flow * uFlowStrength;
 
   float field = 0.0;
   vec2 grad = vec2(0.0);
@@ -334,7 +348,9 @@ void main() {
 
   // El interior casi no desvía: la lámina de agua es plana ahí. Toda la
   // refracción se concentra en el canto, que es donde la superficie se curva.
-  vec2 offset = normal.xy * uRefract * (0.2 + edgeBoost);
+  // La deformación encoge con la masa: si no, una gota pequeña seguiría
+  // retorciendo el fondo como si fuera grande.
+  vec2 offset = normal.xy * uRefract * (0.2 + edgeBoost) * uZoom;
 
   // Dispersión espectral: en vez de separar R, G y B —que da bordes duros de
   // tres colores— se muestrea la escena en seis longitudes de onda, cada una
