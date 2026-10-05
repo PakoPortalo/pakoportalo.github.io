@@ -1391,6 +1391,10 @@ export async function createLiquidHero(
   }
 
   function onPointerMove(event: PointerEvent) {
+    // Con el hero tapado por los módulos de abajo, el ratón es de ellos: si
+    // no, cada movimiento ahí abajo empujaba el líquido sin que se viera, y
+    // al volver arriba la masa estaba deshecha o fuera de cuadro.
+    if (!heroVisible) return;
     const rect = canvas.getBoundingClientRect();
     const nx = (event.clientX - rect.left) / rect.width;
     const ny = 1 - (event.clientY - rect.top) / rect.height;
@@ -1563,18 +1567,28 @@ export async function createLiquidHero(
   });
   resizeObserver.observe(canvas);
 
+  /*
+    Se vigila la sección del hero y no el lienzo. El lienzo va en una capa
+    fija, así que para el observador está siempre en pantalla aunque lo
+    tapen los módulos de abajo, y el hero seguía animándose (y gastando)
+    detrás de toda la página. La sección sí sale de la vista: cuando su
+    borde de abajo pasa por arriba, el módulo siguiente ya lo cubre entero.
+  */
+  let heroVisible = true;
+  const heroZone = canvas.closest<HTMLElement>('[data-liquid-hero]') ?? canvas;
   const intersectionObserver = new IntersectionObserver(
     ([entry]) => {
-      if (entry?.isIntersecting && !options.reducedMotion) start();
+      heroVisible = Boolean(entry?.isIntersecting);
+      if (heroVisible && !options.reducedMotion) start();
       else stop();
     },
     { threshold: 0 },
   );
-  intersectionObserver.observe(canvas);
+  intersectionObserver.observe(heroZone);
 
   function onVisibility() {
     if (document.hidden) stop();
-    else if (canvas.isConnected && !options.reducedMotion) start();
+    else if (canvas.isConnected && heroVisible && !options.reducedMotion) start();
   }
 
   document.addEventListener('visibilitychange', onVisibility);
