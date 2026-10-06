@@ -6,56 +6,203 @@
  * rótulo y la versión corta de la biografía, y a la derecha la foto. "Leer
  * más" pasa de página: el módulo entero se desliza a la izquierda y en la
  * segunda queda otra foto a la izquierda y la biografía completa a la
- * derecha.
+ * derecha. "Volver" regresa y repite la entrada.
  *
  * El rótulo mezcla dos familias: "Quién soy" como el resto de rótulos de
  * módulo, el nombre en Times New Roman negrita y un poco condensado, y el
  * lema en Times New Roman cursiva. Los textos, en la de toda la web.
  *
+ * Entrada al aparecer en pantalla: el rótulo enfoca, como un cambio de foco
+ * de cámara, y el texto entra palabra a palabra desde la izquierda. La
+ * foto llega ondulada, como agua o una onda sonora, y se va calmando
+ * mientras aparece desde el centro hacia afuera. Las fotos siguen al ratón
+ * y se realzan un poco al pasar por encima.
+ *
  * En tercera persona, como la escribió Pako.
  */
+interface Props {
+  id?: string;
+}
+
+const { id = 'sobre' } = Astro.props;
+
 const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
-/** Provisionales, sin personas, hasta tener las suyas. */
-const fotos = [`${base}sobre/foto-provisional.webp`, `${base}sobre/foto-provisional-2.webp`];
+/**
+ * Una por página: la guitarra en directo delante, el violín en la segunda.
+ * `cara` es dónde está la cara dentro de la foto, en porcentaje: ahí la
+ * onda se resuelve antes que en el resto (ver la copia nítida más abajo).
+ *
+ * Cada foto va también separada en dos capas, para el paralaje: `fondo`,
+ * la foto sin la persona (el hueco relleno con lo de alrededor y un poco
+ * desenfocado, como la profundidad de campo de una cámara), y `persona`,
+ * la figura recortada sobre transparente. Las sacó Vision, el recorte de
+ * sujetos de macOS. `borde` es el tratamiento del canto: luz en la de
+ * fondo negro, para que no se funda con la página, y sombra en la clara.
+ */
+const fotos = [
+  {
+    src: `${base}sobre/pako-1.webp`,
+    fondo: `${base}sobre/pako-1-fondo.webp`,
+    persona: `${base}sobre/pako-1-persona.webp`,
+    borde: 'luz',
+    alt: 'Pako Portalo tocando la guitarra en un concierto',
+    ancho: 800,
+    alto: 1000,
+    cara: { x: '56%', y: '28%' },
+  },
+  {
+    src: `${base}sobre/pako-2.webp`,
+    fondo: `${base}sobre/pako-2-fondo.webp`,
+    persona: `${base}sobre/pako-2-persona.webp`,
+    borde: 'sombra',
+    alt: 'Pako Portalo tocando el violín',
+    ancho: 512,
+    alto: 640,
+    cara: { x: '35%', y: '28%' },
+  },
+];
 
 const corta =
   'Músico y productor especializado en composición. Del conservatorio y el jazz a los escenarios de medio mundo con Mayumana; de las bandas sonoras de videojuegos con Shaman Garage a los spots de Xiaomi o Red Bull.';
 
-const completa = [
+const completa: string[] = [
   'Pako Portalo es músico y productor, especializado en composición musical. Empezó de niño en el conservatorio, con el violín; después estudió jazz y armonía contemporánea con la guitarra, y aprendió producción musical por su cuenta. Toca también flauta, piano, mandolina y bajo, y con ellos ha dado conciertos en España, Portugal, Francia, Inglaterra, Italia e Israel. Ha sido músico y compositor en la compañía internacional Mayumana, y ha formado parte de proyectos nacionales como Dinohaurios y Papawanda.',
   'Como compositor forma parte de Shaman Garage, un estudio de videojuegos holandés, para el que crea bandas sonoras, diseño sonoro y efectos de sonido. Con el estudio ha pasado por festivales europeos como A MAZE. (Berlín) y Overkill (Enschede), y su primer juego, Data Garden, fue nominado a Best Debut Game en los Dutch Game Awards 2024.',
   'Ese recorrido le ha llevado a la publicidad, donde ha puesto música y sonido a spots para marcas como Xiaomi o Red Bull. Su diseño sonoro para The Revelation entró en la lista corta del Festival El Sol 2026.',
 ];
+
+/** Las palabras de la biografía completa, numeradas seguidas entre párrafos. */
+let w = 0;
+const parrafosCompletos = completa.map((parrafo) => parrafo.split(' ').map((palabra) => ({ palabra, i: w++ })));
 ---
 
-<section class="sobre" aria-labelledby="sobre-titulo" data-sobre>
-  <div class="sobre__pista">
-    <div class="sobre__pagina">
-      <div class="sobre__izq">
-        <h2 class="sobre__rotulo" id="sobre-titulo">
-          <span class="sobre__etiqueta">Quién soy</span>
-          <span class="sobre__nombre">Pako</span>
-          <span class="sobre__nombre">Portalo</span>
-          <span class="sobre__lema">Músico, productor y compositor.</span>
-        </h2>
-        <p class="sobre__corta">{corta}</p>
-        <button class="sobre__boton" type="button" data-abrir aria-expanded="false">Leer más</button>
-      </div>
-      <figure class="sobre__foto">
-        <img src={fotos[0]} alt="" loading="lazy" width="640" height="800" />
-      </figure>
-    </div>
+<section class="sobre" aria-labelledby={`${id}-titulo`} data-sobre>
+  {/*
+    El filtro de la entrada de la foto: ruido fractal que desplaza los
+    píxeles, igual en las dos direcciones para que forme volutas, como el
+    humo del resto de la web, y no rayas. Detrás, un desenfoque que se va
+    limpiando a la vez que se calma.
+  */}
+  <svg class="sobre__filtros" aria-hidden="true" width="0" height="0">
+    {/* Uno por foto: compartido, la entrada de la segunda deformaba de golpe
+        a la primera si aún no había terminado la suya. */}
+    {
+      [0, 1].map((k) => (
+        <filter id={`${id}-onda-${k}`} x="-10%" y="-10%" width="120%" height="120%" data-onda={k}>
+          <feTurbulence type="fractalNoise" baseFrequency="0.011" numOctaves="4" seed="4" result="ruido" data-turbulencia />
+          <feDisplacementMap
+            in="SourceGraphic"
+            in2="ruido"
+            scale="0"
+            xChannelSelector="R"
+            yChannelSelector="G"
+            result="humo"
+            data-desplazamiento
+          />
+          <feGaussianBlur in="humo" stdDeviation="0" data-desenfoque />
+        </filter>
+      ))
+    }
 
-    <div class="sobre__pagina sobre__pagina--dos">
-      <figure class="sobre__foto">
-        <img src={fotos[1]} alt="" loading="lazy" width="640" height="800" />
-      </figure>
-      <div class="sobre__completa">
-        <p class="sobre__etiqueta">Pako Portalo</p>
-        {completa.map((parrafo) => <p>{parrafo}</p>)}
-        <button class="sobre__boton sobre__boton--volver" type="button" data-cerrar>Volver</button>
-      </div>
-    </div>
+    {/*
+      La dispersión de color de las fotos al moverse con el ratón: separa
+      la imagen en sus canales, desplaza el rojo hacia un lado y el azul
+      hacia el otro, y los vuelve a sumar. Los desplazamientos los pone el
+      script según la velocidad del ratón.
+    */}
+    <filter id={`${id}-dispersion`} color-interpolation-filters="sRGB">
+      <feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="rojo" />
+      <feOffset in="rojo" dx="0" dy="0" result="rojoMovido" data-rojo />
+      <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="verde" />
+      <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="azul" />
+      <feOffset in="azul" dx="0" dy="0" result="azulMovido" data-azul />
+      <feBlend in="rojoMovido" in2="verde" mode="screen" result="rojoVerde" />
+      <feBlend in="rojoVerde" in2="azulMovido" mode="screen" />
+    </filter>
+  </svg>
+
+  <div class="sobre__pista">
+    {
+      [0, 1].map((pagina) => (
+        <div class:list={['sobre__pagina', pagina === 1 && 'sobre__pagina--dos']} data-pagina={pagina}>
+          {pagina === 0 ? (
+            <div class="sobre__izq">
+              <h2 class="sobre__rotulo" id={`${id}-titulo`}>
+                <span class="sobre__etiqueta">Quién soy</span>
+                <span class="sobre__nombre">Pako</span>
+                <span class="sobre__nombre">Portalo</span>
+                <span class="sobre__lema">Músico, productor y compositor.</span>
+              </h2>
+              <p class="sobre__corta">
+                {corta.split(' ').map((palabra, i) => (
+                  <>
+                    <span class="sobre__palabra" style={`--i: ${i}`}>
+                      {palabra}
+                    </span>{' '}
+                  </>
+                ))}
+              </p>
+              <button class="sobre__boton" type="button" data-abrir aria-expanded="false">
+                Leer más
+              </button>
+            </div>
+          ) : null}
+
+          <figure class="sobre__foto" data-figura data-borde={fotos[pagina]!.borde}>
+            <div class="sobre__capas" data-imagen style={`--onda: url(#${id}-onda-${pagina})`}>
+              <img
+                class="sobre__fondo"
+                src={fotos[pagina]!.fondo}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                width={fotos[pagina]!.ancho}
+                height={fotos[pagina]!.alto}
+              />
+              <img
+                class="sobre__persona"
+                src={fotos[pagina]!.persona}
+                alt={fotos[pagina]!.alt}
+                loading="lazy"
+                decoding="async"
+                width={fotos[pagina]!.ancho}
+                height={fotos[pagina]!.alto}
+              />
+            </div>
+            <img
+              class="sobre__nitida"
+              src={fotos[pagina]!.src}
+              alt=""
+              aria-hidden="true"
+              loading="lazy"
+              decoding="async"
+              data-nitida
+              style={`--cara-x: ${fotos[pagina]!.cara.x}; --cara-y: ${fotos[pagina]!.cara.y}`}
+            />
+          </figure>
+
+          {pagina === 1 ? (
+            <div class="sobre__completa">
+              <p class="sobre__etiqueta">Pako Portalo</p>
+              {parrafosCompletos.map((palabras) => (
+                <p>
+                  {palabras.map(({ palabra, i }) => (
+                    <>
+                      <span class="sobre__palabra" style={`--i: ${i}`}>
+                        {palabra}
+                      </span>{' '}
+                    </>
+                  ))}
+                </p>
+              ))}
+              <button class="sobre__boton sobre__boton--volver" type="button" data-cerrar>
+                Volver
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ))
+    }
   </div>
 </section>
 
@@ -73,6 +220,11 @@ const completa = [
     --romana: 'Times New Roman', Times, 'Liberation Serif', 'Nimbus Roman', serif;
     --verde: #5ff7c6;
     --margen: clamp(40px, 7svh, 96px);
+    --suave: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .sobre__filtros {
+    position: absolute;
   }
 
   /* Las dos páginas, una al lado de la otra; pasar página es mover la
@@ -139,6 +291,8 @@ const completa = [
     El nombre, condensado un pelo. Times New Roman no tiene versión
     estrecha, así que se aprieta de dos maneras pequeñas que juntas se
     notan sin deformar: menos espacio entre letras y un 6 % menos de ancho.
+    Nunca salta de línea: durante el enfoque las letras llegan separadas y,
+    si pudiera, "PORTALO" se partía un instante en dos.
   */
   .sobre__nombre {
     font-family: var(--romana);
@@ -147,6 +301,7 @@ const completa = [
     font-size: clamp(52px, min(8vw, 14svh), 148px);
     letter-spacing: -0.05em;
     line-height: 0.8;
+    white-space: nowrap;
     transform: scaleX(0.94);
     transform-origin: 0 50%;
   }
@@ -188,6 +343,10 @@ const completa = [
     font-size: clamp(14px, 1vw, 16px);
     line-height: 1.55;
     color: rgb(255 255 255 / 0.78);
+  }
+
+  .sobre__palabra {
+    display: inline-block;
   }
 
   .sobre__boton {
@@ -241,7 +400,13 @@ const completa = [
   }
 
   /* ── Las fotos ─────────────────────────────────────────────── */
+  /*
+    Siguen al ratón como la escena del hero: se desplazan hacia él y se
+    inclinan un poco (--fx, --fy, de -1 a 1, los pone el script). Al pasar
+    por encima, un pelín más grandes y más luminosas.
+  */
   .sobre__foto {
+    position: relative;
     justify-self: end;
     width: 100%;
     max-width: calc((100svh - 2 * var(--margen)) * 0.8);
@@ -249,11 +414,78 @@ const completa = [
     margin: 0;
     overflow: hidden;
     border-radius: 4px;
-    background: #111;
+    /* Sin fondo: lo que aún no ha aparecido de la foto es transparente,
+       no una lámina gris. */
+    transform: perspective(1200px) translate(calc(var(--fx, 0) * 12px), calc(var(--fy, 0) * 12px))
+      rotateX(calc(var(--fy, 0) * -4deg)) rotateY(calc(var(--fx, 0) * 4deg));
+    /* --dispersion la pone el script solo mientras hay movimiento; en
+       reposo no hay filtro y la foto no paga ese coste. El zoom al pasar
+       el ratón, lento: rápido se sentía como un golpe. */
+    filter: var(--dispersion, brightness(1));
+    transition: scale 2400ms var(--suave);
+  }
+
+  .sobre__foto:hover {
+    scale: 1.03;
+  }
+
+  /* El brillo va en la imagen y no en el marco: el marco lleva el filtro
+     de la dispersión, que no se puede animar, y el brillo saltaba. */
+  .sobre__foto [data-imagen] {
+    transition: filter 2400ms var(--suave);
+  }
+
+  .sobre__foto:hover [data-imagen] {
+    filter: brightness(1.15);
   }
 
   .sobre__pagina--dos .sobre__foto {
     justify-self: start;
+  }
+
+  /*
+    Luz en los bordes: un halo muy suave por dentro del marco. Las fotos tienen negros muy profundos y, sin esto, se
+    fundían con el fondo y parecían recortadas. Aparece cuando la foto ya
+    se ha formado, no antes: si no, se vería un marco vacío.
+  */
+  .sobre__foto::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(ellipse at 50% 50%, transparent 58%, rgb(255 255 255 / 0.06) 100%);
+    box-shadow: inset 0 0 48px rgb(255 255 255 / 0.05);
+  }
+
+  /* En la foto clara, sombra en vez de luz: la hunde un poco en la página. */
+  .sobre__foto[data-borde='sombra']::after {
+    background: radial-gradient(ellipse at 50% 50%, transparent 55%, rgb(0 0 0 / 0.3) 100%);
+    box-shadow: inset 0 0 60px rgb(0 0 0 / 0.3);
+  }
+
+  .sobre[data-anima] .sobre__foto::after {
+    opacity: 0;
+  }
+
+  .sobre[data-anima][data-dentro] .sobre__pagina:first-child .sobre__foto::after,
+  .sobre[data-anima][data-abierto] .sobre__pagina--dos .sobre__foto::after {
+    opacity: 1;
+    transition: opacity 1200ms ease 1600ms;
+  }
+
+  /*
+    La copia nítida: la misma foto, sin filtro, visible solo alrededor de
+    la cara y con el borde muy difuminado. El script la va subiendo a
+    mitad de la entrada, así que la cara se resuelve bastante antes que el
+    resto; una cara ondulada hasta el final se veía rara.
+  */
+  .sobre__nitida {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+    mask-image: radial-gradient(ellipse 34% 24% at var(--cara-x) var(--cara-y), #000 35%, transparent 100%);
   }
 
   .sobre__foto img {
@@ -261,6 +493,124 @@ const completa = [
     height: 100%;
     display: block;
     object-fit: cover;
+  }
+
+  /*
+    Las dos capas del paralaje. El marco entero ya sigue al ratón; dentro,
+    el fondo se desplaza un poco y la persona bastante más, en el mismo
+    sentido, y de ahí sale la profundidad. Las dos van algo ampliadas para
+    que al moverse no asome el borde.
+  */
+  .sobre__capas {
+    position: absolute;
+    inset: 0;
+  }
+
+  .sobre__capas img {
+    position: absolute;
+    inset: 0;
+    scale: 1.07;
+  }
+
+  .sobre__fondo {
+    translate: calc(var(--fx, 0) * 5px) calc(var(--fy, 0) * 5px);
+  }
+
+  .sobre__persona {
+    translate: calc(var(--fx, 0) * 20px) calc(var(--fy, 0) * 14px);
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     Entrada. Los estados de partida solo existen con [data-anima], que
+     pone el script: sin JavaScript, o con movimiento reducido, el módulo
+     se ve tal cual desde el principio.
+
+     Se dispara la página 1 con [data-dentro] (al aparecer en pantalla y
+     al volver de la segunda) y la página 2 con [data-abierto]. Al cerrar,
+     la página 2 se deshace solo cuando ya se ha ido (1100 ms), para que no
+     se vea desmontarse durante el deslizamiento.
+     ══════════════════════════════════════════════════════════════ */
+
+  /* Mientras se reinicia la página 1, nada se anima: vuelve a su estado
+     de partida de golpe, sin desandar la entrada. */
+  .sobre[data-reinicio] .sobre__pagina:first-child,
+  .sobre[data-reinicio] .sobre__pagina:first-child * {
+    transition: none !important;
+  }
+
+  .sobre[data-anima] .sobre__pagina--dos :is(.sobre__palabra, .sobre__boton, .sobre__etiqueta) {
+    transition: all 0s 1100ms;
+  }
+
+  /* ── El rótulo enfoca ──────────────────────────────────────── */
+  .sobre[data-anima] .sobre__rotulo {
+    opacity: 0;
+    filter: blur(18px);
+    scale: 1.08;
+    transform-origin: 0 50%;
+  }
+
+  .sobre[data-anima] .sobre__nombre {
+    letter-spacing: 0.2em;
+  }
+
+  .sobre[data-anima][data-dentro] .sobre__rotulo {
+    opacity: 1;
+    filter: blur(0);
+    scale: 1;
+    transition:
+      opacity 1200ms ease,
+      filter 1700ms var(--suave),
+      scale 1900ms var(--suave);
+  }
+
+  .sobre[data-anima][data-dentro] .sobre__nombre {
+    letter-spacing: -0.05em;
+    transition: letter-spacing 2000ms var(--suave);
+  }
+
+  /* ── El texto, palabra a palabra desde la izquierda ────────── */
+  .sobre[data-anima] .sobre__palabra {
+    opacity: 0;
+    translate: -48px 0;
+  }
+
+  .sobre[data-anima] .sobre__boton,
+  .sobre[data-anima] .sobre__pagina--dos .sobre__etiqueta {
+    opacity: 0;
+  }
+
+  .sobre[data-anima][data-dentro] .sobre__pagina:first-child .sobre__palabra {
+    opacity: 1;
+    translate: 0 0;
+    transition:
+      opacity 600ms ease calc(700ms + var(--i) * 30ms),
+      translate 800ms var(--suave) calc(700ms + var(--i) * 30ms);
+  }
+
+  .sobre[data-anima][data-dentro] .sobre__pagina:first-child .sobre__boton {
+    opacity: 1;
+    transition: opacity 600ms ease 1600ms;
+  }
+
+  /* En la biografía larga el escalonado es más corto: son muchas más
+     palabras y, al ritmo de la corta, tardaría casi diez segundos. */
+  .sobre[data-anima][data-abierto] .sobre__pagina--dos .sobre__palabra {
+    opacity: 1;
+    translate: 0 0;
+    transition:
+      opacity 500ms ease calc(600ms + var(--i) * 7ms),
+      translate 700ms var(--suave) calc(600ms + var(--i) * 7ms);
+  }
+
+  .sobre[data-anima][data-abierto] .sobre__pagina--dos .sobre__etiqueta {
+    opacity: 1;
+    transition: opacity 600ms ease 600ms;
+  }
+
+  .sobre[data-anima][data-abierto] .sobre__pagina--dos .sobre__boton {
+    opacity: 1;
+    transition: opacity 600ms ease 2200ms;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -281,13 +631,31 @@ const completa = [
 </style>
 
 <script>
+  const limitar = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+  const reducido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const conRaton = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
   document.querySelectorAll<HTMLElement>('[data-sobre]').forEach((seccion) => {
     const abrir = seccion.querySelector<HTMLButtonElement>('[data-abrir]')!;
     const cerrar = seccion.querySelector<HTMLButtonElement>('[data-cerrar]')!;
+    const paginas = Array.from(seccion.querySelectorAll<HTMLElement>('[data-pagina]'));
 
+    // ── Pasar de página ─────────────────────────────────────
+    /*
+      Al volver, la entrada de la primera página se repite: se lleva a su
+      estado de partida de golpe (data-reinicio quita las transiciones un
+      instante) y se vuelve a disparar mientras la página va llegando.
+    */
     const poner = (abierto: boolean) => {
       seccion.toggleAttribute('data-abierto', abierto);
       abrir.setAttribute('aria-expanded', String(abierto));
+      if (!abierto && seccion.hasAttribute('data-anima')) {
+        seccion.setAttribute('data-reinicio', '');
+        seccion.removeAttribute('data-dentro');
+        void seccion.offsetWidth;
+        seccion.removeAttribute('data-reinicio');
+        window.setTimeout(() => seccion.setAttribute('data-dentro', ''), 300);
+      }
       // El foco pasa al botón de la página que queda a la vista.
       window.setTimeout(() => (abierto ? cerrar : abrir).focus({ preventScroll: true }), abierto ? 700 : 0);
     };
@@ -297,5 +665,193 @@ const completa = [
     seccion.addEventListener('keydown', (evento) => {
       if (evento.key === 'Escape' && seccion.hasAttribute('data-abierto')) poner(false);
     });
+
+    if (reducido) return;
+
+    // ── Entrada al aparecer en pantalla ─────────────────────
+    seccion.setAttribute('data-anima', '');
+    new IntersectionObserver(
+      ([e]) => {
+        if (!e) return;
+        if (e.intersectionRatio >= 0.35) seccion.setAttribute('data-dentro', '');
+        else if (!e.isIntersecting) seccion.removeAttribute('data-dentro');
+      },
+      { threshold: [0, 0.35] },
+    ).observe(seccion);
+
+    // ── La foto: onda y aparición concéntrica ───────────────
+    const efectos = paginas.map((pagina) => {
+      const img = pagina.querySelector<HTMLElement>('[data-imagen]')!;
+      const nitida = pagina.querySelector<HTMLImageElement>('[data-nitida]')!;
+      let cancelar = () => {};
+
+      {
+        const filtroOnda = seccion.querySelector<SVGElement>(`[data-onda="${paginas.indexOf(pagina)}"]`)!;
+        const turbulencia = filtroOnda.querySelector<SVGElement>('[data-turbulencia]')!;
+        const desplazamiento = filtroOnda.querySelector<SVGElement>('[data-desplazamiento]')!;
+        const desenfoque = filtroOnda.querySelector<SVGElement>('[data-desenfoque]')!;
+        /** Cuánto se ondula al principio, en píxeles. */
+        const MAXIMO = 160;
+        /** Cuánto tarda en calmarse del todo. */
+        const DURA = 3000;
+        /*
+          La aparición concéntrica: una máscara radial, opaca en el centro
+          y transparente fuera, con un borde ancho y difuminado, que se
+          abre desde el centro hasta cubrir la foto entera. El radio va en
+          porcentaje; empieza negativo para que no se vea nada al principio.
+        */
+        const enmascarar = (radio: number | null) => {
+          const valor =
+            radio === null
+              ? ''
+              : `radial-gradient(circle at 50% 50%, #000 ${radio.toFixed(1)}%, transparent ${(radio + 35).toFixed(1)}%)`;
+          img.style.maskImage = valor;
+          img.style.webkitMaskImage = valor;
+        };
+        let bucle = 0;
+        const ondular = (fuerza: number, fase: number) => {
+          desplazamiento.setAttribute('scale', (fuerza * MAXIMO).toFixed(1));
+          desenfoque.setAttribute('stdDeviation', (fuerza * 6).toFixed(2));
+          // El ruido cambia mientras dura: las volutas se mueven y se
+          // retuercen, en vez de quedarse fijas mientras se aplanan.
+          turbulencia.setAttribute('baseFrequency', (0.011 + Math.sin(fase * Math.PI) * 0.006).toFixed(4));
+        };
+        const reiniciar = () => {
+          cancelar();
+          img.style.filter = '';
+          nitida.style.opacity = '0';
+          enmascarar(-40);
+        };
+        const lanzar = (retraso: number) => {
+          cancelar();
+          const inicio = performance.now() + retraso;
+          img.style.filter = 'var(--onda)';
+          const paso = (ahora: number) => {
+            const t = limitar((ahora - inicio) / DURA, 0, 1);
+            // Se calma rápido al principio y despacio al final, como el agua.
+            const fuerza = Math.pow(1 - t, 3);
+            ondular(fuerza, t);
+            // La cara, limpia antes: entre el 25 % y el 55 % de la entrada.
+            nitida.style.opacity = t < 1 ? limitar((t - 0.25) / 0.3, 0, 1).toFixed(3) : '0';
+            // La máscara se abre durante casi toda la entrada, con salida
+            // suave: la foto termina de aparecer justo cuando se calma.
+            const apertura = 1 - Math.pow(1 - limitar(t / 0.9, 0, 1), 2);
+            enmascarar(-40 + apertura * 145);
+            if (t < 1) bucle = requestAnimationFrame(paso);
+            else {
+              img.style.filter = '';
+              enmascarar(null);
+            }
+          };
+          bucle = requestAnimationFrame(paso);
+          cancelar = () => cancelAnimationFrame(bucle);
+        };
+        reiniciar();
+        return { lanzar, reiniciar };
+      }
+
+    });
+
+    {
+      /*
+        Se vigilan las marcas de la sección: la página 1 se lanza al poner
+        data-dentro y la 2 al poner data-abierto. Al quitarlas, cada una
+        vuelve a su estado de partida (la 2, cuando ya se ha ido).
+      */
+      let antes = [false, false];
+      new MutationObserver(() => {
+        const ahora = [seccion.hasAttribute('data-dentro'), seccion.hasAttribute('data-abierto')];
+        ahora.forEach((activa, k) => {
+          const efecto = efectos[k];
+          if (!efecto || activa === antes[k]) return;
+          if (activa) efecto.lanzar(k === 0 ? 200 : 500);
+          else if (k === 1) window.setTimeout(() => !seccion.hasAttribute('data-abierto') && efecto.reiniciar(), 1100);
+          else efecto.reiniciar();
+        });
+        antes = ahora;
+      }).observe(seccion, { attributes: true, attributeFilter: ['data-dentro', 'data-abierto'] });
+    }
+
+    // ── Las fotos siguen al ratón ───────────────────────────
+    if (!conRaton) return;
+    const figuras = Array.from(seccion.querySelectorAll<HTMLElement>('[data-figura]'));
+    const rojo = seccion.querySelector<SVGElement>('[data-rojo]')!;
+    const azul = seccion.querySelector<SVGElement>('[data-azul]')!;
+    const filtro = `url(#${seccion.querySelector('filter[id$="-dispersion"]')!.id})`;
+    /** Cuánto se separan los colores como mucho, en píxeles. */
+    const DISPERSION = 1;
+    let velX = 0;
+    let velY = 0;
+    let movX = 0;
+    let movY = 0;
+    let ultimo: { x: number; y: number } | null = null;
+    let dispersando = false;
+    let destinoX = 0;
+    let destinoY = 0;
+    let x = 0;
+    let y = 0;
+    let visible = false;
+    let bucle = 0;
+    let anterior = 0;
+
+    const paso = (ahora: number) => {
+      const dt = anterior ? limitar((ahora - anterior) / 16.67, 0, 2.5) : 1;
+      anterior = ahora;
+      x += (destinoX - x) * (1 - Math.pow(0.92, dt));
+      y += (destinoY - y) * (1 - Math.pow(0.92, dt));
+      figuras.forEach((figura) => {
+        figura.style.setProperty('--fx', x.toFixed(3));
+        figura.style.setProperty('--fy', y.toFixed(3));
+      });
+
+      /*
+        La dispersión, como la de Clientes: la velocidad del ratón abre los
+        colores en su dirección y se disipa sola. En reposo se quita el
+        filtro del todo.
+      */
+      velX = velX * Math.pow(0.88, dt) + movX * 0.12;
+      velY = velY * Math.pow(0.88, dt) + movY * 0.12;
+      movX = 0;
+      movY = 0;
+      const dx = limitar(velX * 0.07, -DISPERSION, DISPERSION);
+      const dy = limitar(velY * 0.07, -DISPERSION, DISPERSION);
+      const activa = Math.hypot(dx, dy) > 0.05;
+      if (activa) {
+        rojo.setAttribute('dx', dx.toFixed(2));
+        rojo.setAttribute('dy', dy.toFixed(2));
+        azul.setAttribute('dx', (-dx).toFixed(2));
+        azul.setAttribute('dy', (-dy).toFixed(2));
+      }
+      if (activa !== dispersando) {
+        dispersando = activa;
+        figuras.forEach((figura) =>
+          activa ? figura.style.setProperty('--dispersion', filtro) : figura.style.removeProperty('--dispersion'),
+        );
+      }
+      bucle = visible ? requestAnimationFrame(paso) : 0;
+    };
+
+    window.addEventListener(
+      'pointermove',
+      (evento) => {
+        if (!visible) return;
+        destinoX = (evento.clientX / window.innerWidth - 0.5) * 2;
+        destinoY = (evento.clientY / window.innerHeight - 0.5) * 2;
+        if (ultimo) {
+          movX += evento.clientX - ultimo.x;
+          movY += evento.clientY - ultimo.y;
+        }
+        ultimo = { x: evento.clientX, y: evento.clientY };
+      },
+      { passive: true },
+    );
+
+    new IntersectionObserver(([e]) => {
+      visible = Boolean(e?.isIntersecting);
+      if (visible && !bucle) {
+        anterior = 0;
+        bucle = requestAnimationFrame(paso);
+      }
+    }).observe(seccion);
   });
 </script>
