@@ -1,16 +1,18 @@
 ---
 /**
- * Prueba: cinco enfoques para "Quién soy" con tono de profesional de
- * agencia en vez de artista. Solo datos reales; sin cifras ni fechas que
- * Pako no haya dado.
+ * Prueba: tres variantes de "Quién soy" que parten de la que había (foto,
+ * nombre y biografía), sin botón de contacto (está justo debajo) y con la
+ * biografía entera a la vista, que ya es corta.
  *
- * - ficha:      ficha técnica, como la de un director: datos en columnas.
- * - cifras:     tres números grandes y un párrafo corto.
- * - frase:      una sola frase de posicionamiento, enorme.
- * - trayectoria: hitos en una línea horizontal.
- * - equipo:     tarjeta de perfil como las de "equipo" de una agencia.
+ * - directo:  nombre en la display de la web, rol y los tres párrafos.
+ * - times:    el rótulo de antes en Times (PAKO PORTALO + lema) y debajo
+ *             los tres párrafos, sin pasar de página.
+ * - bloques:  la biografía en tres columnas con su tema (Formación,
+ *             Videojuegos, Publicidad) para leerla de un vistazo.
  */
-type Variante = 'ficha' | 'cifras' | 'frase' | 'trayectoria' | 'equipo';
+import { biografia, trozos } from '../data/sobre';
+
+type Variante = 'directo' | 'times' | 'bloques';
 
 interface Props {
   variante: Variante;
@@ -18,200 +20,44 @@ interface Props {
 
 const { variante } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
-const contacto = `${base}contacto/`;
-
-const rol = 'Compositor y director de sonido';
-const clientes = ['Xiaomi', 'Red Bull', 'BBVA', 'Junta de Andalucía', 'VivaGym', 'Mayumana', 'Farmaindustria', 'Galicia R Televisión', 'Shaman Garage', 'Te falta calle'];
-const premios = [
-  { donde: 'Festival El Sol 2026', que: 'Lista corta · Sound Design', obra: 'The Revelation', color: 'verde' },
-  { donde: 'Dutch Game Awards 2024', que: 'Nominado · Best Debut Game', obra: 'Data Garden', color: 'morado' },
-];
-const festivales = ['A MAZE. (Alemania)', 'Overkill (Países Bajos)', 'Playtopia (Sudáfrica)', 'Now Play This (Inglaterra)'];
 ---
 
 <section class={`enfoque enfoque--${variante}`}>
-  {
-    variante === 'ficha' && (
-      <div class="ficha">
-        <figure class="foto">
-          <img src={`${base}sobre/pako-1-fondo.webp`} alt="" />
-          <img src={`${base}sobre/pako-1-persona.webp`} alt="Pako Portalo" />
-        </figure>
-        <div>
-          <p class="etiqueta">Quién soy</p>
-          <h2 class="nombre">Pako Portalo</h2>
-          <p class="rol">{rol}</p>
-          <dl class="datos">
-            <div>
-              <dt>Disciplinas</dt>
-              <dd>Composición musical · Diseño sonoro · Dirección de sonido</dd>
-            </div>
-            <div>
-              <dt>Sectores</dt>
-              <dd>Publicidad · Videojuegos · Cine · Artes escénicas</dd>
-            </div>
-            <div>
-              <dt>Clientes</dt>
-              <dd>{clientes.slice(0, 6).join(' · ')}…</dd>
-            </div>
-            <div>
-              <dt>Reconocimientos</dt>
-              <dd>
-                {premios.map((p) => (
-                  <span class="premio">
-                    <i class={`punto punto--${p.color}`} />
-                    {p.donde} — {p.que}
-                  </span>
-                ))}
-              </dd>
-            </div>
-            <div>
-              <dt>Festivales</dt>
-              <dd>{festivales.join(' · ')}</dd>
-            </div>
-          </dl>
-          <a class="cta" href={contacto} data-tarjeta>Hablemos →</a>
-        </div>
-      </div>
-    )
-  }
+  <div class="rejilla">
+    <div class="texto">
+      <p class="etiqueta">Quién soy</p>
+      {
+        variante === 'times' ? (
+          <h2 class="rotulo">
+            <span class="nombre-times">Pako</span>
+            <span class="nombre-times">Portalo</span>
+            <span class="lema">Música &amp; Diseño sonoro.</span>
+          </h2>
+        ) : (
+          <>
+            <h2 class="nombre">Pako Portalo</h2>
+            <p class="rol">Compositor y director de sonido</p>
+          </>
+        )
+      }
 
-  {
-    variante === 'cifras' && (
-      <div class="cifras">
-        <p class="etiqueta">Quién soy</p>
-        <h2 class="titular">
-          Pako Portalo, <span class="tenue">{rol.toLowerCase()}.</span>
-        </h2>
-        <ul class="numeros">
-          <li>
-            <strong>10</strong>
-            <span>marcas y estudios con los que ha trabajado</span>
-          </li>
-          <li>
-            <strong>2</strong>
-            <span>reconocimientos internacionales: El Sol y Dutch Game Awards</span>
-          </li>
-          <li>
-            <strong>4</strong>
-            <span>festivales internacionales con Shaman Garage</span>
-          </li>
-        </ul>
-        <div class="cifras__pie">
-          <p class="parrafo">
-            Formado en clásica y jazz, compone y dirige el sonido de spots, videojuegos y piezas audiovisuales: de Xiaomi
-            y Red Bull a Data Garden.
-          </p>
-          <a class="cta" href={contacto} data-tarjeta>Hablemos →</a>
-        </div>
-      </div>
-    )
-  }
-
-  {
-    variante === 'frase' && (
-      <div class="frase">
-        <div class="frase__texto">
-          <p class="etiqueta">Pako Portalo · {rol}</p>
-          <h2 class="manifiesto">Hago que las marcas, los juegos y las películas suenen como deben sonar.</h2>
-          <p class="parrafo">
-            Música original y diseño sonoro para publicidad, videojuegos y cine. Ha trabajado para Xiaomi, Red Bull o la
-            Junta de Andalucía, y su sonido para The Revelation entró en la lista corta de El Sol 2026.
-          </p>
-          <a class="cta" href={contacto} data-tarjeta>Hablemos →</a>
-        </div>
-        <figure class="foto foto--pequena">
-          <img src={`${base}sobre/pako-1-fondo.webp`} alt="" />
-          <img src={`${base}sobre/pako-1-persona.webp`} alt="Pako Portalo" />
-        </figure>
-      </div>
-    )
-  }
-
-  {
-    variante === 'trayectoria' && (
-      <div class="trayectoria">
-        <div class="trayectoria__cabeza">
-          <figure class="foto foto--avatar">
-            <img src={`${base}sobre/pako-1-fondo.webp`} alt="" />
-            <img src={`${base}sobre/pako-1-persona.webp`} alt="Pako Portalo" />
-          </figure>
-          <div>
-            <p class="etiqueta">Quién soy</p>
-            <h2 class="nombre nombre--mediano">Pako Portalo</h2>
-            <p class="rol">{rol}</p>
+      <div class:list={['bio', variante === 'bloques' && 'bio--bloques']}>
+        {biografia.map((parrafo) => (
+          <div class="bio__bloque">
+            {variante === 'bloques' && <h3 class="bio__tema">{parrafo.tema}</h3>}
+            <p>
+              {trozos(parrafo.texto).map((t) => (t.tono ? <span class={`es-${t.tono}`}>{t.texto}</span> : t.texto))}
+            </p>
           </div>
-        </div>
-        <ol class="hitos">
-          <li>
-            <span class="hito__cuando">Formación</span>
-            <span class="hito__que">Conservatorio (violín) y jazz (guitarra)</span>
-          </li>
-          <li>
-            <span class="hito__cuando">2022–2024</span>
-            <span class="hito__que">Músico y arreglista de Mayumana en gira</span>
-          </li>
-          <li>
-            <span class="hito__cuando">Shaman Garage</span>
-            <span class="hito__que">Director de sonido del estudio, en Países Bajos</span>
-          </li>
-          <li>
-            <span class="hito__cuando">2024</span>
-            <span class="hito__que">
-              <i class="punto punto--morado" />
-              Data Garden, nominado a Best Debut Game
-            </span>
-          </li>
-          <li>
-            <span class="hito__cuando">2026</span>
-            <span class="hito__que">
-              <i class="punto punto--verde" />
-              The Revelation, lista corta en El Sol
-            </span>
-          </li>
-        </ol>
-        <a class="cta" href={contacto} data-tarjeta>Hablemos →</a>
+        ))}
       </div>
-    )
-  }
+    </div>
 
-  {
-    variante === 'equipo' && (
-      <div class="equipo">
-        <figure class="foto foto--alta">
-          <img src={`${base}sobre/pako-1-fondo.webp`} alt="" />
-          <img src={`${base}sobre/pako-1-persona.webp`} alt="Pako Portalo" />
-        </figure>
-        <div class="equipo__datos">
-          <p class="etiqueta">Quién soy</p>
-          <h2 class="nombre">Pako Portalo</h2>
-          <p class="rol">{rol}</p>
-          <div class="columnas">
-            <div>
-              <h3>Qué hago</h3>
-              <p>Música original, diseño sonoro y dirección de sonido.</p>
-            </div>
-            <div>
-              <h3>Para quién</h3>
-              <p>Agencias, marcas y estudios de videojuegos y cine.</p>
-            </div>
-            <div>
-              <h3>Reconocimientos</h3>
-              <p>
-                <i class="punto punto--verde" /> El Sol 2026
-                <br />
-                <i class="punto punto--morado" /> Dutch Game Awards 2024
-              </p>
-            </div>
-          </div>
-          <div class="equipo__contacto">
-            <a class="cta" href={contacto} data-tarjeta>Hablemos →</a>
-            <a class="correo" href="mailto:pakoportalo@gmail.com">pakoportalo@gmail.com</a>
-          </div>
-        </div>
-      </div>
-    )
-  }
+    <figure class="foto">
+      <img src={`${base}sobre/pako-1-fondo.webp`} alt="" />
+      <img src={`${base}sobre/pako-1-persona.webp`} alt="Pako Portalo tocando la guitarra en un concierto" />
+    </figure>
+  </div>
 </section>
 
 <style>
@@ -221,17 +67,23 @@ const festivales = ['A MAZE. (Alemania)', 'Overkill (Países Bajos)', 'Playtopia
     min-height: 100svh;
     display: grid;
     align-items: center;
-    padding: clamp(56px, 8svh, 96px) max(24px, 5.5vw);
+    padding: clamp(48px, 7svh, 88px) max(24px, 5.5vw);
     box-sizing: border-box;
     background: #050505;
     color: #f4f1ec;
     font-family: InstrumentSans, ui-sans-serif, system-ui, sans-serif;
-    --verde: #5ff7c6;
-    --morado: #b660ff;
+    --romana: 'Times New Roman', Times, 'Liberation Serif', 'Nimbus Roman', serif;
+  }
+
+  .rejilla {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: clamp(40px, 6vw, 110px);
+    align-items: center;
   }
 
   .etiqueta {
-    margin: 0 0 14px;
+    margin: 0 0 16px;
     font-size: 12px;
     font-weight: 500;
     letter-spacing: 0.2em;
@@ -242,14 +94,10 @@ const festivales = ['A MAZE. (Alemania)', 'Overkill (Países Bajos)', 'Playtopia
   .nombre {
     margin: 0;
     font-family: ClashDisplay, InstrumentSans, sans-serif;
-    font-size: clamp(44px, 5.4vw, 92px);
+    font-size: clamp(44px, 5vw, 86px);
     font-weight: 500;
     letter-spacing: -0.035em;
     line-height: 0.95;
-  }
-
-  .nombre--mediano {
-    font-size: clamp(32px, 3.4vw, 56px);
   }
 
   .rol {
@@ -258,65 +106,93 @@ const festivales = ['A MAZE. (Alemania)', 'Overkill (Países Bajos)', 'Playtopia
     color: rgb(255 255 255 / 0.6);
   }
 
-  .parrafo {
+  /* El rótulo de antes, en Times. */
+  .rotulo {
+    display: grid;
+    justify-items: start;
     margin: 0;
-    max-width: 52ch;
-    font-size: clamp(16px, 1.25vw, 20px);
-    line-height: 1.55;
-    color: rgb(255 255 255 / 0.72);
+    font-weight: normal;
   }
 
-  .cta {
-    display: inline-block;
-    margin-top: 32px;
-    padding: 14px 26px;
-    border: 1px solid rgb(255 255 255 / 0.35);
-    border-radius: 999px;
-    color: inherit;
-    font-size: 14px;
+  .nombre-times {
+    font-family: var(--romana);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: clamp(48px, min(6.4vw, 11svh), 120px);
+    letter-spacing: -0.05em;
+    line-height: 0.8;
+    transform: scaleX(0.94);
+    transform-origin: 0 50%;
+  }
+
+  .lema {
+    position: relative;
+    margin-block-start: -0.5em;
+    margin-inline-start: 0.5em;
+    font-family: var(--romana);
+    font-style: italic;
+    font-size: clamp(24px, min(2.6vw, 4.4svh), 44px);
+    letter-spacing: -0.035em;
+    transform: scaleX(0.88);
+    transform-origin: 0 50%;
+    -webkit-text-stroke: 0.2em #050505;
+    paint-order: stroke fill;
+  }
+
+  .bio {
+    margin-top: clamp(28px, 4svh, 48px);
+    padding-top: clamp(20px, 3svh, 32px);
+    border-top: 1px solid rgb(255 255 255 / 0.12);
+  }
+
+  .bio p {
+    margin: 0 0 1em;
+    max-width: 60ch;
+    font-size: clamp(15px, 1.1vw, 18px);
+    line-height: 1.6;
+    color: rgb(255 255 255 / 0.5);
+  }
+
+  .bio--bloques {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: clamp(20px, 2.4vw, 40px);
+  }
+
+  .bio--bloques p {
+    font-size: clamp(14px, 1vw, 16px);
+  }
+
+  .bio__tema {
+    margin: 0 0 12px;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.04em;
-    text-decoration: none;
-    transition:
-      background-color 250ms ease,
-      color 250ms ease,
-      border-color 250ms ease;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.8);
   }
 
-  .cta:hover,
-  .cta:focus-visible {
-    background: var(--verde);
-    border-color: var(--verde);
-    color: #050505;
+  .es-blanco {
+    color: rgb(255 255 255 / 0.82);
   }
 
-  .punto {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    margin-inline-end: 8px;
-    border-radius: 50%;
-    vertical-align: 0.1em;
+  .es-verde {
+    color: color-mix(in oklab, #5ff7c6 75%, #8a8a8a);
   }
 
-  .punto--verde {
-    background: var(--verde);
-    box-shadow: 0 0 10px 2px rgb(95 247 198 / 0.45);
+  .es-morado {
+    color: color-mix(in oklab, #b660ff 75%, #8a8a8a);
   }
 
-  .punto--morado {
-    background: var(--morado);
-    box-shadow: 0 0 10px 2px rgb(182 96 255 / 0.45);
-  }
-
-  /* La foto: el fondo y la persona apilados, como en la portada. */
   .foto {
     position: relative;
-    margin: 0;
+    justify-self: end;
+    width: 100%;
+    max-width: calc((100svh - 2 * clamp(48px, 7svh, 88px)) * 0.8);
     aspect-ratio: 4 / 5;
+    margin: 0;
     overflow: hidden;
     border-radius: 4px;
-    background: #111;
   }
 
   .foto img {
@@ -327,234 +203,20 @@ const festivales = ['A MAZE. (Alemania)', 'Overkill (Países Bajos)', 'Playtopia
     object-fit: cover;
   }
 
-  /* ── 1 · Ficha técnica ─────────────────────────────────────── */
-  .ficha {
-    display: grid;
-    grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
-    gap: clamp(40px, 6vw, 110px);
-    align-items: center;
+  /* En bloques, la foto va a la izquierda y la biografía tiene más sitio. */
+  .enfoque--bloques .rejilla {
+    grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
   }
 
-  .datos {
-    display: grid;
-    margin: 36px 0 0;
-    border-top: 1px solid rgb(255 255 255 / 0.12);
-  }
-
-  .datos > div {
-    display: grid;
-    grid-template-columns: 170px 1fr;
-    gap: 24px;
-    padding: 14px 0;
-    border-bottom: 1px solid rgb(255 255 255 / 0.12);
-  }
-
-  .datos dt {
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: rgb(255 255 255 / 0.45);
-  }
-
-  .datos dd {
-    margin: 0;
-    font-size: 15px;
-    line-height: 1.5;
-    color: rgb(255 255 255 / 0.85);
-  }
-
-  .premio {
-    display: block;
-  }
-
-  /* ── 2 · En cifras ─────────────────────────────────────────── */
-  .titular {
-    margin: 0;
-    max-width: 22ch;
-    font-family: ClashDisplay, InstrumentSans, sans-serif;
-    font-size: clamp(36px, 4.4vw, 76px);
-    font-weight: 500;
-    letter-spacing: -0.03em;
-    line-height: 1;
-  }
-
-  .tenue {
-    color: rgb(255 255 255 / 0.4);
-  }
-
-  .numeros {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 32px;
-    margin: clamp(40px, 6svh, 72px) 0;
-    padding: 32px 0 0;
-    border-top: 1px solid rgb(255 255 255 / 0.12);
-    list-style: none;
-  }
-
-  .numeros strong {
-    display: block;
-    font-family: ClashDisplay, InstrumentSans, sans-serif;
-    font-size: clamp(64px, 8vw, 140px);
-    font-weight: 500;
-    letter-spacing: -0.04em;
-    line-height: 0.9;
-  }
-
-  .numeros span {
-    display: block;
-    max-width: 26ch;
-    margin-top: 12px;
-    font-size: 15px;
-    line-height: 1.45;
-    color: rgb(255 255 255 / 0.6);
-  }
-
-  .cifras__pie {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: end;
-    justify-content: space-between;
-    gap: 24px;
-  }
-
-  .cifras__pie .cta {
-    margin-top: 0;
-  }
-
-  /* ── 3 · Una frase ─────────────────────────────────────────── */
-  .frase {
-    display: grid;
-    grid-template-columns: minmax(0, 8fr) minmax(0, 3fr);
-    gap: clamp(40px, 6vw, 110px);
-    align-items: end;
-  }
-
-  .manifiesto {
-    margin: 0 0 32px;
-    font-family: ClashDisplay, InstrumentSans, sans-serif;
-    font-size: clamp(40px, 5.6vw, 100px);
-    font-weight: 500;
-    letter-spacing: -0.035em;
-    line-height: 0.98;
-  }
-
-  /* ── 4 · Trayectoria ───────────────────────────────────────── */
-  .trayectoria__cabeza {
-    display: flex;
-    align-items: center;
-    gap: 28px;
-  }
-
-  .foto--avatar {
-    width: 120px;
-    aspect-ratio: 1;
-    border-radius: 50%;
-  }
-
-  .hitos {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    margin: clamp(48px, 8svh, 96px) 0 0;
-    padding: 0;
-    list-style: none;
-    border-top: 1px solid rgb(255 255 255 / 0.2);
-  }
-
-  .hitos li {
-    position: relative;
-    padding: 28px 20px 0 0;
-  }
-
-  .hitos li::before {
-    content: '';
-    position: absolute;
-    top: -5px;
-    left: 0;
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: #f4f1ec;
-  }
-
-  .hito__cuando {
-    display: block;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: rgb(255 255 255 / 0.45);
-  }
-
-  .hito__que {
-    display: block;
-    margin-top: 10px;
-    font-size: clamp(15px, 1.15vw, 18px);
-    line-height: 1.4;
-  }
-
-  /* ── 5 · Perfil de equipo ──────────────────────────────────── */
-  .equipo {
-    display: grid;
-    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-    gap: clamp(40px, 6vw, 110px);
-    align-items: center;
-  }
-
-  .foto--alta {
-    max-height: 76svh;
-  }
-
-  .columnas {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 28px;
-    margin-top: 40px;
-    padding-top: 28px;
-    border-top: 1px solid rgb(255 255 255 / 0.12);
-  }
-
-  .columnas h3 {
-    margin: 0 0 10px;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: rgb(255 255 255 / 0.45);
-  }
-
-  .columnas p {
-    margin: 0;
-    font-size: 15px;
-    line-height: 1.5;
-    color: rgb(255 255 255 / 0.85);
-  }
-
-  .equipo__contacto {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 24px;
-    margin-top: 36px;
-  }
-
-  .equipo__contacto .cta {
-    margin-top: 0;
-  }
-
-  .correo {
-    font-size: 15px;
-    color: rgb(255 255 255 / 0.7);
+  .enfoque--bloques .foto {
+    order: -1;
+    justify-self: start;
   }
 
   @media (max-width: 860px) {
-    .ficha,
-    .frase,
-    .equipo,
-    .numeros,
-    .columnas,
-    .hitos {
+    .rejilla,
+    .enfoque--bloques .rejilla,
+    .bio--bloques {
       grid-template-columns: 1fr;
     }
   }

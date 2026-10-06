@@ -1,6 +1,6 @@
 ---
 /**
- * Página de trabajo: cinco enfoques para "Quién soy", con tono de
+ * Página de trabajo: tres variantes para "Quién soy", con tono de
  * profesional de agencia. No está enlazada; cuando elijamos, se borra.
  */
 import QuienSoyEnfoque from '../components/QuienSoyEnfoque.astro';
@@ -8,11 +8,9 @@ import Tarjeta from '../components/Tarjeta.astro';
 import '../styles/global.css';
 
 const ideas = [
-  { variante: 'ficha', nombre: 'Ficha técnica', nota: 'Como la ficha de un director: datos en filas (disciplinas, sectores, clientes, reconocimientos, festivales). Sobrio y escaneable.' },
-  { variante: 'cifras', nombre: 'En cifras', nota: 'Tres números grandes que resumen el peso del perfil y un párrafo corto.' },
-  { variante: 'frase', nombre: 'Una frase', nota: 'Posicionamiento en una sola frase grande, como el claim de una agencia, y la foto pequeña.' },
-  { variante: 'trayectoria', nombre: 'Trayectoria', nota: 'Los hitos en una línea: de la formación a El Sol 2026.' },
-  { variante: 'equipo', nombre: 'Perfil de equipo', nota: 'Como la ficha de equipo de una agencia: foto, rol, qué hago, para quién y reconocimientos, con contacto directo.' },
+  { variante: 'directo', nombre: 'Directo', nota: 'Nombre en la tipografía display de la web, el rol debajo y los tres párrafos a la vista. Lo más sobrio y profesional.' },
+  { variante: 'times', nombre: 'Como antes, sin pasar página', nota: 'El rótulo en Times de ahora y la biografía entera debajo, en una sola pantalla.' },
+  { variante: 'bloques', nombre: 'En tres bloques', nota: 'La biografía partida en Formación, Videojuegos y Publicidad: se escanea de un vistazo, como un CV de agencia.' },
 ] as const;
 ---
 
@@ -22,7 +20,7 @@ const ideas = [
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
-    <title>Quién soy — cinco enfoques</title>
+    <title>Quién soy — tres variantes</title>
     <style is:global>
       body {
         margin: 0;
