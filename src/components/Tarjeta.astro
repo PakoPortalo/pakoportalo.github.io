@@ -689,7 +689,13 @@ const telefono = '+34 636 25 06 34';
         veces += 1;
       };
       dato.addEventListener('pointerenter', alternar);
-      dato.addEventListener('focus', alternar);
+      // Con el teclado sí; con el clic no, que si no el color cambiaba al copiar.
+      let pulsado = false;
+      dato.addEventListener('pointerdown', () => (pulsado = true));
+      dato.addEventListener('focus', () => {
+        if (!pulsado) alternar();
+        pulsado = false;
+      });
 
       let espera = 0;
       dato.addEventListener('click', async () => {
