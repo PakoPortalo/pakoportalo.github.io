@@ -56,14 +56,14 @@ import MarcasCierre from './MarcasCierre.astro';
 const orbitas =
   marcas === 'orbitas3'
     ? [
-        { r: 98, color: 'gris', segundos: 22, sentido: 1, punto: 3.5 },
-        { r: 154, color: 'verde', segundos: 38, sentido: 1, punto: 5.5 },
-        { r: 210, color: 'morado', segundos: 30, sentido: -1, punto: 7.5 },
+        { r: 98, color: 'gris', segundos: 22, sentido: 1, punto: 6 },
+        { r: 154, color: 'verde', segundos: 38, sentido: 1, punto: 9 },
+        { r: 210, color: 'morado', segundos: 30, sentido: -1, punto: 12 },
       ]
     : marcas === 'orbitas2'
       ? [
-          { r: 126, color: 'verde', segundos: 34, sentido: 1, punto: 5 },
-          { r: 210, color: 'morado', segundos: 26, sentido: -1, punto: 7.5 },
+          { r: 126, color: 'verde', segundos: 34, sentido: 1, punto: 9 },
+          { r: 210, color: 'morado', segundos: 26, sentido: -1, punto: 12 },
         ]
       : null;
 ---
@@ -73,7 +73,26 @@ const orbitas =
   {
     orbitas && (
       <div class="atajo__orbitas" aria-hidden="true">
-        <svg viewBox="-260 -260 520 520">
+        <svg class="atajo__mira" viewBox="0 0 60 60">
+          <circle cx="30" cy="30" r="12" />
+          <line x1="30" x2="30" y1="0" y2="60" />
+          <line x1="0" x2="60" y1="30" y2="30" />
+        </svg>
+        <svg class="atajo__sistema" viewBox="-260 -260 520 520">
+          <defs>
+            {/* Esferas: luz arriba a la izquierda, sombra abajo a la derecha. */}
+            {[
+              ['gris', '#c9c6c1', '#6d6a66', '#2b2927'],
+              ['verde', '#d6fff1', '#5fe6b8', '#1f7a5c'],
+              ['morado', '#f0dcff', '#a866ec', '#4b2178'],
+            ].map(([nombre, luz, medio, sombra]) => (
+              <radialGradient id={`${id ?? 'atajo'}-esfera-${nombre}`} cx="35%" cy="30%" r="75%">
+                <stop offset="0%" stop-color={luz} />
+                <stop offset="45%" stop-color={medio} />
+                <stop offset="100%" stop-color={sombra} />
+              </radialGradient>
+            ))}
+          </defs>
           {Array.from({ length: 7 }, (_, k) => (
             <circle class="atajo__anillo" r={70 + k * 28} />
           ))}
@@ -82,8 +101,14 @@ const orbitas =
               class={`atajo__orbita atajo__orbita--${o.color}`}
               style={`--segundos: ${o.segundos}s; --sentido: ${o.sentido === 1 ? 'normal' : 'reverse'}`}
             >
-              <circle r={o.r} class="atajo__rastro" />
-              <circle cx={o.r} cy="0" r={o.punto} class="atajo__satelite" />
+              {/* La esfera gira con la órbita pero su luz no: se contrarrota
+                  para que el brillo quede siempre arriba a la izquierda. */}
+              <g transform={`translate(${o.r} 0)`}>
+                <g class="atajo__contragiro">
+                  <circle class="atajo__sombra" cx="1.5" cy="2.5" r={o.punto} />
+                  <circle r={o.punto} fill={`url(#${id ?? 'atajo'}-esfera-${o.color})`} />
+                </g>
+              </g>
             </g>
           ))}
         </svg>
@@ -211,23 +236,14 @@ const orbitas =
     --margen: max(24px, 5.5vw);
   }
 
-  .atajo--orbitas .atajo__enlace {
-    position: static;
-    padding-inline-end: calc(var(--flecha) + 32px);
-  }
-
   .atajo--orbitas .atajo__frases {
     position: relative;
     z-index: 1;
   }
 
   .atajo--orbitas .atajo__flecha {
-    position: absolute;
+    position: relative;
     z-index: 1;
-    inset-block-start: 50%;
-    inset-inline-end: var(--margen);
-    width: var(--flecha);
-    translate: 0 -50%;
   }
 
   .atajo__orbitas {
@@ -238,13 +254,16 @@ const orbitas =
     pointer-events: none;
   }
 
-  .atajo__orbitas svg {
+  /* El centro del sistema es el de la flecha (--ox, --oy, los mide el
+     script). Lo que se sale por arriba queda cortado por la franja, por
+     detrás del módulo negro. */
+  .atajo__sistema {
     position: absolute;
-    inset-block-start: 50%;
-    inset-inline-end: calc(var(--margen) + var(--flecha) / 2);
-    width: min(520px, 100svh);
-    height: min(520px, 100svh);
-    translate: 50% -50%;
+    inset-block-start: var(--oy, 50%);
+    inset-inline-start: var(--ox, 90%);
+    width: 520px;
+    height: 520px;
+    translate: -50% -50%;
     overflow: visible;
     fill: none;
   }
@@ -254,32 +273,35 @@ const orbitas =
     stroke-width: 1;
   }
 
+  .atajo__mira {
+    position: absolute;
+    inset-block-start: clamp(28px, 6svh, 64px);
+    inset-inline-start: max(24px, 5.5vw);
+    width: 34px;
+    fill: none;
+    stroke: rgb(5 5 5 / 0.16);
+    stroke-width: 1.2;
+  }
+
+  .atajo__contragiro {
+    animation: orbita var(--segundos) linear infinite;
+    animation-direction: var(--sentido);
+    animation-name: contragiro;
+  }
+
+  .atajo__sombra {
+    fill: rgb(5 5 5 / 0.12);
+    filter: blur(1.5px);
+  }
+
+  @keyframes contragiro {
+    to {
+      rotate: -360deg;
+    }
+  }
+
   .atajo__orbita {
     animation: orbita var(--segundos) linear infinite var(--sentido);
-  }
-
-  /* La órbita es el propio anillo, en línea continua y teñida del color de
-     su punto: el punto va montado sobre la línea, no al lado. */
-  .atajo__rastro {
-    stroke: var(--c);
-    stroke-width: 1;
-    opacity: 0.45;
-  }
-
-  .atajo__orbita--gris {
-    --c: rgb(5 5 5 / 0.45);
-  }
-
-  .atajo__orbita--verde {
-    --c: color-mix(in oklab, #5ff7c6 75%, #6b6b6b);
-  }
-
-  .atajo__orbita--morado {
-    --c: color-mix(in oklab, #b660ff 75%, #6b6b6b);
-  }
-
-  .atajo__satelite {
-    fill: var(--c);
   }
 
   @keyframes orbita {
@@ -289,7 +311,8 @@ const orbitas =
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .atajo__orbita {
+    .atajo__orbita,
+    .atajo__contragiro {
       animation: none;
     }
   }
@@ -471,6 +494,19 @@ const orbitas =
     respuesta sube ya con su color y se va con el mismo. Cada franja lleva
     su propia cuenta.
   */
+  // Las órbitas se centran en la flecha: se mide dónde cae dentro de la franja.
+  document.querySelectorAll<HTMLElement>('.atajo--orbitas').forEach((franja) => {
+    const flecha = franja.querySelector<HTMLElement>('.atajo__flecha')!;
+    const medir = () => {
+      const f = flecha.getBoundingClientRect();
+      const c = franja.getBoundingClientRect();
+      franja.style.setProperty('--ox', `${(f.left + f.width / 2 - c.left).toFixed(1)}px`);
+      franja.style.setProperty('--oy', `${(f.top + f.height / 2 - c.top).toFixed(1)}px`);
+    };
+    medir();
+    new ResizeObserver(medir).observe(franja);
+  });
+
   document.querySelectorAll<HTMLElement>('[data-atajo]').forEach((franja) => {
     const enlace = franja.querySelector<HTMLElement>('.atajo__enlace')!;
     let veces = 0;
