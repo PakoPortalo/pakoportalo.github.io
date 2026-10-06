@@ -64,7 +64,11 @@ const telefono = '+34 636 25 06 34';
                     </svg>
                   )}
                   <span class="tarjeta__valor">{dato.valor}</span>
-                  <span class="tarjeta__copiado" aria-hidden="true">¡Copiado!</span>
+                  <span class="tarjeta__copiado" aria-hidden="true">
+                    {[...'¡Copiado!'].map((letra, i) => (
+                      <span style={`--i: ${i}`}>{letra}</span>
+                    ))}
+                  </span>
                 </button>
               </li>
             ))
@@ -380,27 +384,56 @@ const telefono = '+34 636 25 06 34';
     outline: none;
   }
 
+  /*
+    El dato y el aviso comparten celda. Al copiar, el dato se va y las
+    letras de "¡Copiado!" caen desde arriba una detrás de otra; al rato
+    suben otra vez una detrás de otra, y entonces vuelve el dato.
+  */
   .tarjeta__valor,
   .tarjeta__copiado {
     grid-area: 1 / 2;
-    transition:
-      opacity 250ms ease,
-      translate 350ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .tarjeta__copiado {
-    opacity: 0;
-    translate: 0 40%;
+  .tarjeta__valor {
+    transition: opacity 250ms ease 380ms;
   }
 
   .tarjeta__dato[data-copiado] .tarjeta__valor {
     opacity: 0;
-    translate: 0 -40%;
+    transition-delay: 0ms;
   }
 
-  .tarjeta__dato[data-copiado] .tarjeta__copiado {
+  /* En la cursiva del frente de la tarjeta, sin negrita. */
+  .tarjeta__copiado {
+    display: flex;
+    overflow: hidden;
+    padding-block: 0.1em;
+    font-family: var(--romana);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 1.15em;
+    letter-spacing: -0.01em;
+    pointer-events: none;
+  }
+
+  .tarjeta__copiado span {
+    display: inline-block;
+    white-space: pre;
+    opacity: 0;
+    translate: 0 -110%;
+    transition:
+      translate 260ms cubic-bezier(0.5, 0, 0.75, 0),
+      opacity 200ms ease;
+    transition-delay: calc(var(--i) * 22ms);
+  }
+
+  .tarjeta__dato[data-copiado] .tarjeta__copiado span {
     opacity: 1;
     translate: 0 0;
+    transition:
+      translate 320ms cubic-bezier(0.34, 1.4, 0.64, 1),
+      opacity 160ms ease;
+    transition-delay: calc(var(--i) * 26ms);
   }
 
   .tarjeta__datos svg {
@@ -664,15 +697,27 @@ const telefono = '+34 636 25 06 34';
       let espera = 0;
       dato.addEventListener('click', async () => {
         const aviso = dato.querySelector('.tarjeta__copiado')!;
+        // Cada letra en su caja, para que caigan y suban escalonadas.
+        const escribir = (texto: string) => {
+          aviso.replaceChildren(
+            ...[...texto].map((letra, i) => {
+              const caja = document.createElement('span');
+              caja.textContent = letra;
+              caja.style.setProperty('--i', String(i));
+              return caja;
+            }),
+          );
+        };
         try {
           await navigator.clipboard.writeText(dato.dataset.copiar!);
-          aviso.textContent = '¡Copiado!';
+          if (aviso.textContent !== '¡Copiado!') escribir('¡Copiado!');
         } catch {
-          aviso.textContent = '¡No se pudo!';
+          escribir('¡No se pudo!');
         }
+        void aviso.getBoundingClientRect(); // las letras nuevas parten de arriba
         dato.setAttribute('data-copiado', '');
         clearTimeout(espera);
-        espera = window.setTimeout(() => dato.removeAttribute('data-copiado'), 750);
+        espera = window.setTimeout(() => dato.removeAttribute('data-copiado'), 1250);
       });
     });
 
