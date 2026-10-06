@@ -78,7 +78,10 @@ const orbitas = conOrbitas
           {orbitas.map((o) => (
             <g
               class={`atajo__orbita atajo__orbita--${o.color}`}
-              style={`--segundos: ${o.segundos}s; --sentido: ${o.sentido === 1 ? 'normal' : 'reverse'}`}
+              data-orbita
+              data-r={o.r}
+              data-segundos={o.segundos}
+              data-sentido={o.sentido}
             >
               <circle class="atajo__satelite" cx={o.r} cy="0" r={o.punto} />
             </g>
@@ -296,9 +299,6 @@ const orbitas = conOrbitas
     --halo: rgb(182 96 255 / 0.8);
   }
 
-  .atajo__orbita {
-    animation: orbita var(--segundos) linear infinite var(--sentido);
-  }
 
   /*
     La flecha, como un planeta: al pasar el ratón se enciende con un neón
@@ -362,16 +362,9 @@ const orbitas = conOrbitas
     }
   }
 
-  @keyframes orbita {
-    to {
-      rotate: 360deg;
-    }
-  }
+
 
   @media (prefers-reduced-motion: reduce) {
-    .atajo__orbita {
-      animation: none;
-    }
   }
 
   /* En el cierre, la respuesta se alinea a la izquierda como la pregunta y
@@ -551,6 +544,64 @@ const orbitas = conOrbitas
     respuesta sube ya con su color y se va con el mismo. Cada franja lleva
     su propia cuenta.
   */
+  /*
+    Las órbitas giran por script y no con una animación fija: cada punto va
+    a su velocidad mientras se ve y al triple cuando sale de la pantalla,
+    hasta justo antes de volver a asomar, para que no tarde en reaparecer.
+    El cambio de velocidad es gradual. Solo mientras la franja se ve.
+  */
+  document.querySelectorAll<HTMLElement>('.atajo--orbitas').forEach((franja) => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const sistema = franja.querySelector<SVGSVGElement>('.atajo__sistema')!;
+    const orbitas = Array.from(franja.querySelectorAll<SVGGElement>('[data-orbita]')).map((g, k) => ({
+      g,
+      r: Number(g.dataset.r),
+      grados: (360 / Number(g.dataset.segundos)) * Number(g.dataset.sentido),
+      angulo: k * 140,
+      marcha: 1,
+    }));
+    let bucle = 0;
+    let anterior = 0;
+
+    const paso = (ahora: number) => {
+      const dt = anterior ? Math.min((ahora - anterior) / 1000, 0.05) : 0;
+      anterior = ahora;
+      // Centro y escala del sistema en pantalla: el SVG mide 520 unidades.
+      const caja = sistema.getBoundingClientRect();
+      const cx = caja.left + caja.width / 2;
+      const cy = caja.top + caja.height / 2;
+      const escala = caja.width / 520;
+      const visible = franja.getBoundingClientRect();
+      const izquierda = Math.max(0, visible.left);
+      const derecha = Math.min(window.innerWidth, visible.right);
+      const arriba = Math.max(0, visible.top);
+      const abajo = Math.min(window.innerHeight, visible.bottom);
+
+      for (const o of orbitas) {
+        const rad = (o.angulo * Math.PI) / 180;
+        const x = cx + Math.cos(rad) * o.r * escala;
+        const y = cy + Math.sin(rad) * o.r * escala;
+        // Un pelo de margen: acelera cuando ya no se ve nada del punto.
+        const margen = 14 * escala;
+        const fuera = x < izquierda - margen || x > derecha + margen || y < arriba - margen || y > abajo + margen;
+        o.marcha += ((fuera ? 3 : 1) - o.marcha) * Math.min(dt * 8, 1);
+        o.angulo = (o.angulo + o.grados * o.marcha * dt) % 360;
+        o.g.setAttribute('transform', `rotate(${o.angulo.toFixed(2)})`);
+      }
+      bucle = requestAnimationFrame(paso);
+    };
+
+    new IntersectionObserver(([e]) => {
+      if (e?.isIntersecting && !bucle) {
+        anterior = 0;
+        bucle = requestAnimationFrame(paso);
+      } else if (!e?.isIntersecting && bucle) {
+        cancelAnimationFrame(bucle);
+        bucle = 0;
+      }
+    }).observe(franja);
+  });
+
   // Las órbitas se centran en la flecha: se mide dónde cae dentro de la franja.
   document.querySelectorAll<HTMLElement>('.atajo--orbitas').forEach((franja) => {
     const flecha = franja.querySelector<HTMLElement>('.atajo__flecha')!;
