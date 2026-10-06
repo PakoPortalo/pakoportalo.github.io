@@ -6,10 +6,13 @@
  * quedaba fija detrás y el módulo se la comía al subir. Puesta aquí, sube con
  * él. El módulo que la lleve tiene que tener position: relative.
  *
- * Guiño a las tiras de control de color de imprenta.
+ * El tramo de color sigue al ratón en horizontal, con retraso, como un
+ * foco que lo acompaña; si el ratón sale de la ventana, se queda donde
+ * estaba. Antes de mover el ratón, cada barra está en su sitio. Guiño
+ * a las tiras de control de color de imprenta.
  */
 interface Props {
-  /** Volteada en horizontal: los colores, a la derecha. */
+  /** Volteada en horizontal: el orden de los colores, al revés. */
   invertida?: boolean;
 }
 
@@ -19,27 +22,84 @@ const { invertida = false } = Astro.props;
 <div class:list={['barra-color', invertida && 'barra-color--invertida']} aria-hidden="true"></div>
 
 <style>
+  /*
+    --c es el centro del tramo de color, en porcentaje del ancho. Lo mueve
+    el script en :root, así todas las barras van a la vez. Los colores van
+    de c-26% a c+20%, se blanquean en c+26% y se apagan en c+36%; por la
+    izquierda, el mismo apagado en espejo.
+  */
   .barra-color {
     position: absolute;
     z-index: 2;
     inset-inline: 0;
     inset-block-start: 0;
     height: var(--barra);
+    --c: var(--barra-centro, 26%);
     background: linear-gradient(
       90deg,
-      #18c6d4 0%,
-      #2f3ad0 12%,
-      #7b2fd0 22%,
-      #d92b6a 31%,
-      #e8603a 39%,
-      #e8e030 46%,
-      rgb(255 255 255 / 0.5) 52%,
-      rgb(255 255 255 / 0.12) 62%,
-      rgb(255 255 255 / 0.12) 100%
+      rgb(255 255 255 / 0.12) calc(var(--c) - 36%),
+      rgb(255 255 255 / 0.5) calc(var(--c) - 30%),
+      #18c6d4 calc(var(--c) - 26%),
+      #2f3ad0 calc(var(--c) - 14%),
+      #7b2fd0 calc(var(--c) - 4%),
+      #d92b6a calc(var(--c) + 5%),
+      #e8603a calc(var(--c) + 13%),
+      #e8e030 calc(var(--c) + 20%),
+      rgb(255 255 255 / 0.5) calc(var(--c) + 26%),
+      rgb(255 255 255 / 0.12) calc(var(--c) + 36%)
     );
   }
 
+  /* Volteada, el centro va en espejo para que siga igual al ratón. */
   .barra-color--invertida {
     scale: -1 1;
+    --c: calc(100% - var(--barra-centro, 74%));
   }
 </style>
+
+<script>
+  /*
+    Un solo bucle para todas las barras: el centro persigue la posición del
+    ratón con retraso. Sin movimiento reducido ni en táctil, se queda fija.
+  */
+  const quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const conRaton = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const raiz = document.documentElement;
+
+  if (!quieto && conRaton && !raiz.dataset.barraColor) {
+    raiz.dataset.barraColor = '';
+    let destino = 26;
+    let x = 26;
+    let primera = true;
+    let bucle = 0;
+    let anterior = 0;
+
+    const paso = (ahora: number) => {
+      const dt = anterior ? Math.min((ahora - anterior) / 16.67, 2.5) : 1;
+      anterior = ahora;
+      x += (destino - x) * (1 - Math.pow(0.9, dt));
+      raiz.style.setProperty('--barra-centro', `${x.toFixed(2)}%`);
+      bucle = Math.abs(destino - x) > 0.05 ? requestAnimationFrame(paso) : 0;
+    };
+
+    const arrancar = () => {
+      if (bucle) return;
+      anterior = 0;
+      bucle = requestAnimationFrame(paso);
+    };
+
+    window.addEventListener(
+      'pointermove',
+      (evento) => {
+        destino = (evento.clientX / window.innerWidth) * 100;
+        // La primera vez arranca desde donde estaba la barra, no de un salto.
+        if (primera) {
+          primera = false;
+          x = 26;
+        }
+        arrancar();
+      },
+      { passive: true },
+    );
+  }
+</script>

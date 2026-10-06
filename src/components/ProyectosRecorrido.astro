@@ -178,6 +178,10 @@ const posicion = (i: number) => (obras.length > 1 ? i / (obras.length - 1) : 0);
     border-radius: 4px;
     background: #111;
     transition: scale 700ms cubic-bezier(0.16, 1, 0.3, 1);
+    /* El protagonista sigue al ratón en los cuatro sentidos y se inclina
+       un poco (--mx, --my, de -1 a 1, los pone el script); los demás, a 0. */
+    transform: perspective(1200px) translate(calc(var(--mx, 0) * 10px), calc(var(--my, 0) * 8px))
+      rotateX(calc(var(--my, 0) * -3.5deg)) rotateY(calc(var(--mx, 0) * 4.5deg));
   }
 
   /* Al señalarlo crece un pelo: lo justo para decir que se puede pinchar. */
@@ -347,6 +351,58 @@ const posicion = (i: number) => (obras.length > 1 ? i / (obras.length - 1) : 0);
     const pedir = () => {
       if (!pendiente) pendiente = requestAnimationFrame(actualizar);
     };
+
+    /*
+      El vídeo protagonista (el más cercano al centro del recorrido) sigue
+      al ratón en los cuatro sentidos; los demás vuelven a reposo. Cada
+      marco lleva su propio muelle, así el cambio de protagonista es suave.
+    */
+    const marcos = Array.from(seccion.querySelectorAll<HTMLElement>('.recorrido__marco'));
+    const conRaton = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    const quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (conRaton && !quieto) {
+      const estado = marcos.map(() => ({ x: 0, y: 0 }));
+      let ratonX = 0;
+      let ratonY = 0;
+      let dentro = false;
+      let bucle = 0;
+      let anterior = 0;
+
+      const paso = (ahoraT: number) => {
+        const dt = anterior ? limitar((ahoraT - anterior) / 16.67, 0, 2.5) : 1;
+        anterior = ahoraT;
+        let vivo = false;
+        marcos.forEach((marco, i) => {
+          const meta = dentro && i === activa ? { x: ratonX, y: ratonY } : { x: 0, y: 0 };
+          const e = estado[i]!;
+          const k = 1 - Math.pow(0.9, dt);
+          e.x += (meta.x - e.x) * k;
+          e.y += (meta.y - e.y) * k;
+          marco.style.setProperty('--mx', e.x.toFixed(3));
+          marco.style.setProperty('--my', e.y.toFixed(3));
+          if (Math.abs(meta.x - e.x) > 0.002 || Math.abs(meta.y - e.y) > 0.002) vivo = true;
+        });
+        bucle = vivo ? requestAnimationFrame(paso) : 0;
+      };
+      const arrancar = () => {
+        if (bucle) return;
+        anterior = 0;
+        bucle = requestAnimationFrame(paso);
+      };
+
+      seccion.addEventListener('pointermove', (evento) => {
+        ratonX = (evento.clientX / window.innerWidth - 0.5) * 2;
+        ratonY = (evento.clientY / window.innerHeight - 0.5) * 2;
+        dentro = true;
+        arrancar();
+      });
+      seccion.addEventListener('pointerleave', () => {
+        dentro = false;
+        arrancar();
+      });
+      // Al cambiar de protagonista con el scroll, el muelle reparte el relevo.
+      window.addEventListener('scroll', arrancar, { passive: true });
+    }
 
     window.addEventListener('scroll', pedir, { passive: true });
     window.addEventListener('resize', pedir);
