@@ -180,14 +180,14 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
       algo mayor que el natural (--final);
     - el ratón: se desplaza hacia él (--mx, --my, en píxeles) y se inclina
       un poco (--rx, --ry, en grados), como la escena del hero;
-    - el glitch: un tirón lateral muy corto (--gx), solo durante el destello.
+    - la dispersión: ver más abajo.
     El origen va al centro: el zoom termina con el módulo centrado en la
     pantalla, y desde ahí es desde donde tiene que crecer.
   */
   .creds__contenido {
     position: relative;
     z-index: 1;
-    transform: perspective(1400px) translate(calc(var(--mx, 0) * 1px + var(--gx, 0px)), calc(var(--my, 0) * 1px))
+    transform: perspective(1400px) translate(calc(var(--mx, 0) * 1px), calc(var(--my, 0) * 1px))
       rotateX(calc(var(--rx, 0) * 1deg)) rotateY(calc(var(--ry, 0) * 1deg))
       scale(calc(var(--final, 1.06) + var(--zoom, 0.5) * (1 - var(--entrada))));
     transform-origin: 50% 50%;
@@ -195,25 +195,27 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
   }
 
   /*
-    El glitch: el color se separa en rojo y cian durante un instante, en el
-    texto y en los logotipos. Sin transiciones mientras dura, o el destello
-    se emborronaría con las del hover.
+    La dispersión de color, como la del hero: el contenido lleva siempre
+    una capa roja y otra cian separadas apenas un pelo. Al mover el ratón
+    se abren un poco en la dirección del movimiento y vuelven solas a su
+    sitio. Las distancias (--dx, --dy, en píxeles) las pone el script.
+    Los rótulos de sección se quedan limpios.
   */
-  .creds[data-glitch] .creds__contenido {
+  .creds__contenido {
+    --dx: 0.35;
+    --dy: 0;
     text-shadow:
-      calc(var(--gs, 1) * 1px) 0 rgb(255 40 90 / 0.35),
-      calc(var(--gs, 1) * -1px) 0 rgb(0 225 255 / 0.35);
+      calc(var(--dx) * 1px) calc(var(--dy) * 1px) rgb(255 40 90 / 0.55),
+      calc(var(--dx) * -1px) calc(var(--dy) * -1px) rgb(0 225 255 / 0.55);
   }
 
-  /* Los rótulos de sección se quedan quietos: el fallo es del contenido. */
-  .creds[data-glitch] .creds__titulo {
+  .creds__titulo {
     text-shadow: none;
   }
 
-  .creds[data-glitch] .creds__clientes img {
-    transition: none;
-    filter: brightness(0) invert(1) drop-shadow(calc(var(--gs, 1) * 1px) 0 rgb(255 40 90 / 0.35))
-      drop-shadow(calc(var(--gs, 1) * -1px) 0 rgb(0 225 255 / 0.35));
+  .creds__clientes img {
+    --dispersion: drop-shadow(calc(var(--dx) * 1px) calc(var(--dy) * 1px) rgb(255 40 90 / 0.55))
+      drop-shadow(calc(var(--dx) * -1px) calc(var(--dy) * -1px) rgb(0 225 255 / 0.55));
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -260,7 +262,7 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
   .creds__clientes img {
     /* Todos a blanco. Vienen cada uno de su color y de su fuente, y en una
        fila con seis tonos distintos lo que se lee es el desorden. */
-    filter: brightness(0) invert(1);
+    filter: brightness(0) invert(1) var(--dispersion);
     opacity: 0.66;
     /* Un punto por encima de la versión compacta, sin volver al tamaño de
        cuando el módulo ocupaba una pantalla entera. */
@@ -269,7 +271,9 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     max-width: 100%;
     object-fit: contain;
     display: block;
-    transition: filter 780ms ease, opacity 780ms ease;
+    /* El filtro sin transición: lleva la dispersión, que se mueve con el
+       ratón a cada fotograma, y con transición iría siempre a la zaga. */
+    transition: opacity 780ms ease;
   }
 
   /*
@@ -289,7 +293,7 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
   .creds__clientes li:hover img,
   .creds__clientes li:focus-within img {
     opacity: 0.92;
-    filter: brightness(0) invert(1) drop-shadow(0 0 10px rgb(255 255 255 / 0.12));
+    filter: brightness(0) invert(1) drop-shadow(0 0 10px rgb(255 255 255 / 0.12)) var(--dispersion);
   }
 
   .creds__clientes li:hover span,
@@ -472,9 +476,9 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
    *    con el módulo ya pasado de su sitio.
    * 2. El ratón. Como la escena del hero: el contenido se desplaza hacia
    *    él y se inclina un poco, con retraso.
-   * 3. El glitch. Muy poco: un destello cortísimo cada bastantes segundos,
-   *    con el color separado apenas un píxel. Se tiene que intuir más que
-   *    ver. Los rótulos de sección no lo tienen.
+   * 3. La dispersión de color, como la del hero: las capas roja y cian
+   *    siempre un pelo separadas; al mover el ratón se abren un poco en su
+   *    dirección y vuelven solas. Los rótulos de sección no la tienen.
    */
   const quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const conRaton = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
@@ -521,15 +525,15 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     let bucle = 0;
     let anterior = 0;
 
-    // ── 3 · El glitch ─────────────────────────────────────────
-    let glitchHasta = 0;
-    let proximoGlitch = performance.now() + 5000 + Math.random() * 5000;
-    const glitch = (ahora: number, fuerza: number) => {
-      glitchHasta = ahora + 50 + Math.random() * 50;
-      seccion.style.setProperty('--gs', (0.6 + fuerza * 0.6 + Math.random() * 0.4).toFixed(2));
-      seccion.style.setProperty('--gx', `${((Math.random() - 0.5) * 2).toFixed(2)}px`);
-      seccion.setAttribute('data-glitch', '');
-    };
+    // ── 3 · La dispersión ─────────────────────────────────────
+    /** Separación en reposo, en píxeles: siempre hay un pelo de color. */
+    const REPOSO = 0.35;
+    /** Cuánto se abre como mucho con el ratón, en píxeles. */
+    const MAXIMA = 3;
+    let velX = 0;
+    let velY = 0;
+    let movX = 0;
+    let movY = 0;
 
     const paso = (ahora: number) => {
       const dt = anterior ? limitar((ahora - anterior) / 16.67, 0, 2.5) : 1;
@@ -541,30 +545,36 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
       seccion.style.setProperty('--ry', (x * INCLINA).toFixed(3));
       seccion.style.setProperty('--rx', (-y * INCLINA).toFixed(3));
 
-      if (glitchHasta && ahora > glitchHasta) {
-        glitchHasta = 0;
-        seccion.removeAttribute('data-glitch');
-        seccion.style.setProperty('--gx', '0px');
-      } else if (!glitchHasta && ahora > proximoGlitch) {
-        glitch(ahora, 0);
-        proximoGlitch = ahora + 7000 + Math.random() * 7000;
-      }
+      /*
+        La velocidad del ratón abre las capas en su dirección y luego se
+        disipa sola: las capas vuelven a su sitio en algo menos de un
+        segundo. Lo que se movió entre fotogramas entra en una media que
+        se apaga, así un tirón suelto no da un salto.
+      */
+      velX = velX * Math.pow(0.88, dt) + movX * 0.12;
+      velY = velY * Math.pow(0.88, dt) + movY * 0.12;
+      movX = 0;
+      movY = 0;
+      const dx = REPOSO + limitar(velX * 0.25, -MAXIMA, MAXIMA);
+      const dy = limitar(velY * 0.25, -MAXIMA, MAXIMA);
+      seccion.style.setProperty('--dx', dx.toFixed(2));
+      seccion.style.setProperty('--dy', dy.toFixed(2));
 
       bucle = visible ? requestAnimationFrame(paso) : 0;
     };
 
-    let ultimo = { x: 0, y: 0, t: 0 };
+    let ultimo: { x: number; y: number } | null = null;
     window.addEventListener(
       'pointermove',
       (evento) => {
         if (!visible) return;
         destinoX = (evento.clientX / window.innerWidth - 0.5) * 2;
         destinoY = (evento.clientY / window.innerHeight - 0.5) * 2;
-        // Un tirón rápido del ratón también hace saltar la señal, a veces.
-        const ahora = performance.now();
-        const velocidad = Math.hypot(evento.clientX - ultimo.x, evento.clientY - ultimo.y) / Math.max(ahora - ultimo.t, 1);
-        ultimo = { x: evento.clientX, y: evento.clientY, t: ahora };
-        if (velocidad > 4 && !glitchHasta && Math.random() < 0.04) glitch(ahora, 1);
+        if (ultimo) {
+          movX += evento.clientX - ultimo.x;
+          movY += evento.clientY - ultimo.y;
+        }
+        ultimo = { x: evento.clientX, y: evento.clientY };
       },
       { passive: true },
     );
