@@ -202,7 +202,16 @@ const telefono = '+34 636 25 06 34';
     box-shadow:
       0 30px 80px -20px rgb(0 0 0 / 0.7),
       0 0 0 1px rgb(0 0 0 / 0.06);
-    backface-visibility: hidden;
+  }
+
+  /*
+    Qué cara se ve lo decide el script según el ángulo (data-dorso), no
+    backface-visibility: algún navegador aplana el 3D de la tarjeta y
+    entonces enseñaba el frente en espejo en lugar del dorso.
+  */
+  .tarjeta__giro[data-dorso] .tarjeta__cara--frente,
+  .tarjeta__giro:not([data-dorso]) .tarjeta__cara--dorso {
+    visibility: hidden;
   }
 
   .tarjeta__cara--dorso {
@@ -249,7 +258,7 @@ const telefono = '+34 636 25 06 34';
   .tarjeta__lema {
     position: relative;
     justify-self: start;
-    margin: -0.5em 0 0 0.5em;
+    margin: -0.5em 0 0;
     font-family: var(--romana);
     font-style: italic;
     font-size: clamp(20px, 3.2vw, 32px);
@@ -468,6 +477,11 @@ const telefono = '+34 636 25 06 34';
     let anterior = 0;
     let origen: HTMLElement | null = null;
 
+    /** De espaldas pasado el canto: con el ángulo entre 90° y 270°. */
+    const mostrarCara = (angulo: number) => {
+      giro.toggleAttribute('data-dorso', Math.cos((angulo * Math.PI) / 180) < 0);
+    };
+
     const paso = (ahora: number) => {
       const dt = anterior ? limitar((ahora - anterior) / 16.67, 0, 2.5) : 1;
       anterior = ahora;
@@ -483,6 +497,7 @@ const telefono = '+34 636 25 06 34';
       giro.style.setProperty('--ry', (x * INCLINA).toFixed(2));
       giro.style.setProperty('--rx', (-y * INCLINA).toFixed(2));
       giro.style.setProperty('--vuelta', `${vuelta.toFixed(2)}deg`);
+      mostrarCara(vuelta + x * INCLINA);
       giro.style.setProperty('--lx', `${(50 + x * 45).toFixed(1)}%`);
       giro.style.setProperty('--ly', `${(50 + y * 45).toFixed(1)}%`);
       // Las pompas solo se mueven con el dorso a la vista.
@@ -504,6 +519,7 @@ const telefono = '+34 636 25 06 34';
       } else if (quieto) {
         giro.style.setProperty('--vuelta', '0deg');
       }
+      mostrarCara(vuelta);
     };
 
     const cerrar = () => {
@@ -531,7 +547,10 @@ const telefono = '+34 636 25 06 34';
     dialogo.querySelectorAll('[data-voltear]').forEach((boton) =>
       boton.addEventListener('click', () => {
         vueltaDestino = vueltaDestino === 0 ? 180 : 0;
-        if (quieto) giro.style.setProperty('--vuelta', `${vueltaDestino}deg`);
+        if (quieto) {
+          giro.style.setProperty('--vuelta', `${vueltaDestino}deg`);
+          mostrarCara(vueltaDestino);
+        }
       }),
     );
 
