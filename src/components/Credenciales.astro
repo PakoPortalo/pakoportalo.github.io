@@ -201,14 +201,19 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
   */
   .creds[data-glitch] .creds__contenido {
     text-shadow:
-      calc(var(--gs, 2) * 1px) 0 rgb(255 40 90 / 0.65),
-      calc(var(--gs, 2) * -1px) 0 rgb(0 225 255 / 0.65);
+      calc(var(--gs, 1) * 1px) 0 rgb(255 40 90 / 0.35),
+      calc(var(--gs, 1) * -1px) 0 rgb(0 225 255 / 0.35);
+  }
+
+  /* Los rótulos de sección se quedan quietos: el fallo es del contenido. */
+  .creds[data-glitch] .creds__titulo {
+    text-shadow: none;
   }
 
   .creds[data-glitch] .creds__clientes img {
     transition: none;
-    filter: brightness(0) invert(1) drop-shadow(calc(var(--gs, 2) * 1px) 0 rgb(255 40 90 / 0.7))
-      drop-shadow(calc(var(--gs, 2) * -1px) 0 rgb(0 225 255 / 0.7));
+    filter: brightness(0) invert(1) drop-shadow(calc(var(--gs, 1) * 1px) 0 rgb(255 40 90 / 0.35))
+      drop-shadow(calc(var(--gs, 1) * -1px) 0 rgb(0 225 255 / 0.35));
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -467,8 +472,9 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
    *    con el módulo ya pasado de su sitio.
    * 2. El ratón. Como la escena del hero: el contenido se desplaza hacia
    *    él y se inclina un poco, con retraso.
-   * 3. El glitch. Un destello corto de vez en cuando, y alguno más si el
-   *    ratón se mueve rápido. Poco: es un guiño, no un efecto.
+   * 3. El glitch. Muy poco: un destello cortísimo cada bastantes segundos,
+   *    con el color separado apenas un píxel. Se tiene que intuir más que
+   *    ver. Los rótulos de sección no lo tienen.
    */
   const quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const conRaton = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
@@ -517,11 +523,11 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
 
     // ── 3 · El glitch ─────────────────────────────────────────
     let glitchHasta = 0;
-    let proximoGlitch = performance.now() + 2500 + Math.random() * 3000;
+    let proximoGlitch = performance.now() + 5000 + Math.random() * 5000;
     const glitch = (ahora: number, fuerza: number) => {
-      glitchHasta = ahora + 70 + Math.random() * 90;
-      seccion.style.setProperty('--gs', (1.5 + fuerza * 2).toFixed(1));
-      seccion.style.setProperty('--gx', `${((Math.random() - 0.5) * 6 * (0.5 + fuerza)).toFixed(1)}px`);
+      glitchHasta = ahora + 50 + Math.random() * 50;
+      seccion.style.setProperty('--gs', (0.6 + fuerza * 0.6 + Math.random() * 0.4).toFixed(2));
+      seccion.style.setProperty('--gx', `${((Math.random() - 0.5) * 2).toFixed(2)}px`);
       seccion.setAttribute('data-glitch', '');
     };
 
@@ -541,9 +547,7 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
         seccion.style.setProperty('--gx', '0px');
       } else if (!glitchHasta && ahora > proximoGlitch) {
         glitch(ahora, 0);
-        // A veces, un segundo destello pegado al primero: así parece un
-        // fallo de señal y no un parpadeo programado.
-        proximoGlitch = ahora + (Math.random() < 0.3 ? 220 : 3500 + Math.random() * 4500);
+        proximoGlitch = ahora + 7000 + Math.random() * 7000;
       }
 
       bucle = visible ? requestAnimationFrame(paso) : 0;
@@ -560,7 +564,7 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
         const ahora = performance.now();
         const velocidad = Math.hypot(evento.clientX - ultimo.x, evento.clientY - ultimo.y) / Math.max(ahora - ultimo.t, 1);
         ultimo = { x: evento.clientX, y: evento.clientY, t: ahora };
-        if (velocidad > 3 && !glitchHasta && Math.random() < 0.15) glitch(ahora, 1);
+        if (velocidad > 4 && !glitchHasta && Math.random() < 0.04) glitch(ahora, 1);
       },
       { passive: true },
     );
