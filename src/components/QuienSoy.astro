@@ -61,7 +61,7 @@ const fotos = [
 ];
 
 const corta =
-  'Músico y productor especializado en composición. Del conservatorio y el jazz a los escenarios de medio mundo con Mayumana; de las bandas sonoras de videojuegos con Shaman Garage a los spots de Xiaomi o Red Bull.';
+  'Músico y productor especializado en composición. Del conservatorio y el jazz a los escenarios de medio mundo con Mayumana; de las bandas sonoras de videojuegos con Shaman Garage a los spots publicitarios con Xiaomi y Red Bull.';
 
 const completa: string[] = [
   'Pako Portalo es músico y productor, especializado en composición musical. Empezó de niño en el conservatorio, con el violín; después estudió jazz y armonía contemporánea con la guitarra, y aprendió producción musical por su cuenta. Toca también flauta, piano, mandolina y bajo, y con ellos ha dado conciertos en España, Portugal, Francia, Inglaterra, Italia e Israel. Ha sido músico y compositor en la compañía internacional Mayumana, y ha formado parte de proyectos nacionales como Dinohaurios y Papawanda.',
@@ -129,7 +129,7 @@ const parrafosCompletos = completa.map((parrafo) => parrafo.split(' ').map((pala
                 <span class="sobre__etiqueta">Quién soy</span>
                 <span class="sobre__nombre">Pako</span>
                 <span class="sobre__nombre">Portalo</span>
-                <span class="sobre__lema">Músico, productor y compositor.</span>
+                <span class="sobre__lema">Música &amp; Diseño sonoro.</span>
               </h2>
               <p class="sobre__corta">
                 {corta.split(' ').map((palabra, i) => (
@@ -141,7 +141,7 @@ const parrafosCompletos = completa.map((parrafo) => parrafo.split(' ').map((pala
                 ))}
               </p>
               <button class="sobre__boton" type="button" data-abrir aria-expanded="false">
-                Leer más
+                Saber más
               </button>
             </div>
           ) : null}
@@ -392,9 +392,15 @@ const parrafosCompletos = completa.map((parrafo) => parrafo.split(' ').map((pala
 
   .sobre__boton:hover::before,
   .sobre__boton:focus-visible::before {
-    background: var(--verde);
-    border-color: var(--verde);
+    background: var(--acento, var(--verde));
+    border-color: var(--acento, var(--verde));
     color: #050505;
+  }
+
+  /* "Saber más" alterna como las franjas de contacto: verde la primera
+     vez que pasas el ratón, morado la siguiente. */
+  .sobre__boton[data-tono='morado'] {
+    --acento: #b660ff;
   }
 
   /* ── Las fotos ─────────────────────────────────────────────── */
@@ -665,6 +671,13 @@ const parrafosCompletos = completa.map((parrafo) => parrafo.split(' ').map((pala
     };
 
     abrir.addEventListener('click', () => poner(true));
+
+    let veces = 0;
+    const alternar = () => {
+      abrir.dataset.tono = veces++ % 2 === 0 ? 'verde' : 'morado';
+    };
+    abrir.addEventListener('pointerenter', alternar);
+    abrir.addEventListener('focus', alternar);
     cerrar.addEventListener('click', () => poner(false));
     seccion.addEventListener('keydown', (evento) => {
       if (evento.key === 'Escape' && seccion.hasAttribute('data-abierto')) poner(false);
