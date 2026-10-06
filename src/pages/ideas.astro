@@ -1,0 +1,67 @@
+---
+/**
+ * Página de trabajo: cinco enfoques para "Quién soy", con tono de
+ * profesional de agencia. No está enlazada; cuando elijamos, se borra.
+ */
+import QuienSoyEnfoque from '../components/QuienSoyEnfoque.astro';
+import Tarjeta from '../components/Tarjeta.astro';
+import '../styles/global.css';
+
+const ideas = [
+  { variante: 'ficha', nombre: 'Ficha técnica', nota: 'Como la ficha de un director: datos en filas (disciplinas, sectores, clientes, reconocimientos, festivales). Sobrio y escaneable.' },
+  { variante: 'cifras', nombre: 'En cifras', nota: 'Tres números grandes que resumen el peso del perfil y un párrafo corto.' },
+  { variante: 'frase', nombre: 'Una frase', nota: 'Posicionamiento en una sola frase grande, como el claim de una agencia, y la foto pequeña.' },
+  { variante: 'trayectoria', nombre: 'Trayectoria', nota: 'Los hitos en una línea: de la formación a El Sol 2026.' },
+  { variante: 'equipo', nombre: 'Perfil de equipo', nota: 'Como la ficha de equipo de una agencia: foto, rol, qué hago, para quién y reconocimientos, con contacto directo.' },
+] as const;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Quién soy — cinco enfoques</title>
+    <style is:global>
+      body {
+        margin: 0;
+        background: #050505;
+        color: #f4f1ec;
+        font-family: InstrumentSans, ui-sans-serif, system-ui, sans-serif;
+      }
+      .rotulo {
+        display: grid;
+        gap: 6px;
+        padding: 64px max(16px, 5.5vw) 0;
+        border-top: 1px solid rgb(255 255 255 / 0.1);
+      }
+      .rotulo strong {
+        font-family: ClashDisplay, InstrumentSans, sans-serif;
+        font-size: 26px;
+        font-weight: 500;
+      }
+      .rotulo span {
+        max-width: 70ch;
+        font-size: 14px;
+        color: rgb(255 255 255 / 0.55);
+      }
+    </style>
+  </head>
+  <body>
+    {
+      ideas.map((idea, i) => (
+        <Fragment>
+          <p class="rotulo">
+            <strong>
+              {String(i + 1).padStart(2, '0')} · {idea.nombre}
+            </strong>
+            <span>{idea.nota}</span>
+          </p>
+          <QuienSoyEnfoque variante={idea.variante} />
+        </Fragment>
+      ))
+    }
+    <Tarjeta />
+  </body>
+</html>
