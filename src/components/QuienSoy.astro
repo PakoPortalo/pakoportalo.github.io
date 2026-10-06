@@ -2,135 +2,93 @@
 /**
  * Quién soy.
  *
- * Cabe entero en una pantalla. En la primera página, a la izquierda el
- * rótulo y la versión corta de la biografía, y a la derecha la foto. "Leer
- * más" pasa de página: el módulo entero se desliza a la izquierda y en la
- * segunda queda otra foto a la izquierda y la biografía completa a la
- * derecha. "Volver" regresa y repite la entrada.
+ * Cabe en una pantalla: la foto a la izquierda y, a la derecha, el nombre,
+ * el rol y la biografía en tres bloques (Publicidad, Videojuegos,
+ * Escenario) para leerla de un vistazo. Lo importante va resaltado; los
+ * dos premios, en el color de su punto en Reconocimientos.
  *
- * El rótulo mezcla dos familias: "Quién soy" como el resto de rótulos de
- * módulo, el nombre en Times New Roman negrita y un poco condensado, y el
- * lema en Times New Roman cursiva. Los textos, en la de toda la web.
+ * La foto es una tarjeta: al hacer clic se da la vuelta y enseña la del
+ * violín. Cada cara va en dos capas (fondo y persona, separadas con
+ * Vision) para un paralaje con el ratón, más un vaivén lento, una
+ * dispersión de color mínima al moverse y un zoom lento al pasar por
+ * encima.
  *
- * Entrada al aparecer en pantalla: el rótulo enfoca, como un cambio de foco
- * de cámara, y el texto entra palabra a palabra desde la izquierda. La
- * foto llega ondulada, como agua o una onda sonora, y se va calmando
- * mientras aparece desde el centro hacia afuera. Las fotos siguen al ratón
- * y se realzan un poco al pasar por encima.
- *
- * En tercera persona, como la escribió Pako.
+ * Entrada al aparecer en pantalla: el título enfoca como un cambio de foco
+ * de cámara, el texto entra palabra a palabra desde la izquierda, y la
+ * foto llega ondulada como humo y aparece desde el centro hacia afuera,
+ * con la cara nítida antes que el resto.
  */
+import BarraColor from './BarraColor.astro';
+import { biografia, trozos } from '../data/sobre';
+
 interface Props {
   id?: string;
 }
 
 const { id = 'sobre' } = Astro.props;
-
-import BarraColor from './BarraColor.astro';
-
 const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
+
 /**
- * Una por página: la guitarra en directo delante, el violín en la segunda.
- * `cara` es dónde está la cara dentro de la foto, en porcentaje: ahí la
- * onda se resuelve antes que en el resto (ver la copia nítida más abajo).
- *
- * Cada foto va también separada en dos capas, para el paralaje: `fondo`,
- * la foto sin la persona (el hueco relleno con lo de alrededor y un poco
- * desenfocado, como la profundidad de campo de una cámara), y `persona`,
- * la figura recortada sobre transparente. Las sacó Vision, el recorte de
- * sujetos de macOS. `borde` es el tratamiento del canto: luz en la de
- * fondo negro, para que no se funda con la página, y sombra en la clara.
+ * Las dos caras de la tarjeta. `cara` es dónde está la cara dentro de la
+ * foto, en porcentaje: ahí la onda de entrada se resuelve antes.
  */
-const fotos = [
+const caras = [
   {
     fondo: `${base}sobre/pako-1-fondo.webp`,
     persona: `${base}sobre/pako-1-persona.webp`,
-    borde: 'luz',
     alt: 'Pako Portalo tocando la guitarra en un concierto',
-    ancho: 800,
-    alto: 1000,
-    cara: { x: '57%', y: '23%' },
+    ancho: 950,
+    alto: 1003,
+    cara: { x: '61%', y: '17%' },
   },
   {
     fondo: `${base}sobre/pako-2-fondo.webp`,
     persona: `${base}sobre/pako-2-persona.webp`,
-    borde: 'sombra',
     alt: 'Pako Portalo tocando el violín',
     ancho: 512,
     alto: 640,
-    cara: { x: '35%', y: '28%' },
+    cara: { x: '35%', y: '26%' },
   },
 ];
 
-const corta =
-  'Músico y productor especializado en composición. Del conservatorio y el jazz a los escenarios de medio mundo con Mayumana; de las bandas sonoras de videojuegos con Shaman Garage a los spots publicitarios con Xiaomi y Red Bull.';
-
-/*
-  La biografía completa, corta y con lo importante destacado. Se escribe
-  con dos marcas: **así** va en blanco, y {verde:así} o {morado:así} en el
-  color del punto que tiene ese premio en Reconocimientos, para que se
-  relacionen de un vistazo. El resto, en gris.
-*/
-const completa: string[] = [
-  'Formado en música clásica con el violín y en jazz con la guitarra, ha pasado por multitud de estilos e instrumentos y ha dado conciertos por toda Europa con distintos proyectos.',
-  'Director de sonido de **Shaman Garage**, Países Bajos, ha compuesto bandas sonoras para diferentes proyectos, entre ellos **Data Garden**, nominado a {morado:Best Debut Game en los Dutch Game Awards 2024}, y ha llevado su trabajo a festivales como **A MAZE** (Alemania), **Overkill** (Países Bajos), **Playtopia** (Sudáfrica) y **Now Play This** (Inglaterra).',
-  'En publicidad ha puesto sonido a spots para **Xiaomi** o **Red Bull**. Su diseño sonoro para **The Revelation of the Andalusian Crush** entró en la {verde:lista corta del Festival El Sol 2026}, en la categoría Sound Design.',
-];
-
-type Tono = 'blanco' | 'verde' | 'morado' | undefined;
-
-/** Las palabras de la biografía, con su tono y numeradas seguidas entre párrafos. */
+/* Las palabras de la biografía, con su tono y numeradas seguidas entre
+   bloques, para que entren una detrás de otra. */
 let w = 0;
-const parrafosCompletos = completa.map((parrafo) =>
-  Array.from(parrafo.matchAll(/\*\*(.+?)\*\*|\{(verde|morado):(.+?)\}|([^*{]+)/g)).flatMap((m) => {
-    const texto = m[1] ?? m[3] ?? m[4] ?? '';
-    const tono: Tono = m[1] ? 'blanco' : (m[2] as Tono);
-    // Las palabras van separadas; los espacios que pegan con la puntuación
-    // de alrededor se conservan marcando si la palabra lleva espacio detrás.
-    return texto
+const bloques = biografia.map((b) => ({
+  tema: b.tema,
+  palabras: trozos(b.texto).flatMap((t) =>
+    t.texto
       .split(/(\s+)/)
       .filter((trozo) => trozo !== '')
-      .map((trozo) => ({ palabra: trozo, espacio: /^\s+$/.test(trozo), tono }))
-      .map((p) => (p.espacio ? p : { ...p, i: w++ }));
-  }),
-);
+      .map((trozo) => (/^\s+$/.test(trozo) ? { espacio: true as const } : { palabra: trozo, tono: t.tono, i: w++ })),
+  ),
+}));
 ---
 
 <section class="sobre" aria-labelledby={`${id}-titulo`} data-sobre>
   <BarraColor invertida />
+
   {/*
     El filtro de la entrada de la foto: ruido fractal que desplaza los
     píxeles, igual en las dos direcciones para que forme volutas, como el
-    humo del resto de la web, y no rayas. Detrás, un desenfoque que se va
-    limpiando a la vez que se calma.
+    humo del resto de la web. Detrás, un desenfoque que se limpia a la vez.
   */}
   <svg class="sobre__filtros" aria-hidden="true" width="0" height="0">
-    {/* Uno por foto: compartido, la entrada de la segunda deformaba de golpe
-        a la primera si aún no había terminado la suya. */}
-    {
-      [0, 1].map((k) => (
-        <filter id={`${id}-onda-${k}`} x="-10%" y="-10%" width="120%" height="120%" data-onda={k}>
-          <feTurbulence type="fractalNoise" baseFrequency="0.011" numOctaves="4" seed="4" result="ruido" data-turbulencia />
-          <feDisplacementMap
-            in="SourceGraphic"
-            in2="ruido"
-            scale="0"
-            xChannelSelector="R"
-            yChannelSelector="G"
-            result="humo"
-            data-desplazamiento
-          />
-          <feGaussianBlur in="humo" stdDeviation="0" data-desenfoque />
-        </filter>
-      ))
-    }
+    <filter id={`${id}-onda`} x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.011" numOctaves="4" seed="4" result="ruido" data-turbulencia />
+      <feDisplacementMap
+        in="SourceGraphic"
+        in2="ruido"
+        scale="0"
+        xChannelSelector="R"
+        yChannelSelector="G"
+        result="humo"
+        data-desplazamiento
+      />
+      <feGaussianBlur in="humo" stdDeviation="0" data-desenfoque />
+    </filter>
 
-    {/*
-      La dispersión de color de las fotos al moverse con el ratón: separa
-      la imagen en sus canales, desplaza el rojo hacia un lado y el azul
-      hacia el otro, y los vuelve a sumar. Los desplazamientos los pone el
-      script según la velocidad del ratón.
-    */}
+    {/* La dispersión de color al moverse: el rojo a un lado, el azul al otro. */}
     <filter id={`${id}-dispersion`} color-interpolation-filters="sRGB">
       <feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="rojo" />
       <feOffset in="rojo" dx="0" dy="0" result="rojoMovido" data-rojo />
@@ -142,90 +100,70 @@ const parrafosCompletos = completa.map((parrafo) =>
     </filter>
   </svg>
 
-  <div class="sobre__pista">
-    {
-      [0, 1].map((pagina) => (
-        <div class:list={['sobre__pagina', pagina === 1 && 'sobre__pagina--dos']} data-pagina={pagina}>
-          {pagina === 0 ? (
-            <div class="sobre__izq">
-              <h2 class="sobre__rotulo" id={`${id}-titulo`}>
-                <span class="sobre__etiqueta">Quién soy</span>
-                <span class="sobre__nombre">Pako</span>
-                <span class="sobre__nombre">Portalo</span>
-                <span class="sobre__lema">Música &amp; Diseño sonoro.</span>
-              </h2>
-              <p class="sobre__corta">
-                {corta.split(' ').map((palabra, i) => (
-                  <>
-                    <span class="sobre__palabra" style={`--i: ${i}`}>
-                      {palabra}
-                    </span>{' '}
-                  </>
-                ))}
+  <div class="sobre__rejilla">
+    <figure
+      class="sobre__foto"
+      data-figura
+      role="button"
+      tabindex="0"
+      aria-pressed="false"
+      aria-label="Dar la vuelta a la foto"
+    >
+      <div class="sobre__tarjeta" data-tarjeta-foto>
+        {
+          caras.map((c, k) => (
+            <div class:list={['sobre__cara', k === 1 && 'sobre__cara--dorso']} data-cara={k}>
+              <div class="sobre__capas" data-capas={k} style={k === 0 ? `--onda: url(#${id}-onda)` : undefined}>
+                <img class="sobre__fondo" src={c.fondo} alt="" loading="lazy" decoding="async" width={c.ancho} height={c.alto} />
+                <img class="sobre__persona" src={c.persona} alt={c.alt} loading="lazy" decoding="async" width={c.ancho} height={c.alto} />
+              </div>
+              {k === 0 && (
+                <img
+                  class="sobre__nitida"
+                  src={c.persona}
+                  alt=""
+                  aria-hidden="true"
+                  loading="lazy"
+                  decoding="async"
+                  data-nitida
+                  style={`--cara-x: ${c.cara.x}; --cara-y: ${c.cara.y}`}
+                />
+              )}
+            </div>
+          ))
+        }
+      </div>
+      <span class="sobre__girar" aria-hidden="true">↻</span>
+    </figure>
+
+    <div class="sobre__texto">
+      <div class="sobre__cabecera">
+        <p class="sobre__etiqueta">Quién soy</p>
+        <h2 class="sobre__nombre" id={`${id}-titulo`}>Pako Portalo</h2>
+        <p class="sobre__rol">Compositor y director de sonido</p>
+      </div>
+
+      <div class="sobre__bio">
+        {
+          bloques.map((b) => (
+            <div class="sobre__bloque">
+              <h3 class="sobre__tema">{b.tema}</h3>
+              <p>
+                {b.palabras.map((p) =>
+                  'espacio' in p ? (
+                    ' '
+                  ) : (
+                    <span class:list={['sobre__palabra', p.tono && `es-${p.tono}`]} style={`--i: ${p.i}`}>
+                      {p.palabra}
+                    </span>
+                  ),
+                )}
               </p>
-              <button class="sobre__boton" type="button" data-abrir aria-expanded="false">
-                Saber más
-              </button>
             </div>
-          ) : null}
-
-          <figure class="sobre__foto" data-figura data-borde={fotos[pagina]!.borde}>
-            <div class="sobre__capas" data-imagen style={`--onda: url(#${id}-onda-${pagina})`}>
-              <img
-                class="sobre__fondo"
-                src={fotos[pagina]!.fondo}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                width={fotos[pagina]!.ancho}
-                height={fotos[pagina]!.alto}
-              />
-              <img
-                class="sobre__persona"
-                src={fotos[pagina]!.persona}
-                alt={fotos[pagina]!.alt}
-                loading="lazy"
-                decoding="async"
-                width={fotos[pagina]!.ancho}
-                height={fotos[pagina]!.alto}
-              />
-            </div>
-            <img
-              class="sobre__nitida"
-              src={fotos[pagina]!.persona}
-              alt=""
-              aria-hidden="true"
-              loading="lazy"
-              decoding="async"
-              data-nitida
-              style={`--cara-x: ${fotos[pagina]!.cara.x}; --cara-y: ${fotos[pagina]!.cara.y}`}
-            />
-          </figure>
-
-          {pagina === 1 ? (
-            <div class="sobre__completa">
-              <p class="sobre__etiqueta">Pako Portalo</p>
-              {parrafosCompletos.map((palabras) => (
-                <p>
-                  {palabras.map((p) =>
-                    p.espacio ? (
-                      ' '
-                    ) : (
-                      <span class:list={['sobre__palabra', p.tono && `es-${p.tono}`]} style={`--i: ${'i' in p ? p.i : 0}`}>
-                        {p.palabra}
-                      </span>
-                    ),
-                  )}
-                </p>
-              ))}
-              <button class="sobre__boton sobre__boton--volver" type="button" data-cerrar>
-                Volver
-              </button>
-            </div>
-          ) : null}
-        </div>
-      ))
-    }
+          ))
+        }
+      </div>
+    </div>
   </div>
 </section>
 
@@ -234,15 +172,17 @@ const parrafosCompletos = completa.map((parrafo) =>
     position: relative;
     z-index: 1;
     /* Una pantalla exacta: el módulo se ve entero, sin cortes. */
-    height: 100svh;
-    min-height: 560px;
+    min-height: 100svh;
+    display: grid;
+    align-items: center;
     overflow: hidden;
+    padding: var(--margen) max(24px, 5.5vw);
+    box-sizing: border-box;
     background: #050505;
     color: #f4f1ec;
     font-family: InstrumentSans, ui-sans-serif, system-ui, sans-serif;
-    --romana: 'Times New Roman', Times, 'Liberation Serif', 'Nimbus Roman', serif;
+    --margen: clamp(48px, 7svh, 88px);
     --verde: #5ff7c6;
-    --margen: clamp(40px, 7svh, 96px);
     --suave: cubic-bezier(0.16, 1, 0.3, 1);
   }
 
@@ -250,250 +190,127 @@ const parrafosCompletos = completa.map((parrafo) =>
     position: absolute;
   }
 
-  /* Las dos páginas, una al lado de la otra; pasar página es mover la
-     pista entera media longitud a la izquierda. */
-  .sobre__pista {
-    display: flex;
-    width: 200%;
-    height: 100%;
-    transition: translate 1100ms cubic-bezier(0.7, 0, 0.2, 1);
-  }
-
-  .sobre[data-abierto] .sobre__pista {
-    translate: -50% 0;
-  }
-
-  .sobre__pagina {
-    flex: 0 0 50%;
+  .sobre__rejilla {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+    gap: clamp(40px, 6vw, 110px);
     align-items: center;
-    gap: clamp(32px, 5vw, 96px);
-    padding: var(--margen) max(24px, 5.5vw);
-    box-sizing: border-box;
   }
 
-  /* La página que no se ve no se puede tabular. Se oculta al terminar de
-     irse, no antes: si no, desaparecería a mitad del deslizamiento. */
-  .sobre__pagina--dos,
-  .sobre[data-abierto] .sobre__pagina:first-child {
-    visibility: hidden;
-    transition: visibility 0s 1100ms;
-  }
-
-  .sobre[data-abierto] .sobre__pagina--dos {
-    visibility: visible;
-    transition: visibility 0s;
-  }
-
-  .sobre__izq {
-    display: grid;
-    justify-items: start;
-    align-content: center;
-  }
-
-  /* ── El rótulo ────────────────────────────────────────────── */
-  .sobre__rotulo {
-    display: grid;
-    justify-items: start;
-    margin: 0 0 clamp(24px, 4svh, 44px);
-    font-weight: normal;
-  }
-
-  /* Como los rótulos del resto de módulos. */
+  /* ── El texto ─────────────────────────────────────────────── */
   .sobre__etiqueta {
-    margin: 0 0 clamp(14px, 2svh, 22px);
-    font-size: clamp(10px, 0.8vw, 13px);
+    margin: 0 0 16px;
+    font-size: 12px;
     font-weight: 500;
     letter-spacing: 0.2em;
     text-transform: uppercase;
     color: rgb(255 255 255 / 0.45);
   }
 
-  /*
-    El nombre, condensado un pelo. Times New Roman no tiene versión
-    estrecha, así que se aprieta de dos maneras pequeñas que juntas se
-    notan sin deformar: menos espacio entre letras y un 6 % menos de ancho.
-    Nunca salta de línea: durante el enfoque las letras llegan separadas y,
-    si pudiera, "PORTALO" se partía un instante en dos.
-  */
   .sobre__nombre {
-    font-family: var(--romana);
-    font-weight: 700;
-    text-transform: uppercase;
-    font-size: clamp(52px, min(8vw, 14svh), 148px);
-    letter-spacing: -0.05em;
-    line-height: 0.8;
-    white-space: nowrap;
-    transform: scaleX(0.94);
-    transform-origin: 0 50%;
-  }
-
-  /*
-    El lema se monta sobre el pie del nombre: chocan a propósito. Para que
-    el cruce no sea un amasijo blanco, cada letra lleva un contorno grueso
-    del color del fondo por debajo del relleno (paint-order): donde pisa
-    al nombre, lo recorta y deja un filo negro alrededor de la letra.
-    Condensado también, para que case con el nombre.
-  */
-  .sobre__lema {
-    position: relative;
-    margin-block-start: -0.5em;
-    margin-inline-start: 0.5em;
-    font-family: var(--romana);
-    font-style: italic;
-    font-size: clamp(26px, min(3.2vw, 5.4svh), 54px);
+    margin: 0;
+    font-family: ClashDisplay, InstrumentSans, sans-serif;
+    font-size: clamp(44px, 5vw, 86px);
+    font-weight: 500;
     letter-spacing: -0.035em;
-    line-height: 1.1;
-    transform: scaleX(0.88);
-    transform-origin: 0 50%;
-    -webkit-text-stroke: 0.2em #050505;
-    paint-order: stroke fill;
+    line-height: 0.95;
+    white-space: nowrap;
   }
 
-  /* ── Textos: la tipografía de toda la web ─────────────────── */
-  .sobre__corta {
-    margin: 0 0 clamp(16px, 2.4svh, 28px);
-    max-width: 40ch;
-    font-size: clamp(17px, 1.35vw, 22px);
-    line-height: 1.45;
-    color: rgb(255 255 255 / 0.85);
+  .sobre__rol {
+    margin: 12px 0 0;
+    font-size: clamp(15px, 1.2vw, 19px);
+    color: rgb(255 255 255 / 0.6);
   }
 
-  .sobre__completa p:not(.sobre__etiqueta) {
-    margin: 0 0 1em;
-    max-width: 60ch;
-    font-size: clamp(15px, 1.1vw, 18px);
+  .sobre__bio {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: clamp(20px, 2.4vw, 40px);
+    margin-top: clamp(28px, 4svh, 48px);
+    padding-top: clamp(20px, 3svh, 32px);
+    border-top: 1px solid rgb(255 255 255 / 0.12);
+  }
+
+  .sobre__tema {
+    margin: 0 0 12px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.8);
+  }
+
+  .sobre__bloque p {
+    margin: 0;
+    font-size: clamp(14px, 1vw, 16px);
     line-height: 1.6;
     color: rgb(255 255 255 / 0.5);
-  }
-
-  /* Lo importante destaca sobre el gris: en blanco, o en el color del
-     punto de su premio en Reconocimientos, con un brillo de neón suave. */
-  .sobre__completa .es-blanco {
-    color: rgb(255 255 255 / 0.82);
-  }
-
-  /* Los colores de los puntos, apagados: mezclados un poco con el gris del texto
-     para que destaquen sin gritar, y sin brillo. */
-  .sobre__completa .es-verde {
-    color: color-mix(in oklab, #5ff7c6 75%, #8a8a8a);
-  }
-
-  .sobre__completa .es-morado {
-    color: color-mix(in oklab, #b660ff 75%, #8a8a8a);
   }
 
   .sobre__palabra {
     display: inline-block;
   }
 
-  .sobre__boton {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    padding: 0;
-    border: 0;
-    background: none;
-    color: rgb(255 255 255 / 0.7);
-    font: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: color 300ms ease;
+  .es-blanco {
+    color: rgb(255 255 255 / 0.82);
   }
 
-  .sobre__boton::before {
-    content: '+';
-    display: grid;
-    place-items: center;
-    width: 26px;
-    aspect-ratio: 1;
-    border: 1px solid currentColor;
-    border-radius: 50%;
-    font-size: 15px;
-    letter-spacing: 0;
-    transition:
-      background-color 300ms ease,
-      border-color 300ms ease,
-      color 300ms ease;
+  .es-verde {
+    color: color-mix(in oklab, #5ff7c6 75%, #8a8a8a);
   }
 
-  .sobre__boton--volver::before {
-    content: '←';
-    font-size: 13px;
+  .es-morado {
+    color: color-mix(in oklab, #b660ff 75%, #8a8a8a);
   }
 
-  .sobre__boton:hover,
-  .sobre__boton:focus-visible {
-    color: #f4f1ec;
-  }
-
-  .sobre__boton:hover::before,
-  .sobre__boton:focus-visible::before {
-    background: var(--acento, var(--verde));
-    border-color: var(--acento, var(--verde));
-    color: #050505;
-  }
-
-  /* "Saber más" alterna como las franjas de contacto: verde la primera
-     vez que pasas el ratón, morado la siguiente. */
-  .sobre__boton[data-tono='morado'] {
-    --acento: #b660ff;
-  }
-
-  /* ── Las fotos ─────────────────────────────────────────────── */
+  /* ── La foto: una tarjeta que se da la vuelta ─────────────── */
   /*
-    Siguen al ratón como la escena del hero: se desplazan hacia él y se
-    inclinan un poco (--fx, --fy, de -1 a 1, los pone el script). Al pasar
-    por encima, un pelín más grandes y más luminosas.
+    El marco sigue al ratón (--fx, --fy, los pone el script) y crece un
+    pelo al pasar por encima, despacio. Dentro, la tarjeta gira 180° al
+    hacer clic. La dispersión va en cada cara y no en el marco: un filtro
+    en un antepasado aplanaría el giro en 3D.
   */
   .sobre__foto {
     position: relative;
-    justify-self: end;
     width: 100%;
-    max-width: calc((100svh - 2 * var(--margen)) * 0.8);
-    aspect-ratio: 4 / 5;
+    max-width: calc((100svh - 2 * var(--margen)) * 0.947);
+    aspect-ratio: 950 / 1003;
     margin: 0;
-    overflow: hidden;
-    border-radius: 4px;
-    /* Sin fondo: lo que aún no ha aparecido de la foto es transparente,
-       no una lámina gris. */
-    transform: perspective(1200px) translate(calc(var(--fx, 0) * 12px), calc(var(--fy, 0) * 12px))
-      rotateX(calc(var(--fy, 0) * -4deg)) rotateY(calc(var(--fx, 0) * 4deg));
-    /* --dispersion la pone el script solo mientras hay movimiento; en
-       reposo no hay filtro y la foto no paga ese coste. El zoom al pasar
-       el ratón, lento: rápido se sentía como un golpe. */
-    filter: var(--dispersion, brightness(1));
+    cursor: pointer;
+    perspective: 1400px;
+    transform: translate(calc(var(--fx, 0) * 12px), calc(var(--fy, 0) * 12px));
     transition: scale 2400ms var(--suave);
+    outline: none;
   }
 
-  .sobre__foto:hover {
+  .sobre__foto:hover,
+  .sobre__foto:focus-visible {
     scale: 1.03;
   }
 
-  /* El brillo va en la imagen y no en el marco: el marco lleva el filtro
-     de la dispersión, que no se puede animar, y el brillo saltaba. */
-  .sobre__foto [data-imagen] {
-    transition: filter 2400ms var(--suave);
+  .sobre__tarjeta {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    transform: rotateX(calc(var(--fy, 0) * -4deg)) rotateY(calc(var(--fx, 0) * 4deg + var(--vuelta, 0deg)));
   }
 
-  .sobre__foto:hover [data-imagen] {
-    filter: brightness(1.15);
+  .sobre__cara {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: 4px;
+    backface-visibility: hidden;
+    filter: var(--dispersion, none);
   }
 
-  .sobre__pagina--dos .sobre__foto {
-    justify-self: start;
+  .sobre__cara--dorso {
+    transform: rotateY(180deg);
   }
 
-  /*
-    Luz en los bordes: un halo muy suave por dentro del marco. Las fotos tienen negros muy profundos y, sin esto, se
-    fundían con el fondo y parecían recortadas. Aparece cuando la foto ya
-    se ha formado, no antes: si no, se vería un marco vacío.
-  */
-  .sobre__foto::after {
+  /* Luz o sombra en el canto: luz en la de fondo negro, sombra en la clara. */
+  .sobre__cara::after {
     content: '';
     position: absolute;
     inset: 0;
@@ -503,98 +320,85 @@ const parrafosCompletos = completa.map((parrafo) =>
     box-shadow: inset 0 0 48px rgb(255 255 255 / 0.05);
   }
 
-  /* En la foto clara, sombra en vez de luz: la hunde un poco en la página. */
-  .sobre__foto[data-borde='sombra']::after {
+  .sobre__cara--dorso::after {
     background: radial-gradient(ellipse at 50% 50%, transparent 55%, rgb(0 0 0 / 0.3) 100%);
     box-shadow: inset 0 0 60px rgb(0 0 0 / 0.3);
   }
 
-  .sobre[data-anima] .sobre__foto::after {
-    opacity: 0;
+  .sobre__capas {
+    position: absolute;
+    inset: 0;
+    transition: filter 2400ms var(--suave);
   }
 
-  .sobre[data-anima][data-dentro] .sobre__pagina:first-child .sobre__foto::after,
-  .sobre[data-anima][data-abierto] .sobre__pagina--dos .sobre__foto::after {
-    opacity: 1;
-    transition: opacity 1200ms ease 1600ms;
+  .sobre__foto:hover .sobre__capas {
+    filter: brightness(1.15);
   }
 
-  /*
-    La copia nítida: la misma foto, sin filtro, visible solo alrededor de
-    la cara y con el borde muy difuminado. El script la va subiendo a
-    mitad de la entrada, así que la cara se resuelve bastante antes que el
-    resto; una cara ondulada hasta el final se veía rara.
-  */
-  /* Tiene que coincidir píxel a píxel con la capa de la persona: la
-     misma imagen, la misma ampliación y el mismo paralaje. Con la foto
-     original, a otro tamaño y sin moverse, la cara daba un salto raro al
-     aparecer y desaparecer. */
+  .sobre__capas img,
   .sobre__nitida {
     position: absolute;
     inset: 0;
-    scale: 1.07;
-    translate: calc(var(--fx, 0) * 20px) calc(var(--fy, 0) * 14px);
-    opacity: 0;
-    pointer-events: none;
-    mask-image: radial-gradient(ellipse 34% 24% at var(--cara-x) var(--cara-y), #000 35%, transparent 100%);
-  }
-
-  .sobre__foto img {
     width: 100%;
     height: 100%;
     display: block;
     object-fit: cover;
-  }
-
-  /*
-    Las dos capas del paralaje. El marco entero ya sigue al ratón; dentro,
-    el fondo se desplaza un poco y la persona bastante más, en el mismo
-    sentido, y de ahí sale la profundidad. Las dos van algo ampliadas para
-    que al moverse no asome el borde.
-  */
-  .sobre__capas {
-    position: absolute;
-    inset: 0;
-  }
-
-  .sobre__capas img {
-    position: absolute;
-    inset: 0;
     scale: 1.07;
+  }
+
+  /* La del violín es más alta que el marco: se recorta por abajo, no el pelo. */
+  .sobre__cara--dorso img {
+    object-position: 50% 10%;
   }
 
   .sobre__fondo {
     translate: calc(var(--fx, 0) * 5px) calc(var(--fy, 0) * 5px);
   }
 
-  .sobre__persona {
+  .sobre__persona,
+  .sobre__nitida {
     translate: calc(var(--fx, 0) * 20px) calc(var(--fy, 0) * 14px);
   }
 
-  /* ══════════════════════════════════════════════════════════════
-     Entrada. Los estados de partida solo existen con [data-anima], que
-     pone el script: sin JavaScript, o con movimiento reducido, el módulo
-     se ve tal cual desde el principio.
-
-     Se dispara la página 1 con [data-dentro] (al aparecer en pantalla y
-     al volver de la segunda) y la página 2 con [data-abierto]. Al cerrar,
-     la página 2 se deshace solo cuando ya se ha ido (1100 ms), para que no
-     se vea desmontarse durante el deslizamiento.
-     ══════════════════════════════════════════════════════════════ */
-
-  /* Mientras se reinicia la página 1, nada se anima: vuelve a su estado
-     de partida de golpe, sin desandar la entrada. */
-  .sobre[data-reinicio] .sobre__pagina:first-child,
-  .sobre[data-reinicio] .sobre__pagina:first-child * {
-    transition: none !important;
+  /* La copia nítida de la cara: visible solo alrededor de ella. */
+  .sobre__nitida {
+    opacity: 0;
+    pointer-events: none;
+    mask-image: radial-gradient(ellipse 34% 24% at var(--cara-x) var(--cara-y), #000 35%, transparent 100%);
   }
 
-  .sobre[data-anima] .sobre__pagina--dos :is(.sobre__palabra, .sobre__boton, .sobre__etiqueta) {
-    transition: all 0s 1100ms;
+  /* El aviso de que se puede girar: un símbolo pequeño en la esquina. */
+  .sobre__girar {
+    position: absolute;
+    inset-block-end: 12px;
+    inset-inline-end: 12px;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: rgb(5 5 5 / 0.55);
+    color: #f4f1ec;
+    font-size: 16px;
+    opacity: 0.7;
+    transform: translateZ(1px);
+    transition:
+      opacity 300ms ease,
+      background-color 300ms ease,
+      color 300ms ease;
   }
 
-  /* ── El rótulo enfoca ──────────────────────────────────────── */
-  .sobre[data-anima] .sobre__rotulo {
+  .sobre__foto:hover .sobre__girar,
+  .sobre__foto:focus-visible .sobre__girar {
+    opacity: 1;
+    background: var(--verde);
+    color: #050505;
+  }
+
+  /* ══ Entrada ═══════════════════════════════════════════════
+     Los estados de partida solo existen con [data-anima], que pone el
+     script; sin JavaScript o con movimiento reducido, se ve tal cual. */
+  .sobre[data-anima] .sobre__cabecera {
     opacity: 0;
     filter: blur(18px);
     scale: 1.08;
@@ -605,7 +409,7 @@ const parrafosCompletos = completa.map((parrafo) =>
     letter-spacing: 0.2em;
   }
 
-  .sobre[data-anima][data-dentro] .sobre__rotulo {
+  .sobre[data-anima][data-dentro] .sobre__cabecera {
     opacity: 1;
     filter: blur(0);
     scale: 1;
@@ -616,67 +420,38 @@ const parrafosCompletos = completa.map((parrafo) =>
   }
 
   .sobre[data-anima][data-dentro] .sobre__nombre {
-    letter-spacing: -0.05em;
+    letter-spacing: -0.035em;
     transition: letter-spacing 2000ms var(--suave);
   }
 
-  /* ── El texto, palabra a palabra desde la izquierda ────────── */
-  .sobre[data-anima] .sobre__palabra {
+  .sobre[data-anima] :is(.sobre__palabra, .sobre__tema) {
     opacity: 0;
-    translate: -48px 0;
+    translate: -40px 0;
   }
 
-  .sobre[data-anima] .sobre__boton,
-  .sobre[data-anima] .sobre__pagina--dos .sobre__etiqueta {
-    opacity: 0;
-  }
-
-  .sobre[data-anima][data-dentro] .sobre__pagina:first-child .sobre__palabra {
+  .sobre[data-anima][data-dentro] :is(.sobre__palabra, .sobre__tema) {
     opacity: 1;
     translate: 0 0;
     transition:
-      opacity 600ms ease calc(700ms + var(--i) * 30ms),
-      translate 800ms var(--suave) calc(700ms + var(--i) * 30ms);
-  }
-
-  .sobre[data-anima][data-dentro] .sobre__pagina:first-child .sobre__boton {
-    opacity: 1;
-    transition: opacity 600ms ease 1600ms;
-  }
-
-  /* En la biografía larga el escalonado es más corto: son muchas más
-     palabras y, al ritmo de la corta, tardaría casi diez segundos. */
-  .sobre[data-anima][data-abierto] .sobre__pagina--dos .sobre__palabra {
-    opacity: 1;
-    translate: 0 0;
-    transition:
-      opacity 500ms ease calc(600ms + var(--i) * 7ms),
-      translate 700ms var(--suave) calc(600ms + var(--i) * 7ms);
-  }
-
-  .sobre[data-anima][data-abierto] .sobre__pagina--dos .sobre__etiqueta {
-    opacity: 1;
-    transition: opacity 600ms ease 600ms;
-  }
-
-  .sobre[data-anima][data-abierto] .sobre__pagina--dos .sobre__boton {
-    opacity: 1;
-    transition: opacity 600ms ease 2200ms;
+      opacity 500ms ease calc(600ms + var(--i, 0) * 9ms),
+      translate 700ms var(--suave) calc(600ms + var(--i, 0) * 9ms);
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .sobre__pista {
+    .sobre__foto,
+    .sobre__capas {
       transition: none;
     }
   }
 
-  @media (max-width: 760px) {
-    .sobre {
-      height: auto;
+  @media (max-width: 860px) {
+    .sobre__rejilla,
+    .sobre__bio {
+      grid-template-columns: 1fr;
     }
 
-    .sobre__pagina {
-      grid-template-columns: 1fr;
+    .sobre__foto {
+      max-width: 420px;
     }
   }
 </style>
@@ -687,221 +462,177 @@ const parrafosCompletos = completa.map((parrafo) =>
   const conRaton = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
   document.querySelectorAll<HTMLElement>('[data-sobre]').forEach((seccion) => {
-    const abrir = seccion.querySelector<HTMLButtonElement>('[data-abrir]')!;
-    const cerrar = seccion.querySelector<HTMLButtonElement>('[data-cerrar]')!;
-    const paginas = Array.from(seccion.querySelectorAll<HTMLElement>('[data-pagina]'));
+    const figura = seccion.querySelector<HTMLElement>('[data-figura]')!;
+    const tarjeta = seccion.querySelector<HTMLElement>('[data-tarjeta-foto]')!;
+    const caras = Array.from(seccion.querySelectorAll<HTMLElement>('[data-cara]'));
 
-    // ── Pasar de página ─────────────────────────────────────
-    /*
-      Al volver, la entrada de la primera página se repite: se lleva a su
-      estado de partida de golpe (data-reinicio quita las transiciones un
-      instante) y se vuelve a disparar mientras la página va llegando.
-    */
-    const poner = (abierto: boolean) => {
-      seccion.toggleAttribute('data-abierto', abierto);
-      abrir.setAttribute('aria-expanded', String(abierto));
-      if (!abierto && seccion.hasAttribute('data-anima')) {
-        seccion.setAttribute('data-reinicio', '');
-        seccion.removeAttribute('data-dentro');
-        void seccion.offsetWidth;
-        seccion.removeAttribute('data-reinicio');
-        window.setTimeout(() => seccion.setAttribute('data-dentro', ''), 300);
+    // ── La vuelta de la tarjeta, con muelle ─────────────────
+    let vuelta = 0;
+    let vueltaDestino = 0;
+    let velocidadVuelta = 0;
+
+    const voltear = () => {
+      vueltaDestino = vueltaDestino === 0 ? 180 : 0;
+      figura.setAttribute('aria-pressed', String(vueltaDestino === 180));
+      if (reducido) tarjeta.style.setProperty('--vuelta', `${vueltaDestino}deg`);
+      else arrancar();
+    };
+    figura.addEventListener('click', voltear);
+    figura.addEventListener('keydown', (evento) => {
+      if (evento.key === 'Enter' || evento.key === ' ') {
+        evento.preventDefault();
+        voltear();
       }
-      // El foco pasa al botón de la página que queda a la vista.
-      window.setTimeout(() => (abierto ? cerrar : abrir).focus({ preventScroll: true }), abierto ? 700 : 0);
-    };
-
-    abrir.addEventListener('click', () => poner(true));
-
-    let veces = 0;
-    const alternar = () => {
-      abrir.dataset.tono = veces++ % 2 === 0 ? 'verde' : 'morado';
-    };
-    abrir.addEventListener('pointerenter', alternar);
-    abrir.addEventListener('focus', alternar);
-    cerrar.addEventListener('click', () => poner(false));
-    seccion.addEventListener('keydown', (evento) => {
-      if (evento.key === 'Escape' && seccion.hasAttribute('data-abierto')) poner(false);
     });
-
-    if (reducido) return;
 
     // ── Entrada al aparecer en pantalla ─────────────────────
-    seccion.setAttribute('data-anima', '');
-    new IntersectionObserver(
-      ([e]) => {
-        if (!e) return;
-        if (e.intersectionRatio >= 0.35) seccion.setAttribute('data-dentro', '');
-        else if (!e.isIntersecting) seccion.removeAttribute('data-dentro');
-      },
-      { threshold: [0, 0.35] },
-    ).observe(seccion);
+    const capas = seccion.querySelector<HTMLElement>('[data-capas="0"]')!;
+    const nitida = seccion.querySelector<HTMLElement>('[data-nitida]')!;
+    const turbulencia = seccion.querySelector<SVGElement>('[data-turbulencia]')!;
+    const desplazamiento = seccion.querySelector<SVGElement>('[data-desplazamiento]')!;
+    const desenfoque = seccion.querySelector<SVGElement>('[data-desenfoque]')!;
+    /** Cuánto se ondula al principio, en píxeles, y cuánto tarda en calmarse. */
+    const MAXIMO = 160;
+    const DURA = 3000;
+    let ondaBucle = 0;
 
-    // ── La foto: onda y aparición concéntrica ───────────────
-    const efectos = paginas.map((pagina) => {
-      const img = pagina.querySelector<HTMLElement>('[data-imagen]')!;
-      const nitida = pagina.querySelector<HTMLImageElement>('[data-nitida]')!;
-      let cancelar = () => {};
+    /*
+      La aparición concéntrica: una máscara radial que se abre desde el
+      centro, opaca dentro y transparente fuera, con el borde difuminado.
+    */
+    const enmascarar = (radio: number | null) => {
+      const valor =
+        radio === null
+          ? ''
+          : `radial-gradient(circle at 50% 50%, #000 ${radio.toFixed(1)}%, transparent ${(radio + 35).toFixed(1)}%)`;
+      capas.style.maskImage = valor;
+      capas.style.webkitMaskImage = valor;
+    };
 
-      {
-        const filtroOnda = seccion.querySelector<SVGElement>(`[data-onda="${paginas.indexOf(pagina)}"]`)!;
-        const turbulencia = filtroOnda.querySelector<SVGElement>('[data-turbulencia]')!;
-        const desplazamiento = filtroOnda.querySelector<SVGElement>('[data-desplazamiento]')!;
-        const desenfoque = filtroOnda.querySelector<SVGElement>('[data-desenfoque]')!;
-        /** Cuánto se ondula al principio, en píxeles. */
-        const MAXIMO = 160;
-        /** Cuánto tarda en calmarse del todo. */
-        const DURA = 3000;
-        /*
-          La aparición concéntrica: una máscara radial, opaca en el centro
-          y transparente fuera, con un borde ancho y difuminado, que se
-          abre desde el centro hasta cubrir la foto entera. El radio va en
-          porcentaje; empieza negativo para que no se vea nada al principio.
-        */
-        const enmascarar = (radio: number | null) => {
-          const valor =
-            radio === null
-              ? ''
-              : `radial-gradient(circle at 50% 50%, #000 ${radio.toFixed(1)}%, transparent ${(radio + 35).toFixed(1)}%)`;
-          img.style.maskImage = valor;
-          img.style.webkitMaskImage = valor;
-        };
-        let bucle = 0;
-        const ondular = (fuerza: number, fase: number) => {
-          desplazamiento.setAttribute('scale', (fuerza * MAXIMO).toFixed(1));
-          desenfoque.setAttribute('stdDeviation', (fuerza * 6).toFixed(2));
-          // El ruido cambia mientras dura: las volutas se mueven y se
-          // retuercen, en vez de quedarse fijas mientras se aplanan.
-          turbulencia.setAttribute('baseFrequency', (0.011 + Math.sin(fase * Math.PI) * 0.006).toFixed(4));
-        };
-        const reiniciar = () => {
-          cancelar();
-          img.style.filter = '';
-          nitida.style.opacity = '0';
-          enmascarar(-40);
-        };
-        const lanzar = (retraso: number) => {
-          cancelar();
-          const inicio = performance.now() + retraso;
-          img.style.filter = 'var(--onda)';
-          const paso = (ahora: number) => {
-            const t = limitar((ahora - inicio) / DURA, 0, 1);
-            // Se calma rápido al principio y despacio al final, como el agua.
-            const fuerza = Math.pow(1 - t, 3);
-            ondular(fuerza, t);
-            // La cara, limpia antes: entre el 25 % y el 55 % de la entrada.
-            nitida.style.opacity = t < 1 ? limitar((t - 0.25) / 0.3, 0, 1).toFixed(3) : '0';
-            // La máscara se abre durante casi toda la entrada, con salida
-            // suave: la foto termina de aparecer justo cuando se calma.
-            const apertura = 1 - Math.pow(1 - limitar(t / 0.9, 0, 1), 2);
-            enmascarar(-40 + apertura * 145);
-            if (t < 1) bucle = requestAnimationFrame(paso);
-            else {
-              img.style.filter = '';
-              enmascarar(null);
-            }
-          };
-          bucle = requestAnimationFrame(paso);
-          cancelar = () => cancelAnimationFrame(bucle);
-        };
-        reiniciar();
-        return { lanzar, reiniciar };
-      }
+    const reiniciarOnda = () => {
+      cancelAnimationFrame(ondaBucle);
+      capas.style.filter = '';
+      nitida.style.opacity = '0';
+      enmascarar(-40);
+    };
 
-    });
+    const lanzarOnda = (retraso: number) => {
+      cancelAnimationFrame(ondaBucle);
+      const inicio = performance.now() + retraso;
+      capas.style.filter = 'var(--onda)';
+      const pasoOnda = (ahora: number) => {
+        const t = limitar((ahora - inicio) / DURA, 0, 1);
+        // Se calma rápido al principio y despacio al final, como el humo.
+        const fuerza = Math.pow(1 - t, 3);
+        desplazamiento.setAttribute('scale', (fuerza * MAXIMO).toFixed(1));
+        desenfoque.setAttribute('stdDeviation', (fuerza * 6).toFixed(2));
+        turbulencia.setAttribute('baseFrequency', (0.011 + Math.sin(t * Math.PI) * 0.006).toFixed(4));
+        // La cara, limpia antes: entre el 25 % y el 55 % de la entrada.
+        nitida.style.opacity = t < 1 ? limitar((t - 0.25) / 0.3, 0, 1).toFixed(3) : '0';
+        const apertura = 1 - Math.pow(1 - limitar(t / 0.9, 0, 1), 2);
+        enmascarar(-40 + apertura * 145);
+        if (t < 1) ondaBucle = requestAnimationFrame(pasoOnda);
+        else {
+          capas.style.filter = '';
+          enmascarar(null);
+        }
+      };
+      ondaBucle = requestAnimationFrame(pasoOnda);
+    };
 
-    {
-      /*
-        Se vigilan las marcas de la sección: la página 1 se lanza al poner
-        data-dentro y la 2 al poner data-abierto. Al quitarlas, cada una
-        vuelve a su estado de partida (la 2, cuando ya se ha ido).
-      */
-      let antes = [false, false];
-      new MutationObserver(() => {
-        const ahora = [seccion.hasAttribute('data-dentro'), seccion.hasAttribute('data-abierto')];
-        ahora.forEach((activa, k) => {
-          const efecto = efectos[k];
-          if (!efecto || activa === antes[k]) return;
-          if (activa) efecto.lanzar(k === 0 ? 200 : 500);
-          else if (k === 1) window.setTimeout(() => !seccion.hasAttribute('data-abierto') && efecto.reiniciar(), 1100);
-          else efecto.reiniciar();
-        });
-        antes = ahora;
-      }).observe(seccion, { attributes: true, attributeFilter: ['data-dentro', 'data-abierto'] });
+    if (!reducido) {
+      seccion.setAttribute('data-anima', '');
+      reiniciarOnda();
+      new IntersectionObserver(
+        ([e]) => {
+          if (!e) return;
+          if (e.intersectionRatio >= 0.35 && !seccion.hasAttribute('data-dentro')) {
+            seccion.setAttribute('data-dentro', '');
+            lanzarOnda(200);
+          } else if (!e.isIntersecting && seccion.hasAttribute('data-dentro')) {
+            seccion.removeAttribute('data-dentro');
+            reiniciarOnda();
+          }
+        },
+        { threshold: [0, 0.35] },
+      ).observe(seccion);
     }
 
-    // ── Las fotos siguen al ratón ───────────────────────────
-    if (!conRaton) return;
-    const figuras = Array.from(seccion.querySelectorAll<HTMLElement>('[data-figura]'));
+    // ── Movimiento: ratón, vaivén y dispersión ──────────────
     const rojo = seccion.querySelector<SVGElement>('[data-rojo]')!;
     const azul = seccion.querySelector<SVGElement>('[data-azul]')!;
-    const filtro = `url(#${seccion.querySelector('filter[id$="-dispersion"]')!.id})`;
+    const filtroDispersion = `url(#${seccion.querySelector('filter[id$="-dispersion"]')!.id})`;
     /** Cuánto se separan los colores como mucho, en píxeles. */
     const DISPERSION = 1;
+
+    let destinoX = 0;
+    let destinoY = 0;
+    let x = 0;
+    let y = 0;
     let velX = 0;
     let velY = 0;
     let movX = 0;
     let movY = 0;
     let ultimo: { x: number; y: number } | null = null;
     let dispersando = false;
-    let destinoX = 0;
-    let destinoY = 0;
-    let x = 0;
-    let y = 0;
     let visible = false;
     let bucle = 0;
     let anterior = 0;
 
-    const paso = (ahora: number) => {
+    function arrancar() {
+      if (bucle) return;
+      anterior = 0;
+      bucle = requestAnimationFrame(paso);
+    }
+
+    function paso(ahora: number) {
       const dt = anterior ? limitar((ahora - anterior) / 16.67, 0, 2.5) : 1;
       anterior = ahora;
-      /*
-        Además del ratón, un vaivén lento y continuo, como una respiración:
-        la foto está siempre viva mientras se ve el módulo, aunque el ratón
-        esté quieto o lejos de ella. Dos senos de periodos distintos, para
-        que el recorrido no se repita a la vista.
-      */
-      const vaivenX = Math.sin(ahora / 2600) * 0.35;
-      const vaivenY = Math.sin(ahora / 3400 + 1) * 0.3;
-      x += (destinoX + vaivenX - x) * (1 - Math.pow(0.92, dt));
-      y += (destinoY + vaivenY - y) * (1 - Math.pow(0.92, dt));
-      figuras.forEach((figura) => {
+
+      // La vuelta: un muelle que se pasa un poco y se asienta.
+      velocidadVuelta += (vueltaDestino - vuelta) * 0.06 * dt;
+      velocidadVuelta *= Math.pow(0.8, dt);
+      vuelta += velocidadVuelta * dt;
+      tarjeta.style.setProperty('--vuelta', `${vuelta.toFixed(2)}deg`);
+      const girando = Math.abs(vueltaDestino - vuelta) > 0.05 || Math.abs(velocidadVuelta) > 0.05;
+
+      if (!reducido && conRaton && visible) {
+        // El vaivén: la foto respira aunque el ratón esté quieto.
+        const vaivenX = Math.sin(ahora / 2600) * 0.35;
+        const vaivenY = Math.sin(ahora / 3400 + 1) * 0.3;
+        x += (destinoX + vaivenX - x) * (1 - Math.pow(0.92, dt));
+        y += (destinoY + vaivenY - y) * (1 - Math.pow(0.92, dt));
         figura.style.setProperty('--fx', x.toFixed(3));
         figura.style.setProperty('--fy', y.toFixed(3));
-      });
 
-      /*
-        La dispersión, como la de Clientes: la velocidad del ratón abre los
-        colores en su dirección y se disipa sola. En reposo se quita el
-        filtro del todo.
-      */
-      velX = velX * Math.pow(0.88, dt) + movX * 0.12;
-      velY = velY * Math.pow(0.88, dt) + movY * 0.12;
-      movX = 0;
-      movY = 0;
-      const dx = limitar(velX * 0.07, -DISPERSION, DISPERSION);
-      const dy = limitar(velY * 0.07, -DISPERSION, DISPERSION);
-      const activa = Math.hypot(dx, dy) > 0.05;
-      if (activa) {
-        rojo.setAttribute('dx', dx.toFixed(2));
-        rojo.setAttribute('dy', dy.toFixed(2));
-        azul.setAttribute('dx', (-dx).toFixed(2));
-        azul.setAttribute('dy', (-dy).toFixed(2));
+        velX = velX * Math.pow(0.88, dt) + movX * 0.12;
+        velY = velY * Math.pow(0.88, dt) + movY * 0.12;
+        movX = 0;
+        movY = 0;
+        const dx = limitar(velX * 0.07, -DISPERSION, DISPERSION);
+        const dy = limitar(velY * 0.07, -DISPERSION, DISPERSION);
+        const activa = Math.hypot(dx, dy) > 0.05;
+        if (activa) {
+          rojo.setAttribute('dx', dx.toFixed(2));
+          rojo.setAttribute('dy', dy.toFixed(2));
+          azul.setAttribute('dx', (-dx).toFixed(2));
+          azul.setAttribute('dy', (-dy).toFixed(2));
+        }
+        if (activa !== dispersando) {
+          dispersando = activa;
+          caras.forEach((cara) =>
+            activa
+              ? cara.style.setProperty('--dispersion', filtroDispersion)
+              : cara.style.removeProperty('--dispersion'),
+          );
+        }
       }
-      if (activa !== dispersando) {
-        dispersando = activa;
-        figuras.forEach((figura) =>
-          activa ? figura.style.setProperty('--dispersion', filtro) : figura.style.removeProperty('--dispersion'),
-        );
-      }
-      bucle = visible ? requestAnimationFrame(paso) : 0;
-    };
 
-    /*
-      Solo responde al ratón dentro del módulo. Al salir, la foto vuelve al
-      centro (y sigue con su vaivén), y la dispersión no se dispara con
-      movimientos que pasan en otros módulos.
-    */
+      const sigue = (visible && conRaton && !reducido) || girando;
+      bucle = sigue ? requestAnimationFrame(paso) : 0;
+    }
+
+    // Solo responde al ratón dentro del módulo; al salir, vuelve al centro.
     seccion.addEventListener('pointerleave', () => {
       destinoX = 0;
       destinoY = 0;
@@ -910,7 +641,6 @@ const parrafosCompletos = completa.map((parrafo) =>
     seccion.addEventListener(
       'pointermove',
       (evento) => {
-        if (!visible) return;
         destinoX = (evento.clientX / window.innerWidth - 0.5) * 2;
         destinoY = (evento.clientY / window.innerHeight - 0.5) * 2;
         if (ultimo) {
@@ -924,10 +654,7 @@ const parrafosCompletos = completa.map((parrafo) =>
 
     new IntersectionObserver(([e]) => {
       visible = Boolean(e?.isIntersecting);
-      if (visible && !bucle) {
-        anterior = 0;
-        bucle = requestAnimationFrame(paso);
-      }
+      if (visible) arrancar();
     }).observe(seccion);
   });
 </script>
