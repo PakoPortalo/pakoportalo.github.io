@@ -21,9 +21,9 @@ const telefono = '+34 636 25 06 34';
   <div class="tarjeta__escena" data-escena>
     <div class="tarjeta__giro" data-giro>
       <section class="tarjeta__cara tarjeta__cara--frente">
-        <h2 class="tarjeta__nombre" id="tarjeta-nombre">
-          <span>Pako</span>
-          <span>Portalo</span>
+        <h2 class="tarjeta__nombre" id="tarjeta-nombre" data-nombre-tarjeta>
+          <span data-texto="Pako">Pako</span>
+          <span data-texto="Portalo">Portalo</span>
         </h2>
         <p class="tarjeta__lema">Música &amp; Diseño sonoro.</p>
 
@@ -64,7 +64,7 @@ const telefono = '+34 636 25 06 34';
                     </svg>
                   )}
                   <span class="tarjeta__valor">{dato.valor}</span>
-                  <span class="tarjeta__copiado" aria-hidden="true">Copiado</span>
+                  <span class="tarjeta__copiado" aria-hidden="true">¡Copiado!</span>
                 </button>
               </li>
             ))
@@ -214,9 +214,71 @@ const telefono = '+34 636 25 06 34';
   }
 
   .tarjeta__nombre span {
+    position: relative;
     display: block;
     transform: scaleX(0.94);
     transform-origin: 0 50%;
+  }
+
+  /*
+    El glitch del nombre, como el de "Quién soy": de vez en cuando un
+    espasmo corto. El nombre da un par de tirones de pocos píxeles y dos
+    copias, una verde y otra morada, saltan por franjas a los lados. Sobre
+    el papel claro se multiplican en vez de sumarse. Lo dispara el script.
+  */
+  .tarjeta__nombre span::before,
+  .tarjeta__nombre span::after {
+    content: attr(data-texto);
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+  }
+
+  .tarjeta__nombre span::before {
+    color: #2fd9a2;
+  }
+
+  .tarjeta__nombre span::after {
+    color: #b660ff;
+  }
+
+  .tarjeta__nombre[data-glitch] {
+    animation: tarjeta-espasmo 280ms steps(1) both;
+  }
+
+  .tarjeta__nombre[data-glitch] span::before {
+    animation: tarjeta-franja-a 280ms steps(1) both;
+  }
+
+  .tarjeta__nombre[data-glitch] span::after {
+    animation: tarjeta-franja-b 280ms steps(1) both;
+  }
+
+  @keyframes tarjeta-espasmo {
+    0% { translate: 0 0; transform: skewX(0deg); }
+    15% { translate: -3px 1px; transform: skewX(-3deg); }
+    30% { translate: 2px 0; transform: skewX(0deg); }
+    50% { translate: -1px -1px; transform: skewX(2deg); }
+    70% { translate: 2px 1px; transform: skewX(0deg); }
+    85%, 100% { translate: 0 0; transform: skewX(0deg); }
+  }
+
+  @keyframes tarjeta-franja-a {
+    0% { opacity: 0.9; translate: -4px 0; clip-path: inset(10% 0 62% 0); }
+    25% { opacity: 0.9; translate: 3px 0; clip-path: inset(55% 0 20% 0); }
+    50% { opacity: 0.8; translate: -2px 0; clip-path: inset(30% 0 48% 0); }
+    75% { opacity: 0.7; translate: 4px 0; clip-path: inset(72% 0 6% 0); }
+    100% { opacity: 0; translate: 0 0; clip-path: inset(0); }
+  }
+
+  @keyframes tarjeta-franja-b {
+    0% { opacity: 0.9; translate: 4px 0; clip-path: inset(48% 0 30% 0); }
+    25% { opacity: 0.8; translate: -3px 0; clip-path: inset(5% 0 75% 0); }
+    50% { opacity: 0.9; translate: 3px 0; clip-path: inset(66% 0 12% 0); }
+    75% { opacity: 0.6; translate: -4px 0; clip-path: inset(22% 0 58% 0); }
+    100% { opacity: 0; translate: 0 0; clip-path: inset(0); }
   }
 
   /*
@@ -287,7 +349,7 @@ const telefono = '+34 636 25 06 34';
   /*
     Cada dato es un botón que lo copia. Al pasar el ratón crece un poco y
     se enciende en el tono del momento; al pulsarlo, el texto deja paso a
-    "Copiado" en el mismo sitio.
+    "¡Copiado!" en el mismo sitio, un momento.
   */
   .tarjeta__dato {
     display: inline-grid;
@@ -515,6 +577,8 @@ const telefono = '+34 636 25 06 34';
       vueltaDestino = 0;
       velocidadVuelta = 0;
       dialogo.showModal();
+      clearTimeout(glitch);
+      if (!quieto) programarGlitch(0, 1500);
       requestAnimationFrame(() => dialogo.setAttribute('data-abierta', ''));
       if (!quieto && !bucle) {
         anterior = 0;
@@ -525,9 +589,34 @@ const telefono = '+34 636 25 06 34';
       mostrarCara(vuelta);
     };
 
+    /*
+      El glitch del nombre: el primero, al azar entre 0 y 1,5 s después de
+      abrir; luego, uno cada 3 a 5 s mientras la tarjeta siga abierta.
+    */
+    const nombre = dialogo.querySelector<HTMLElement>('[data-nombre-tarjeta]')!;
+    let glitch = 0;
+    const espasmo = () => {
+      nombre.removeAttribute('data-glitch');
+      void nombre.offsetWidth; // para que la animación vuelva a empezar
+      nombre.setAttribute('data-glitch', '');
+    };
+    nombre.addEventListener('animationend', (evento) => {
+      if (evento.target === nombre) nombre.removeAttribute('data-glitch');
+    });
+    const programarGlitch = (desde: number, hasta: number) => {
+      glitch = window.setTimeout(
+        () => {
+          espasmo();
+          programarGlitch(3000, 5000);
+        },
+        desde + Math.random() * (hasta - desde),
+      );
+    };
+
     const cerrar = () => {
       dialogo.removeAttribute('data-abierta');
       liquido?.activar(false);
+      clearTimeout(glitch);
       window.setTimeout(() => {
         dialogo.close();
         origen?.focus({ preventScroll: true });
@@ -576,13 +665,13 @@ const telefono = '+34 636 25 06 34';
         const aviso = dato.querySelector('.tarjeta__copiado')!;
         try {
           await navigator.clipboard.writeText(dato.dataset.copiar!);
-          aviso.textContent = 'Copiado';
+          aviso.textContent = '¡Copiado!';
         } catch {
-          aviso.textContent = 'No se pudo copiar';
+          aviso.textContent = '¡No se pudo!';
         }
         dato.setAttribute('data-copiado', '');
         clearTimeout(espera);
-        espera = window.setTimeout(() => dato.removeAttribute('data-copiado'), 1600);
+        espera = window.setTimeout(() => dato.removeAttribute('data-copiado'), 900);
       });
     });
 
