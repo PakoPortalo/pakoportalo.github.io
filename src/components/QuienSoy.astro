@@ -41,7 +41,6 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
  */
 const fotos = [
   {
-    src: `${base}sobre/pako-1.webp`,
     fondo: `${base}sobre/pako-1-fondo.webp`,
     persona: `${base}sobre/pako-1-persona.webp`,
     borde: 'luz',
@@ -51,7 +50,6 @@ const fotos = [
     cara: { x: '56%', y: '28%' },
   },
   {
-    src: `${base}sobre/pako-2.webp`,
     fondo: `${base}sobre/pako-2-fondo.webp`,
     persona: `${base}sobre/pako-2-persona.webp`,
     borde: 'sombra',
@@ -171,7 +169,7 @@ const parrafosCompletos = completa.map((parrafo) => parrafo.split(' ').map((pala
             </div>
             <img
               class="sobre__nitida"
-              src={fotos[pagina]!.src}
+              src={fotos[pagina]!.persona}
               alt=""
               aria-hidden="true"
               loading="lazy"
@@ -480,9 +478,15 @@ const parrafosCompletos = completa.map((parrafo) => parrafo.split(' ').map((pala
     mitad de la entrada, así que la cara se resuelve bastante antes que el
     resto; una cara ondulada hasta el final se veía rara.
   */
+  /* Tiene que coincidir píxel a píxel con la capa de la persona: la
+     misma imagen, la misma ampliación y el mismo paralaje. Con la foto
+     original, a otro tamaño y sin moverse, la cara daba un salto raro al
+     aparecer y desaparecer. */
   .sobre__nitida {
     position: absolute;
     inset: 0;
+    scale: 1.07;
+    translate: calc(var(--fx, 0) * 20px) calc(var(--fy, 0) * 14px);
     opacity: 0;
     pointer-events: none;
     mask-image: radial-gradient(ellipse 34% 24% at var(--cara-x) var(--cara-y), #000 35%, transparent 100%);
