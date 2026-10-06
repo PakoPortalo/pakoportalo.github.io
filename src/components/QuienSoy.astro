@@ -797,8 +797,16 @@ const parrafosCompletos = completa.map((parrafo) => parrafo.split(' ').map((pala
     const paso = (ahora: number) => {
       const dt = anterior ? limitar((ahora - anterior) / 16.67, 0, 2.5) : 1;
       anterior = ahora;
-      x += (destinoX - x) * (1 - Math.pow(0.92, dt));
-      y += (destinoY - y) * (1 - Math.pow(0.92, dt));
+      /*
+        Además del ratón, un vaivén lento y continuo, como una respiración:
+        la foto está siempre viva mientras se ve el módulo, aunque el ratón
+        esté quieto o lejos de ella. Dos senos de periodos distintos, para
+        que el recorrido no se repita a la vista.
+      */
+      const vaivenX = Math.sin(ahora / 2600) * 0.35;
+      const vaivenY = Math.sin(ahora / 3400 + 1) * 0.3;
+      x += (destinoX + vaivenX - x) * (1 - Math.pow(0.92, dt));
+      y += (destinoY + vaivenY - y) * (1 - Math.pow(0.92, dt));
       figuras.forEach((figura) => {
         figura.style.setProperty('--fx', x.toFixed(3));
         figura.style.setProperty('--fy', y.toFixed(3));
