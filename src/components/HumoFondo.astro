@@ -11,17 +11,9 @@
  * El módulo que lo lleve tiene que tener position: relative, y su contenido
  * position: relative para quedar por encima.
  */
-interface Props {
-  /** Opacidad del humo: 0,3 de fondo sutil; más alta, como en el hero. */
-  opacidad?: number;
-  /** Se apaga hacia el canto de arriba, para no ensuciar el borde con el módulo anterior. */
-  desvanecer?: boolean;
-}
-
-const { opacidad = 0.3, desvanecer = true } = Astro.props;
 ---
 
-<div class:list={['humo', !desvanecer && 'humo--entero']} aria-hidden="true" data-humo style={`--opacidad-humo: ${opacidad}`}>
+<div class="humo" aria-hidden="true" data-humo>
   <canvas class="humo__lienzo"></canvas>
 </div>
 
@@ -37,16 +29,12 @@ const { opacidad = 0.3, desvanecer = true } = Astro.props;
     mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.25), #000 40%);
   }
 
-  .humo--entero {
-    mask-image: none;
-  }
-
   .humo__lienzo {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
-    opacity: var(--opacidad-humo, 0.3);
+    opacity: 0.3;
   }
 </style>
 
