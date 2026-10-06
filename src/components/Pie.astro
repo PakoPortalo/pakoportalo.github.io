@@ -11,6 +11,7 @@
 import BarraColor from './BarraColor.astro';
 
 const correo = 'pakoportalo@gmail.com';
+const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
 const instagram = 'https://www.instagram.com/pakoportalo/';
 const ano = 2026;
 ---
@@ -23,7 +24,9 @@ const ano = 2026;
       <p class="pie__copy">© {ano} Pako Portalo</p>
       <p class="pie__otros">
         <span class="pie__etiqueta">Otros proyectos</span>
-        <span class="pie__proyecto">Mololo</span>
+        <a class="pie__proyecto" href="https://mololo.es" target="_blank" rel="noreferrer">
+          <img src={`${base}logos/mololo.webp`} alt="Mololo" width="350" height="100" loading="lazy" />
+        </a>
       </p>
     </div>
 
@@ -87,8 +90,8 @@ const ano = 2026;
 
   .pie__otros {
     display: flex;
-    gap: 12px;
-    align-items: baseline;
+    gap: 14px;
+    align-items: center;
   }
 
   .pie__etiqueta {
@@ -100,8 +103,23 @@ const ano = 2026;
   }
 
   .pie__proyecto {
-    font-weight: 600;
-    color: rgb(255 255 255 / 0.85);
+    display: inline-block;
+    opacity: 0.75;
+    transition:
+      opacity 300ms ease,
+      scale 500ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .pie__proyecto img {
+    display: block;
+    height: 22px;
+    width: auto;
+  }
+
+  .pie__proyecto:hover,
+  .pie__proyecto:focus-visible {
+    opacity: 1;
+    scale: 1.05;
   }
 
   .pie__redes {
