@@ -16,8 +16,8 @@ interface Props {
   id?: string;
   /** El cierre de la página: más alto, con un texto debajo de la frase. */
   texto?: string;
-  /** Marcas gráficas de fondo (ver MarcasCierre.astro). */
-  marcas?: 'puntos' | 'senal' | 'orbitas' | 'niveles' | 'senal2' | 'orbitas3' | 'orbitas2';
+  /** Órbitas alrededor de la flecha y una mirilla, de fondo. */
+  conOrbitas?: boolean;
 }
 
 const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
@@ -28,7 +28,7 @@ const {
   destino = `${base}contacto/`,
   id,
   texto,
-  marcas,
+  conOrbitas = false,
 } = Astro.props;
 
 /*
@@ -45,7 +45,6 @@ const palabras = (texto: string) => {
 /** Un signo de cierre detrás de una vocal con tilde: el acento lo pisaría. */
 const pisaAcento = (palabra: { letra: string }[], k: number) =>
   (palabra[k]?.letra === '!' || palabra[k]?.letra === '?') && /[áéíóú]/i.test(palabra[k - 1]?.letra ?? '');
-import MarcasCierre from './MarcasCierre.astro';
 
 /*
   Las órbitas alrededor de la flecha: anillos grises quietos y, encima,
@@ -53,23 +52,15 @@ import MarcasCierre from './MarcasCierre.astro';
   sentidos contrarios. Centradas en el círculo de la flecha, que por eso
   deja de seguir al ratón.
 */
-const orbitas =
-  marcas === 'orbitas3'
-    ? [
-        { r: 98, color: 'gris', segundos: 22, sentido: 1, punto: 6 },
-        { r: 154, color: 'verde', segundos: 38, sentido: 1, punto: 9 },
-        { r: 210, color: 'morado', segundos: 30, sentido: -1, punto: 12 },
-      ]
-    : marcas === 'orbitas2'
-      ? [
-          { r: 126, color: 'verde', segundos: 34, sentido: 1, punto: 9 },
-          { r: 210, color: 'morado', segundos: 26, sentido: -1, punto: 12 },
-        ]
-      : null;
+const orbitas = conOrbitas
+  ? [
+      { r: 126, color: 'verde', segundos: 34, sentido: 1, punto: 9 },
+      { r: 210, color: 'morado', segundos: 26, sentido: -1, punto: 12 },
+    ]
+  : null;
 ---
 
 <section class:list={['atajo', texto && 'atajo--cierre', orbitas && 'atajo--orbitas']} aria-label="Contacto" id={id} data-atajo>
-  {marcas && !orbitas && <MarcasCierre version={marcas} />}
   {
     orbitas && (
       <div class="atajo__orbitas" aria-hidden="true">
@@ -267,11 +258,6 @@ const orbitas =
   .atajo__satelite {
     fill: var(--c);
     filter: drop-shadow(0 0 6px var(--halo)) drop-shadow(0 0 2px var(--halo));
-  }
-
-  .atajo__orbita--gris {
-    --c: #3a3836;
-    --halo: rgb(5 5 5 / 0.35);
   }
 
   .atajo__orbita--verde {
