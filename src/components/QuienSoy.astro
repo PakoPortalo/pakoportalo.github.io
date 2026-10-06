@@ -111,7 +111,7 @@ const temas = biografia.map((b, k) => ({
     <div class="sobre__texto">
       <div class="sobre__cabecera">
         <p class="sobre__etiqueta">Quién soy</p>
-        <h2 class="sobre__nombre" id={`${id}-titulo`}>Pako Portalo</h2>
+        <h2 class="sobre__nombre" id={`${id}-titulo`} data-texto="Pako Portalo" data-nombre>Pako Portalo</h2>
         <p class="sobre__rol">Compositor y director de sonido</p>
       </div>
 
@@ -211,6 +211,70 @@ const temas = biografia.map((b, k) => ({
     letter-spacing: -0.035em;
     line-height: 0.95;
     white-space: nowrap;
+  }
+
+  /*
+    El glitch del nombre: de vez en cuando, un espasmo corto. El nombre da
+    un par de tirones de pocos píxeles y dos copias, una verde y otra
+    morada, saltan por franjas a los lados. Lo dispara el script.
+  */
+  .sobre__nombre {
+    position: relative;
+  }
+
+  .sobre__nombre::before,
+  .sobre__nombre::after {
+    content: attr(data-texto);
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+    mix-blend-mode: screen;
+  }
+
+  .sobre__nombre::before {
+    color: #5ff7c6;
+  }
+
+  .sobre__nombre::after {
+    color: #b660ff;
+  }
+
+  .sobre__nombre[data-glitch] {
+    animation: sobre-espasmo 280ms steps(1) both;
+  }
+
+  .sobre__nombre[data-glitch]::before {
+    animation: sobre-franja-a 280ms steps(1) both;
+  }
+
+  .sobre__nombre[data-glitch]::after {
+    animation: sobre-franja-b 280ms steps(1) both;
+  }
+
+  @keyframes sobre-espasmo {
+    0% { translate: 0 0; transform: skewX(0deg); }
+    15% { translate: -3px 1px; transform: skewX(-3deg); }
+    30% { translate: 2px 0; transform: skewX(0deg); }
+    50% { translate: -1px -1px; transform: skewX(2deg); }
+    70% { translate: 2px 1px; transform: skewX(0deg); }
+    85%, 100% { translate: 0 0; transform: skewX(0deg); }
+  }
+
+  @keyframes sobre-franja-a {
+    0% { opacity: 0.9; translate: -4px 0; clip-path: inset(10% 0 62% 0); }
+    25% { opacity: 0.9; translate: 3px 0; clip-path: inset(55% 0 20% 0); }
+    50% { opacity: 0.8; translate: -2px 0; clip-path: inset(30% 0 48% 0); }
+    75% { opacity: 0.7; translate: 4px 0; clip-path: inset(72% 0 6% 0); }
+    100% { opacity: 0; translate: 0 0; clip-path: inset(0); }
+  }
+
+  @keyframes sobre-franja-b {
+    0% { opacity: 0.9; translate: 4px 0; clip-path: inset(48% 0 30% 0); }
+    25% { opacity: 0.8; translate: -3px 0; clip-path: inset(5% 0 75% 0); }
+    50% { opacity: 0.9; translate: 3px 0; clip-path: inset(66% 0 12% 0); }
+    75% { opacity: 0.6; translate: -4px 0; clip-path: inset(22% 0 58% 0); }
+    100% { opacity: 0; translate: 0 0; clip-path: inset(0); }
   }
 
   .sobre__rol {
@@ -544,6 +608,36 @@ const temas = biografia.map((b, k) => ({
       });
     });
 
+    // ── El glitch del nombre, de vez en cuando ──────────────
+    /*
+      Cada pocos segundos, al azar, un espasmo; a veces dos seguidos. Solo
+      con el módulo en pantalla y la entrada acabada.
+    */
+    const nombre = seccion.querySelector<HTMLElement>('[data-nombre]')!;
+    let glitch = 0;
+
+    const espasmo = () => {
+      nombre.removeAttribute('data-glitch');
+      void nombre.offsetWidth; // para que la animación vuelva a empezar
+      nombre.setAttribute('data-glitch', '');
+    };
+    nombre.addEventListener('animationend', (evento) => {
+      if (evento.target === nombre) nombre.removeAttribute('data-glitch');
+    });
+
+    const programarGlitch = () => {
+      glitch = window.setTimeout(
+        () => {
+          if (seccion.hasAttribute('data-listo')) {
+            espasmo();
+            if (Math.random() < 0.35) window.setTimeout(espasmo, 380);
+          }
+          programarGlitch();
+        },
+        3500 + Math.random() * 5000,
+      );
+    };
+
     // ── Entrada al aparecer en pantalla ─────────────────────
     const capas = seccion.querySelector<HTMLElement>('[data-capas]')!;
     const nitida = seccion.querySelector<HTMLElement>('[data-nitida]')!;
@@ -611,10 +705,12 @@ const temas = biografia.map((b, k) => ({
             lanzarOnda(200);
             // Acabada la cascada de entrada, cambiar de tema va rápido.
             listo = window.setTimeout(() => seccion.setAttribute('data-listo', ''), 2200);
+            programarGlitch();
           } else if (!e.isIntersecting && seccion.hasAttribute('data-dentro')) {
             seccion.removeAttribute('data-dentro');
             seccion.removeAttribute('data-listo');
             clearTimeout(listo);
+            clearTimeout(glitch);
             reiniciarOnda();
           }
         },
