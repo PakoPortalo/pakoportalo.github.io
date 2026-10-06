@@ -159,7 +159,7 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     /* La dispersión en reposo. Va aquí, en la sección, que es donde la
        cambia el script: declarada más abajo, en el contenido, tapaba la
        del script y el efecto no se movía nunca. */
-    --dx: 0.6;
+    --dx: 0.3;
     --dy: 0;
     --gutter: max(24px, 5.5vw);
     /* Poco aire: es una franja de apoyo, no una pantalla. */
@@ -208,8 +208,8 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
   */
   .creds__contenido {
     text-shadow:
-      calc(var(--dx) * 1px) calc(var(--dy) * 1px) rgb(255 40 90 / 0.65),
-      calc(var(--dx) * -1px) calc(var(--dy) * -1px) rgb(0 225 255 / 0.65);
+      calc(var(--dx) * 1px) calc(var(--dy) * 1px) rgb(255 40 90 / 0.45),
+      calc(var(--dx) * -1px) calc(var(--dy) * -1px) rgb(0 225 255 / 0.45);
   }
 
   .creds__titulo {
@@ -217,8 +217,8 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
   }
 
   .creds__clientes img {
-    --dispersion: drop-shadow(calc(var(--dx) * 1px) calc(var(--dy) * 1px) rgb(255 40 90 / 0.65))
-      drop-shadow(calc(var(--dx) * -1px) calc(var(--dy) * -1px) rgb(0 225 255 / 0.65));
+    --dispersion: drop-shadow(calc(var(--dx) * 1px) calc(var(--dy) * 1px) rgb(255 40 90 / 0.45))
+      drop-shadow(calc(var(--dx) * -1px) calc(var(--dy) * -1px) rgb(0 225 255 / 0.45));
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -530,9 +530,9 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
 
     // ── 3 · La dispersión ─────────────────────────────────────
     /** Separación en reposo, en píxeles: siempre hay un pelo de color. */
-    const REPOSO = 0.6;
+    const REPOSO = 0.3;
     /** Cuánto se abre como mucho con el ratón, en píxeles. */
-    const MAXIMA = 5;
+    const MAXIMA = 1.5;
     let velX = 0;
     let velY = 0;
     let movX = 0;
@@ -558,8 +558,8 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
       velY = velY * Math.pow(0.88, dt) + movY * 0.12;
       movX = 0;
       movY = 0;
-      const dx = REPOSO + limitar(velX * 0.4, -MAXIMA, MAXIMA);
-      const dy = limitar(velY * 0.4, -MAXIMA, MAXIMA);
+      const dx = REPOSO + limitar(velX * 0.12, -MAXIMA, MAXIMA);
+      const dy = limitar(velY * 0.12, -MAXIMA, MAXIMA);
       seccion.style.setProperty('--dx', dx.toFixed(2));
       seccion.style.setProperty('--dy', dy.toFixed(2));
 
