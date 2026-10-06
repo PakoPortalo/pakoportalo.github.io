@@ -368,17 +368,17 @@ const parrafosCompletos = completa.map((parrafo) =>
   /* Lo importante destaca sobre el gris: en blanco, o en el color del
      punto de su premio en Reconocimientos, con un brillo de neón suave. */
   .sobre__completa .es-blanco {
-    color: #f4f1ec;
+    color: rgb(255 255 255 / 0.82);
   }
 
+  /* Los colores de los puntos, apagados: mezclados con el gris del texto
+     para que destaquen sin gritar, y sin brillo. */
   .sobre__completa .es-verde {
-    color: #5ff7c6;
-    text-shadow: 0 0 14px rgb(95 247 198 / 0.35);
+    color: color-mix(in oklab, #5ff7c6 55%, #8a8a8a);
   }
 
   .sobre__completa .es-morado {
-    color: #b660ff;
-    text-shadow: 0 0 14px rgb(182 96 255 / 0.4);
+    color: color-mix(in oklab, #b660ff 55%, #8a8a8a);
   }
 
   .sobre__palabra {
