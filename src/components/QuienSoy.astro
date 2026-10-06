@@ -56,9 +56,11 @@ const temas = biografia.map((b, k) => ({
     El filtro de la entrada de la foto: ruido fractal que desplaza los
     píxeles, igual en las dos direcciones para que forme volutas, como el
     humo del resto de la web. Detrás, un desenfoque que se limpia a la vez.
+    En sRGB: en RGB lineal, el degradado casi negro del fondo se rompía en
+    manchas mientras duraba la onda.
   */}
   <svg class="sobre__filtros" aria-hidden="true" width="0" height="0">
-    <filter id={`${id}-onda`} x="-10%" y="-10%" width="120%" height="120%">
+    <filter id={`${id}-onda`} x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
       <feTurbulence type="fractalNoise" baseFrequency="0.011" numOctaves="4" seed="4" result="ruido" data-turbulencia />
       <feDisplacementMap
         in="SourceGraphic"
