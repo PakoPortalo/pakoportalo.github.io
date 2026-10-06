@@ -17,7 +17,7 @@ interface Props {
   /** El cierre de la página: más alto, con un texto debajo de la frase. */
   texto?: string;
   /** Marcas gráficas de fondo (ver MarcasCierre.astro). */
-  marcas?: 'puntos' | 'senal' | 'orbitas' | 'niveles';
+  marcas?: 'puntos' | 'senal' | 'orbitas' | 'niveles' | 'senal2' | 'orbitas3' | 'orbitas2';
 }
 
 const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
@@ -46,10 +46,30 @@ const palabras = (texto: string) => {
 const pisaAcento = (palabra: { letra: string }[], k: number) =>
   (palabra[k]?.letra === '!' || palabra[k]?.letra === '?') && /[áéíóú]/i.test(palabra[k - 1]?.letra ?? '');
 import MarcasCierre from './MarcasCierre.astro';
+
+/*
+  Las órbitas alrededor de la flecha: anillos grises quietos y, encima,
+  órbitas que giran con un punto cada una, a distintas velocidades y en
+  sentidos contrarios. Centradas en el círculo de la flecha, que por eso
+  deja de seguir al ratón.
+*/
+const orbitas =
+  marcas === 'orbitas3'
+    ? [
+        { r: 104, color: 'gris', segundos: 22, sentido: 1 },
+        { r: 156, color: 'verde', segundos: 38, sentido: 1 },
+        { r: 214, color: 'morado', segundos: 30, sentido: -1 },
+      ]
+    : marcas === 'orbitas2'
+      ? [
+          { r: 132, color: 'verde', segundos: 34, sentido: 1 },
+          { r: 204, color: 'morado', segundos: 26, sentido: -1 },
+        ]
+      : null;
 ---
 
-<section class:list={['atajo', texto && 'atajo--cierre']} aria-label="Contacto" id={id} data-atajo>
-  {marcas && <MarcasCierre version={marcas} />}
+<section class:list={['atajo', texto && 'atajo--cierre', orbitas && 'atajo--orbitas']} aria-label="Contacto" id={id} data-atajo>
+  {marcas && !orbitas && <MarcasCierre version={marcas} />}
   <a class="atajo__enlace" href={destino} aria-label={`${pregunta} ${respuesta}`} data-tarjeta>
     <span class="atajo__frases" aria-hidden="true">
       <span class="atajo__frase atajo__frase--pregunta">
@@ -88,10 +108,30 @@ import MarcasCierre from './MarcasCierre.astro';
         }
       </span>
     </span>
-    <span class="atajo__flecha" aria-hidden="true">
+    <span class="atajo__ancla">
+      {
+        orbitas && (
+          <svg class="atajo__orbitas" viewBox="-260 -260 520 520" aria-hidden="true">
+            {Array.from({ length: 7 }, (_, k) => (
+              <circle class="atajo__anillo" r={70 + k * 28} />
+            ))}
+            {orbitas.map((o) => (
+              <g
+                class={`atajo__orbita atajo__orbita--${o.color}`}
+                style={`--segundos: ${o.segundos}s; --sentido: ${o.sentido === 1 ? 'normal' : 'reverse'}`}
+              >
+                <circle r={o.r} class="atajo__rastro" />
+                <circle cx={o.r} cy="0" r="5" class="atajo__satelite" />
+              </g>
+            ))}
+          </svg>
+        )
+      }
+      <span class="atajo__flecha" aria-hidden="true">
       <svg viewBox="0 0 24 24" width="24" height="24">
         <path d="M7 17 17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
       </svg>
+    </span>
     </span>
   </a>
   <p class="atajo__movil" aria-hidden="true">{respuesta}</p>
@@ -157,6 +197,77 @@ import MarcasCierre from './MarcasCierre.astro';
   .atajo__movil {
     position: relative;
     z-index: 1;
+  }
+
+  /* ── Órbitas alrededor de la flecha ───────────────────────── */
+  .atajo__ancla {
+    position: relative;
+    flex: none;
+    display: grid;
+    place-items: center;
+  }
+
+  .atajo--orbitas {
+    /* Los anillos se salen por la derecha: se recortan sin crear scroll. */
+    overflow-x: clip;
+  }
+
+  .atajo__orbitas {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    width: 520px;
+    height: 520px;
+    translate: -50% -50%;
+    overflow: visible;
+    pointer-events: none;
+    fill: none;
+  }
+
+  .atajo__anillo {
+    stroke: rgb(5 5 5 / 0.1);
+    stroke-width: 1;
+  }
+
+  .atajo__orbita {
+    animation: orbita var(--segundos) linear infinite var(--sentido);
+  }
+
+  .atajo__rastro {
+    stroke-width: 1.6;
+    stroke-dasharray: 2 8;
+  }
+
+  .atajo__orbita--gris {
+    --c: rgb(5 5 5 / 0.32);
+  }
+
+  .atajo__orbita--verde {
+    --c: color-mix(in oklab, #5ff7c6 75%, #6b6b6b);
+  }
+
+  .atajo__orbita--morado {
+    --c: color-mix(in oklab, #b660ff 75%, #6b6b6b);
+  }
+
+  .atajo__orbita .atajo__rastro {
+    stroke: var(--c);
+  }
+
+  .atajo__satelite {
+    fill: var(--c);
+  }
+
+  @keyframes orbita {
+    to {
+      rotate: 360deg;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .atajo__orbita {
+      animation: none;
+    }
   }
 
   .atajo__texto {
@@ -344,6 +455,8 @@ import MarcasCierre from './MarcasCierre.astro';
     document.querySelectorAll<HTMLElement>('[data-atajo]').forEach((franja) => {
       const frases = franja.querySelector<HTMLElement>('.atajo__frases')!;
       const flecha = franja.querySelector<HTMLElement>('.atajo__flecha')!;
+      // Con órbitas, la flecha es su centro: no se mueve.
+      const flechaQuieta = franja.classList.contains('atajo--orbitas');
       /** Cuánto se desplazan como mucho, en píxeles. */
       const RECORRIDO = 36;
       let destino = 0;
@@ -356,7 +469,7 @@ import MarcasCierre from './MarcasCierre.astro';
         anterior = ahora;
         x += (destino - x) * (1 - Math.pow(0.9, dt));
         frases.style.translate = `${x.toFixed(2)}px 0`;
-        flecha.style.translate = `${(x * 0.4).toFixed(2)}px 0`;
+        if (!flechaQuieta) flecha.style.translate = `${(x * 0.4).toFixed(2)}px 0`;
         bucle = Math.abs(destino - x) > 0.05 ? requestAnimationFrame(paso) : 0;
       };
 

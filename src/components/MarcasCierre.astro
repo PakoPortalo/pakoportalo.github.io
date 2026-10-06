@@ -10,8 +10,12 @@
  * - senal:    caja con una onda dentro, una regla debajo y una fila de puntos.
  * - orbitas:  anillos concéntricos que asoman por la derecha, uno girando.
  * - niveles:  barras de un medidor de nivel que respiran + crucecita.
+ * - senal2:   "señal" recompuesta: la caja abajo y la regla arriba a la
+ *             izquierda.
+ * Las órbitas centradas en la flecha (orbitas3, orbitas2) no van aquí sino
+ * en ContactoAtajo, alrededor del círculo, para que coincidan con él.
  */
-type Version = 'puntos' | 'senal' | 'orbitas' | 'niveles';
+type Version = 'puntos' | 'senal' | 'orbitas' | 'niveles' | 'senal2' | 'orbitas3' | 'orbitas2';
 
 interface Props {
   version: Version;
@@ -83,6 +87,27 @@ const onda = (ancho: number, alto: number) => {
           {Array.from({ length: 12 }, (_, k) => (
             <circle cx={5 + k * 19} cy="5" r={(4 - k * 0.3).toFixed(2)} />
           ))}
+        </svg>
+      </>
+    )
+  }
+
+  {
+    version === 'senal2' && (
+      <>
+        <svg class="marcas__pieza marcas__regla marcas__regla--arriba" viewBox="0 0 400 24">
+          {Array.from({ length: 41 }, (_, k) => (
+            <line x1={k * 10 + 0.5} x2={k * 10 + 0.5} y1="0" y2={k % 5 === 0 ? 22 : 10} />
+          ))}
+        </svg>
+        <svg class="marcas__pieza marcas__fila marcas__fila--abajo" viewBox="0 0 220 10">
+          {Array.from({ length: 12 }, (_, k) => (
+            <circle cx={5 + k * 19} cy="5" r={(4 - k * 0.3).toFixed(2)} />
+          ))}
+        </svg>
+        <svg class="marcas__pieza marcas__caja marcas__caja--abajo" viewBox="0 0 400 130">
+          <rect x="1" y="1" width="398" height="128" rx="6" />
+          <path d={onda(398, 128)} transform="translate(1 1)" />
         </svg>
       </>
     )
@@ -183,6 +208,24 @@ const onda = (ancho: number, alto: number) => {
     width: clamp(140px, 14vw, 220px);
     fill: var(--tinta);
     stroke: none;
+  }
+
+  /* ── señal recompuesta ─────────────────────────────────────── */
+  .marcas.marcas--senal2 .marcas__regla--arriba {
+    inset-block-start: clamp(28px, 6svh, 64px);
+    inset-block-end: auto;
+    inset-inline-start: max(24px, 5.5vw);
+    inset-inline-end: auto;
+  }
+
+  .marcas.marcas--senal2 .marcas__caja--abajo {
+    inset-block-start: auto;
+    inset-block-end: clamp(28px, 6svh, 64px);
+  }
+
+  .marcas.marcas--senal2 .marcas__fila--abajo {
+    inset-block-start: auto;
+    inset-block-end: calc(clamp(28px, 6svh, 64px) + clamp(240px, 26vw, 400px) * 0.325 + 18px);
   }
 
   /* ── órbitas ────────────────────────────────────────────────── */
