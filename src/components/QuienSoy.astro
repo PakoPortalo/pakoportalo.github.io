@@ -63,15 +63,35 @@ const fotos = [
 const corta =
   'Músico y productor especializado en composición. Del conservatorio y el jazz a los escenarios de medio mundo con Mayumana; de las bandas sonoras de videojuegos con Shaman Garage a los spots publicitarios con Xiaomi y Red Bull.';
 
+/*
+  La biografía completa, corta y con lo importante destacado. Se escribe
+  con dos marcas: **así** va en blanco, y {verde:así} o {morado:así} en el
+  color del punto que tiene ese premio en Reconocimientos, para que se
+  relacionen de un vistazo. El resto, en gris.
+*/
 const completa: string[] = [
-  'Pako Portalo comenzó su carrera musical de joven en el conservatorio, con el violín; después estudió jazz y armonía contemporánea con la guitarra de la mano de grandes músicos del panorama extremeño, como Rafa Prieto, y aprendió producción musical por su cuenta. Toca piano, flauta, bajo y percusión, entre otros instrumentos, y con ellos ha dado conciertos por España, Francia, Inglaterra, Italia e Israel. Ha sido músico de escenario y arreglista de la compañía internacional Mayumana, y ha formado parte de proyectos de alcance nacional como Dinohaurios y Papawanda.',
-  'Como compositor forma parte de Shaman Garage, un estudio de narrativas y videojuegos con sede en Países Bajos, para el que crea bandas sonoras, diseño sonoro y efectos de sonido, y explora nuevas tecnologías y programación para inventar sonidos y formas de expresión sonora. Con el estudio ha pasado por festivales como A MAZE. (Alemania), Overkill (Países Bajos), Playtopia (Sudáfrica) y Now Play This (Inglaterra). Fue el compositor y diseñador de sonido de Data Garden, con el que el estudio recibió la nominación a Best Debut Game en los Dutch Game Awards 2024.',
-  'Ese recorrido entre la composición y la edición le ha llevado a la publicidad, donde ha puesto música y sonido a spots para marcas como Xiaomi o Red Bull. Su diseño sonoro para The Revelation of the Andalusian Crush entró en la lista corta del Festival El Sol 2026, el festival iberoamericano de la comunicación publicitaria, en la categoría Sound Design.',
+  'Formado en el conservatorio con el violín, Pako Portalo toca también piano, flauta, bajo y percusión, y ha dado conciertos por España, Francia, Inglaterra, Italia e Israel. Ha sido músico de escenario y arreglista de **Mayumana**, y ha formado parte de Dinohaurios y Papawanda.',
+  'En **Shaman Garage**, estudio de narrativas y videojuegos con sede en Países Bajos, compone bandas sonoras y diseña el sonido, explorando nuevas tecnologías y programación. Fue el compositor y diseñador de sonido de **Data Garden**, nominado a {morado:Best Debut Game en los Dutch Game Awards 2024}, y el estudio ha llevado su trabajo a festivales como **A MAZE.** (Alemania), **Overkill** (Países Bajos), **Playtopia** (Sudáfrica) y **Now Play This** (Inglaterra).',
+  'En publicidad ha puesto música y sonido a spots para **Xiaomi** o **Red Bull**. Su diseño sonoro para **The Revelation of the Andalusian Crush** entró en la {verde:lista corta del Festival El Sol 2026}, en la categoría Sound Design.',
 ];
 
-/** Las palabras de la biografía completa, numeradas seguidas entre párrafos. */
+type Tono = 'blanco' | 'verde' | 'morado' | undefined;
+
+/** Las palabras de la biografía, con su tono y numeradas seguidas entre párrafos. */
 let w = 0;
-const parrafosCompletos = completa.map((parrafo) => parrafo.split(' ').map((palabra) => ({ palabra, i: w++ })));
+const parrafosCompletos = completa.map((parrafo) =>
+  Array.from(parrafo.matchAll(/\*\*(.+?)\*\*|\{(verde|morado):(.+?)\}|([^*{]+)/g)).flatMap((m) => {
+    const texto = m[1] ?? m[3] ?? m[4] ?? '';
+    const tono: Tono = m[1] ? 'blanco' : (m[2] as Tono);
+    // Las palabras van separadas; los espacios que pegan con la puntuación
+    // de alrededor se conservan marcando si la palabra lleva espacio detrás.
+    return texto
+      .split(/(\s+)/)
+      .filter((trozo) => trozo !== '')
+      .map((trozo) => ({ palabra: trozo, espacio: /^\s+$/.test(trozo), tono }))
+      .map((p) => (p.espacio ? p : { ...p, i: w++ }));
+  }),
+);
 ---
 
 <section class="sobre" aria-labelledby={`${id}-titulo`} data-sobre>
@@ -184,13 +204,15 @@ const parrafosCompletos = completa.map((parrafo) => parrafo.split(' ').map((pala
               <p class="sobre__etiqueta">Pako Portalo</p>
               {parrafosCompletos.map((palabras) => (
                 <p>
-                  {palabras.map(({ palabra, i }) => (
-                    <>
-                      <span class="sobre__palabra" style={`--i: ${i}`}>
-                        {palabra}
-                      </span>{' '}
-                    </>
-                  ))}
+                  {palabras.map((p) =>
+                    p.espacio ? (
+                      ' '
+                    ) : (
+                      <span class:list={['sobre__palabra', p.tono && `es-${p.tono}`]} style={`--i: ${'i' in p ? p.i : 0}`}>
+                        {p.palabra}
+                      </span>
+                    ),
+                  )}
                 </p>
               ))}
               <button class="sobre__boton sobre__boton--volver" type="button" data-cerrar>
@@ -336,11 +358,27 @@ const parrafosCompletos = completa.map((parrafo) => parrafo.split(' ').map((pala
   }
 
   .sobre__completa p:not(.sobre__etiqueta) {
-    margin: 0 0 0.9em;
-    max-width: 64ch;
-    font-size: clamp(14px, 1vw, 16px);
-    line-height: 1.55;
-    color: rgb(255 255 255 / 0.78);
+    margin: 0 0 1em;
+    max-width: 60ch;
+    font-size: clamp(15px, 1.1vw, 18px);
+    line-height: 1.6;
+    color: rgb(255 255 255 / 0.5);
+  }
+
+  /* Lo importante destaca sobre el gris: en blanco, o en el color del
+     punto de su premio en Reconocimientos, con un brillo de neón suave. */
+  .sobre__completa .es-blanco {
+    color: #f4f1ec;
+  }
+
+  .sobre__completa .es-verde {
+    color: #5ff7c6;
+    text-shadow: 0 0 14px rgb(95 247 198 / 0.35);
+  }
+
+  .sobre__completa .es-morado {
+    color: #b660ff;
+    text-shadow: 0 0 14px rgb(182 96 255 / 0.4);
   }
 
   .sobre__palabra {
