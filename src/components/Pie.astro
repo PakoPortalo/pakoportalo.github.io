@@ -1,14 +1,9 @@
 ---
 /**
- * El pie de la página, en negro, después del cierre claro.
- *
- * Arriba, la barra de color; en la fila, el copyright y "otros proyectos"
- * a la izquierda, Instagram y correo a la derecha. Debajo, el nombre en
- * grande, cortado por el borde: casi invisible, y por dentro de las letras
- * pasa el arcoíris de la barra siguiendo al cursor, con su misma inercia
- * (lee la misma variable, --barra-centro).
+ * El pie de la página, en negro, después del cierre claro: el copyright y
+ * "otros proyectos" (Mololo) a la izquierda, Instagram y correo a la
+ * derecha. Sin adornos.
  */
-import BarraColor from './BarraColor.astro';
 
 const correo = 'pakoportalo@gmail.com';
 const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
@@ -17,14 +12,13 @@ const ano = 2026;
 ---
 
 <footer class="pie">
-  <BarraColor />
-
   <div class="pie__fila">
     <div class="pie__izq">
       <p class="pie__copy">© {ano} Pako Portalo</p>
       <p class="pie__otros">
         <span class="pie__etiqueta">Otros proyectos</span>
         <a class="pie__proyecto" href="https://mololo.es" target="_blank" rel="noreferrer">
+          <img class="pie__calavera" src={`${base}logos/mololo-calavera.webp`} alt="" width="120" height="120" loading="lazy" />
           <img src={`${base}logos/mololo.webp`} alt="Mololo" width="350" height="100" loading="lazy" />
         </a>
       </p>
@@ -46,8 +40,6 @@ const ano = 2026;
       </a>
     </nav>
   </div>
-
-  <p class="pie__marca" aria-hidden="true">Pako Portalo</p>
 </footer>
 
 <style>
@@ -58,7 +50,6 @@ const ano = 2026;
     background: #050505;
     color: #f4f1ec;
     font-family: InstrumentSans, ui-sans-serif, system-ui, sans-serif;
-    --romana: 'Times New Roman', Times, 'Liberation Serif', 'Nimbus Roman', serif;
     --margen: max(24px, 5.5vw);
   }
 
@@ -68,7 +59,7 @@ const ano = 2026;
     align-items: center;
     justify-content: space-between;
     gap: 20px 40px;
-    padding: clamp(36px, 5vw, 64px) var(--margen) 0;
+    padding: clamp(32px, 4vw, 48px) var(--margen);
   }
 
   .pie__izq {
@@ -103,7 +94,9 @@ const ano = 2026;
   }
 
   .pie__proyecto {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     opacity: 0.75;
     transition:
       opacity 300ms ease,
@@ -114,6 +107,10 @@ const ano = 2026;
     display: block;
     height: 22px;
     width: auto;
+  }
+
+  .pie__proyecto .pie__calavera {
+    height: 26px;
   }
 
   .pie__proyecto:hover,
@@ -165,38 +162,6 @@ const ano = 2026;
   .pie__icono + .pie__icono:focus-visible {
     background: #b660ff;
     border-color: #b660ff;
-  }
-
-  /*
-    El nombre en grande, cortado por abajo. Las letras son casi
-    transparentes y por dentro pasa el arcoíris de la barra, centrado en
-    --barra-centro (el mismo que mueve la barra con el ratón).
-  */
-  .pie__marca {
-    margin: clamp(24px, 4vw, 56px) 0 0;
-    padding-inline: var(--margen);
-    font-family: var(--romana);
-    font-weight: 700;
-    text-transform: uppercase;
-    font-size: clamp(40px, 12.2vw, 232px);
-    letter-spacing: -0.05em;
-    line-height: 0.74;
-    white-space: nowrap;
-    translate: 0 18%;
-    --c: var(--barra-centro, 26%);
-    color: transparent;
-    background: linear-gradient(
-      90deg,
-      rgb(255 255 255 / 0.06) calc(var(--c) - 30%),
-      rgb(24 198 212 / 0.55) calc(var(--c) - 20%),
-      rgb(123 47 208 / 0.55) calc(var(--c) - 6%),
-      rgb(217 43 106 / 0.55) calc(var(--c) + 4%),
-      rgb(232 224 48 / 0.5) calc(var(--c) + 16%),
-      rgb(255 255 255 / 0.06) calc(var(--c) + 28%)
-    );
-    background-clip: text;
-    -webkit-background-clip: text;
-    user-select: none;
   }
 
   @media (max-width: 600px) {
