@@ -428,11 +428,15 @@ const temas = biografia.map((b, k) => ({
     filter: var(--dispersion, none);
   }
 
-  /* Un brillo sutil en el canto, para que el negro no se pierda en el fondo. */
-  .sobre__cara::after {
+  /*
+    Un brillo sutil en el canto, para que el negro no se pierda en el fondo.
+    Va dentro del marco del fondo, por debajo de la persona: pintado en la
+    cara entera quedaba por encima y cruzaba la cabeza con una raya.
+  */
+  .sobre__marco::after {
     content: '';
     position: absolute;
-    inset: var(--asoma) 0 0;
+    inset: calc(15cqh + var(--asoma)) 0 0;
     border-radius: 4px;
     pointer-events: none;
     background: radial-gradient(ellipse at 50% 50%, transparent 58%, rgb(255 255 255 / 0.06) 100%);
