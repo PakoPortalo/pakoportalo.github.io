@@ -17,7 +17,7 @@ export const biografia: { tema: string; texto: string }[] = [
   {
     tema: 'Escenario',
     texto:
-      'Formado en música clásica con el violín y en jazz con la guitarra, ha pasado por multitud de estilos e instrumentos y ha dado conciertos por toda España, Francia, Inglaterra, Italia o Israel, entre otros países.',
+      'Formado en **música clásica** con el violín y en **jazz** con la guitarra, ha pasado por multitud de estilos e instrumentos y ha dado conciertos por toda **España**, **Francia**, **Inglaterra**, **Italia** o **Israel**, entre otros países.',
   },
 ];
 
