@@ -24,21 +24,59 @@ const {
   id,
 } = Astro.props;
 
-const letras = (texto: string) => Array.from(texto);
+/*
+  Cada frase, partida en palabras y cada palabra en letras. Las letras
+  ruedan una a una (por eso cada una es una caja con su número de orden),
+  y las palabras son bloques que no se parten: así, si la frase no cabe en
+  una línea, salta entre palabras y nunca a mitad de una.
+*/
+const palabras = (texto: string) => {
+  let i = 0;
+  return texto.split(' ').map((palabra) => Array.from(palabra).map((letra) => ({ letra, i: i++ })));
+};
+
+/** Un signo de cierre detrás de una vocal con tilde: el acento lo pisaría. */
+const pisaAcento = (palabra: { letra: string }[], k: number) =>
+  (palabra[k]?.letra === '!' || palabra[k]?.letra === '?') && /[áéíóú]/i.test(palabra[k - 1]?.letra ?? '');
 ---
 
-<section class="atajo" aria-label="Contacto" id={id}>
+<section class="atajo" aria-label="Contacto" id={id} data-atajo>
   <a class="atajo__enlace" href={destino} aria-label={`${pregunta} ${respuesta}`}>
     <span class="atajo__frases" aria-hidden="true">
       <span class="atajo__frase atajo__frase--pregunta">
-        {letras(pregunta).map((letra, i) => <span style={`--i: ${i}`}>{letra}</span>)}
+        {
+          palabras(pregunta).map((palabra, j, todas) => (
+            <>
+            <span class="atajo__palabra">
+              {palabra.map(({ letra, i }) => (
+                <span class="atajo__letra" style={`--i: ${i}`}>
+                  {letra}
+                </span>
+              ))}
+            </span>
+            {j < todas.length - 1 && ' '}
+            </>
+          ))
+        }
       </span>
       <span class="atajo__frase atajo__frase--respuesta">
-        {letras(respuesta).map((letra, i) => (
-          <span class:list={{ 'es-cierre': letra === '!' || letra === '?' }} style={`--i: ${i}`}>
-            {letra}
-          </span>
-        ))}
+        {
+          palabras(respuesta).map((palabra, j, todas) => (
+            <>
+            <span class="atajo__palabra">
+              {palabra.map(({ letra, i }, k) => (
+                <span
+                  class:list={['atajo__letra', { 'es-cierre': pisaAcento(palabra, k) }]}
+                  style={`--i: ${i}`}
+                >
+                  {letra}
+                </span>
+              ))}
+            </span>
+            {j < todas.length - 1 && ' '}
+            </>
+          ))
+        }
       </span>
     </span>
     <span class="atajo__flecha" aria-hidden="true">
@@ -63,7 +101,13 @@ const letras = (texto: string) => Array.from(texto);
     background: #f4f1ec;
     color: #050505;
     padding: clamp(26px, 3vw, 48px) max(24px, 5.5vw);
-    --verde: #5ff7c6;
+    /* El color de la respuesta: verde la primera vez que pasas el ratón,
+       morado la siguiente, y así. Lo alterna el script. */
+    --acento: #5ff7c6;
+  }
+
+  .atajo[data-tono='morado'] {
+    --acento: #b660ff;
   }
 
   .atajo__enlace {
@@ -78,11 +122,14 @@ const letras = (texto: string) => Array.from(texto);
   /* Las dos frases ocupan la misma celda: una se va por arriba mientras la
      otra entra por abajo. El recorte es de la línea, no de cada letra. */
   .atajo__frases {
-    flex: 1;
+    /* Puede encoger: si no, una frase larga empujaba el círculo fuera de la
+       pantalla por la derecha. */
+    flex: 1 1 0;
+    min-width: 0;
     display: grid;
     overflow: hidden;
     font-family: ClashDisplay, InstrumentSans, sans-serif;
-    font-size: clamp(36px, 6.6vw, 116px);
+    font-size: clamp(30px, 5vw, 96px);
     font-weight: 500;
     letter-spacing: -0.035em;
     line-height: 1.1;
@@ -90,7 +137,11 @@ const letras = (texto: string) => Array.from(texto);
 
   .atajo__frase {
     grid-area: 1 / 1;
-    white-space: pre;
+  }
+
+  .atajo__palabra {
+    display: inline-block;
+    white-space: nowrap;
   }
 
   /* La respuesta entra centrada: no sustituye a la pregunta en su sitio,
@@ -99,16 +150,18 @@ const letras = (texto: string) => Array.from(texto);
      la exclamación final se montaba sobre la í. */
   .atajo__frase--respuesta {
     justify-self: center;
+    text-align: center;
     letter-spacing: 0;
   }
 
-  /* El signo de cierre necesita aire propio: el acento de la í se sale de
-     su caja por la derecha y, con el trazo, se pisaban. */
+  /* Detrás de una vocal con tilde, el signo de cierre necesita aire propio:
+     el acento se sale de su caja por la derecha y, con el trazo, se
+     pisaban ("aquí!"). Detrás de cualquier otra letra no hace falta. */
   .atajo__frase--respuesta .es-cierre {
     margin-inline-start: 0.2em;
   }
 
-  .atajo__frase span {
+  .atajo__letra {
     display: inline-block;
     /* Escalonado: cada letra sale un poco después de la anterior, y así la
        frase rueda como un marcador en vez de saltar entera. */
@@ -118,22 +171,22 @@ const letras = (texto: string) => Array.from(texto);
   /* El verde neón sobre claro se lava y no se lee: lleva un trazo negro
      fino por fuera, que le da el contorno sin oscurecer el color. */
   .atajo__frase--respuesta {
-    color: var(--verde);
+    color: var(--acento);
     -webkit-text-stroke: 1.5px #050505;
     paint-order: stroke fill;
   }
 
-  .atajo__frase--respuesta span {
+  .atajo__frase--respuesta .atajo__letra {
     translate: 0 110%;
   }
 
-  .atajo__enlace:hover .atajo__frase--pregunta span,
-  .atajo__enlace:focus-visible .atajo__frase--pregunta span {
+  .atajo__enlace:hover .atajo__frase--pregunta .atajo__letra,
+  .atajo__enlace:focus-visible .atajo__frase--pregunta .atajo__letra {
     translate: 0 -110%;
   }
 
-  .atajo__enlace:hover .atajo__frase--respuesta span,
-  .atajo__enlace:focus-visible .atajo__frase--respuesta span {
+  .atajo__enlace:hover .atajo__frase--respuesta .atajo__letra,
+  .atajo__enlace:focus-visible .atajo__frase--respuesta .atajo__letra {
     translate: 0 0;
   }
 
@@ -159,8 +212,8 @@ const letras = (texto: string) => Array.from(texto);
 
   .atajo__enlace:hover .atajo__flecha,
   .atajo__enlace:focus-visible .atajo__flecha {
-    background: var(--verde);
-    border-color: var(--verde);
+    background: var(--acento);
+    border-color: var(--acento);
     color: #050505;
     rotate: 45deg;
   }
@@ -170,7 +223,7 @@ const letras = (texto: string) => Array.from(texto);
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .atajo__frase span,
+    .atajo__letra,
     .atajo__flecha {
       transition: none;
     }
@@ -191,3 +244,21 @@ const letras = (texto: string) => Array.from(texto);
     }
   }
 </style>
+
+<script>
+  /*
+    Verde, morado, verde… El tono se decide al entrar, no al salir: así la
+    respuesta sube ya con su color y se va con el mismo. Cada franja lleva
+    su propia cuenta.
+  */
+  document.querySelectorAll<HTMLElement>('[data-atajo]').forEach((franja) => {
+    const enlace = franja.querySelector<HTMLElement>('.atajo__enlace')!;
+    let veces = 0;
+    const alternar = () => {
+      franja.dataset.tono = veces % 2 === 0 ? 'verde' : 'morado';
+      veces += 1;
+    };
+    enlace.addEventListener('pointerenter', alternar);
+    enlace.addEventListener('focus', alternar);
+  });
+</script>
