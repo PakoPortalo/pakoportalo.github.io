@@ -112,9 +112,11 @@ const bloques = biografia.map((b) => ({
       <div class="sobre__tarjeta" data-tarjeta-foto>
         {
           caras.map((c, k) => (
-            <div class:list={['sobre__cara', k === 1 && 'sobre__cara--dorso']} data-cara={k}>
+            <div class:list={['sobre__cara', k === 0 ? 'sobre__cara--frente' : 'sobre__cara--dorso']} data-cara={k}>
               <div class="sobre__capas" data-capas={k} style={k === 0 ? `--onda: url(#${id}-onda)` : undefined}>
-                <img class="sobre__fondo" src={c.fondo} alt="" loading="lazy" decoding="async" width={c.ancho} height={c.alto} />
+                <div class="sobre__marco">
+                  <img class="sobre__fondo" src={c.fondo} alt="" loading="lazy" decoding="async" width={c.ancho} height={c.alto} />
+                </div>
                 <img class="sobre__persona" src={c.persona} alt={c.alt} loading="lazy" decoding="async" width={c.ancho} height={c.alto} />
               </div>
               {k === 0 && (
@@ -273,6 +275,8 @@ const bloques = biografia.map((b) => ({
   */
   .sobre__foto {
     position: relative;
+    /* Las medidas de dentro van en cqh, el alto de la foto. */
+    container-type: size;
     width: 100%;
     max-width: calc((100svh - 2 * var(--margen)) * 0.947);
     aspect-ratio: 950 / 1003;
@@ -292,6 +296,7 @@ const bloques = biografia.map((b) => ({
   .sobre__tarjeta {
     position: absolute;
     inset: 0;
+    --asoma: 9cqh;
     transform-style: preserve-3d;
     transform: rotateX(calc(var(--fy, 0) * -4deg)) rotateY(calc(var(--fx, 0) * 4deg + var(--vuelta, 0deg)));
   }
@@ -305,7 +310,43 @@ const bloques = biografia.map((b) => ({
     filter: var(--dispersion, none);
   }
 
+  /*
+    La cara de la guitarra: el marco empieza un poco más abajo (--asoma) y
+    la cabeza sale por encima de él. La cara recorta por los lados y por
+    abajo, pero no por arriba; el fondo va recortado aparte, en su marco.
+    Las capas suben 15cqh para que la máscara y la onda de la entrada
+    cubran también lo que asoma.
+  */
+  .sobre__cara--frente {
+    overflow: visible;
+    border-radius: 0;
+    clip-path: inset(-15cqh 0 0 0 round 0 0 4px 4px);
+  }
+
+  .sobre__cara--frente .sobre__capas {
+    inset: -15cqh 0 0;
+  }
+
+  .sobre__cara--frente .sobre__capas img {
+    inset: 15cqh 0 auto;
+    height: 100cqh;
+  }
+
+  .sobre__cara--frente .sobre__marco {
+    position: absolute;
+    inset: 0;
+    clip-path: inset(calc(15cqh + var(--asoma)) 0 0 0 round 4px);
+  }
+
+  .sobre__cara.sobre__cara--frente::after {
+    inset-block-start: var(--asoma);
+    border-radius: 4px;
+  }
+
+  /* La del violín tiene el pelo cortado en el original: no asoma, su marco
+     empieza a la misma altura que el de la guitarra. */
   .sobre__cara--dorso {
+    inset-block-start: var(--asoma);
     transform: rotateY(180deg);
   }
 
