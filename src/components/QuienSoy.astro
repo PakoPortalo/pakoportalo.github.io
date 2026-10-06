@@ -3,20 +3,20 @@
  * Quién soy.
  *
  * Cabe en una pantalla: la foto a la izquierda y, a la derecha, el nombre,
- * el rol y la biografía en tres bloques (Publicidad, Videojuegos,
- * Escenario) para leerla de un vistazo. Lo importante va resaltado; los
- * dos premios, en el color de su punto en Reconocimientos.
+ * el rol y la biografía como un índice: Publicidad, Videojuegos y
+ * Escenario en grande y apagados; al pasar el ratón (o al pulsar) se
+ * enciende uno en su color y su texto aparece al lado. Lo importante va
+ * resaltado; los dos premios, en el color de su punto en Reconocimientos.
  *
- * La foto es una tarjeta: al hacer clic se da la vuelta y enseña la del
- * violín. Cada cara va en dos capas (fondo y persona, separadas con
- * Vision) para un paralaje con el ratón, más un vaivén lento, una
- * dispersión de color mínima al moverse y un zoom lento al pasar por
- * encima.
+ * La foto va en dos capas (fondo y persona, separadas con Vision) para un
+ * paralaje con el ratón, más un vaivén lento, una dispersión de color
+ * mínima al moverse y un zoom lento al pasar por encima. La cabeza asoma
+ * por encima del marco.
  *
  * Entrada al aparecer en pantalla: el título enfoca como un cambio de foco
- * de cámara, el texto entra palabra a palabra desde la izquierda, y la
- * foto llega ondulada como humo y aparece desde el centro hacia afuera,
- * con la cara nítida antes que el resto.
+ * de cámara, el índice y el texto entran palabra a palabra desde la
+ * izquierda, y la foto llega ondulada como humo y aparece desde el centro
+ * hacia afuera, con la cara nítida antes que el resto.
  */
 import BarraColor from './BarraColor.astro';
 import { biografia, palabras } from '../data/sobre';
@@ -28,35 +28,24 @@ interface Props {
 const { id = 'sobre' } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
 
-/**
- * Las dos caras de la tarjeta. `cara` es dónde está la cara dentro de la
- * foto, en porcentaje: ahí la onda de entrada se resuelve antes.
- */
-const caras = [
-  {
-    fondo: `${base}sobre/pako-1-fondo.webp`,
-    persona: `${base}sobre/pako-1-persona.webp`,
-    alt: 'Pako Portalo tocando la guitarra en un concierto',
-    ancho: 950,
-    alto: 1003,
-    cara: { x: '61%', y: '17%' },
-  },
-  {
-    fondo: `${base}sobre/pako-2-fondo.webp`,
-    persona: `${base}sobre/pako-2-persona.webp`,
-    alt: 'Pako Portalo tocando el violín',
-    ancho: 512,
-    alto: 640,
-    cara: { x: '35%', y: '26%' },
-  },
-];
+const foto = {
+  fondo: `${base}sobre/pako-1-fondo.webp`,
+  persona: `${base}sobre/pako-1-persona.webp`,
+  alt: 'Pako Portalo tocando la guitarra en un concierto',
+  ancho: 950,
+  alto: 1003,
+  // Dónde está la cara dentro de la foto: ahí la onda de entrada se
+  // resuelve antes.
+  cara: { x: '61%', y: '17%' },
+};
 
-/* Las palabras de la biografía, con su tono y numeradas seguidas entre
-   bloques, para que entren una detrás de otra. */
-let w = 0;
-const bloques = biografia.map((b) => ({
+/** El color con el que se enciende cada tema del índice. */
+const colores = ['verde', 'morado', 'verde'] as const;
+
+const temas = biografia.map((b, k) => ({
   tema: b.tema,
-  palabras: palabras(b.texto).map((piezas) => ({ piezas, i: w++ })),
+  color: colores[k] ?? 'verde',
+  palabras: palabras(b.texto).map((piezas, i) => ({ piezas, i })),
 }));
 ---
 
@@ -96,41 +85,27 @@ const bloques = biografia.map((b) => ({
   </svg>
 
   <div class="sobre__rejilla">
-    <figure
-      class="sobre__foto"
-      data-figura
-      role="button"
-      tabindex="0"
-      aria-pressed="false"
-      aria-label="Dar la vuelta a la foto"
-    >
-      <div class="sobre__tarjeta" data-tarjeta-foto>
-        {
-          caras.map((c, k) => (
-            <div class:list={['sobre__cara', k === 0 ? 'sobre__cara--frente' : 'sobre__cara--dorso']} data-cara={k}>
-              <div class="sobre__capas" data-capas={k} style={k === 0 ? `--onda: url(#${id}-onda)` : undefined}>
-                <div class="sobre__marco">
-                  <img class="sobre__fondo" src={c.fondo} alt="" loading="lazy" decoding="async" width={c.ancho} height={c.alto} />
-                </div>
-                <img class="sobre__persona" src={c.persona} alt={c.alt} loading="lazy" decoding="async" width={c.ancho} height={c.alto} />
-              </div>
-              {k === 0 && (
-                <img
-                  class="sobre__nitida"
-                  src={c.persona}
-                  alt=""
-                  aria-hidden="true"
-                  loading="lazy"
-                  decoding="async"
-                  data-nitida
-                  style={`--cara-x: ${c.cara.x}; --cara-y: ${c.cara.y}`}
-                />
-              )}
+    <figure class="sobre__foto" data-figura>
+      <div class="sobre__tarjeta">
+        <div class="sobre__cara" data-cara>
+          <div class="sobre__capas" data-capas style={`--onda: url(#${id}-onda)`}>
+            <div class="sobre__marco">
+              <img class="sobre__fondo" src={foto.fondo} alt="" loading="lazy" decoding="async" width={foto.ancho} height={foto.alto} />
             </div>
-          ))
-        }
+            <img class="sobre__persona" src={foto.persona} alt={foto.alt} loading="lazy" decoding="async" width={foto.ancho} height={foto.alto} />
+          </div>
+          <img
+            class="sobre__nitida"
+            src={foto.persona}
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            decoding="async"
+            data-nitida
+            style={`--cara-x: ${foto.cara.x}; --cara-y: ${foto.cara.y}`}
+          />
+        </div>
       </div>
-      <span class="sobre__girar" aria-hidden="true">↻</span>
     </figure>
 
     <div class="sobre__texto">
@@ -141,23 +116,49 @@ const bloques = biografia.map((b) => ({
       </div>
 
       <div class="sobre__bio">
-        {
-          bloques.map((b) => (
-            <div class="sobre__bloque">
-              <h3 class="sobre__tema">{b.tema}</h3>
-              <p>
-                {b.palabras.map((p, j) => (
+        <div class="sobre__indice" role="tablist" aria-label="Trayectoria">
+          {
+            temas.map((t, k) => (
+              <button
+                class={`sobre__tema es-${t.color}`}
+                type="button"
+                role="tab"
+                id={`${id}-tema-${k}`}
+                aria-controls={`${id}-panel-${k}`}
+                aria-selected={k === 0 ? 'true' : 'false'}
+                tabindex={k === 0 ? 0 : -1}
+                data-tema={k}
+                style={`--i: ${k * 4}`}
+              >
+                {t.tema}
+              </button>
+            ))
+          }
+        </div>
+
+        <div class="sobre__paneles">
+          {
+            temas.map((t, k) => (
+              <p
+                class:list={['sobre__panel', k === 0 && 'abierto']}
+                role="tabpanel"
+                id={`${id}-panel-${k}`}
+                aria-labelledby={`${id}-tema-${k}`}
+                hidden={k !== 0}
+                data-panel={k}
+              >
+                {t.palabras.map((p) => (
                   <Fragment>
-                    {j > 0 && ' '}
+                    {p.i > 0 && ' '}
                     <span class="sobre__palabra" style={`--i: ${p.i}`}>
                       {p.piezas.map((pz) => (pz.tono ? <span class={`es-${pz.tono}`}>{pz.texto}</span> : pz.texto))}
                     </span>
                   </Fragment>
                 ))}
               </p>
-            </div>
-          ))
-        }
+            ))
+          }
+        </div>
       </div>
     </div>
   </div>
@@ -178,7 +179,6 @@ const bloques = biografia.map((b) => ({
     color: #f4f1ec;
     font-family: InstrumentSans, ui-sans-serif, system-ui, sans-serif;
     --margen: clamp(48px, 7svh, 88px);
-    --verde: #5ff7c6;
     --suave: cubic-bezier(0.16, 1, 0.3, 1);
   }
 
@@ -219,53 +219,111 @@ const bloques = biografia.map((b) => ({
     color: rgb(255 255 255 / 0.6);
   }
 
+  /* ── La biografía: un índice ──────────────────────────────── */
   .sobre__bio {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: clamp(20px, 2.4vw, 40px);
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: clamp(32px, 4vw, 64px);
+    align-items: start;
     margin-top: clamp(28px, 4svh, 48px);
-    padding-top: clamp(20px, 3svh, 32px);
+    padding-top: clamp(24px, 3.4svh, 32px);
     border-top: 1px solid rgb(255 255 255 / 0.12);
   }
 
-  .sobre__tema {
-    margin: 0 0 12px;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: rgb(255 255 255 / 0.8);
+  .sobre__indice {
+    display: grid;
+    justify-items: start;
+    gap: 4px;
   }
 
-  .sobre__bloque p {
+  .es-verde {
+    --c: color-mix(in oklab, #5ff7c6 75%, #8a8a8a);
+  }
+
+  .es-morado {
+    --c: color-mix(in oklab, #b660ff 75%, #8a8a8a);
+  }
+
+  .sobre__tema {
+    all: unset;
+    box-sizing: border-box;
+    cursor: pointer;
+    font-family: ClashDisplay, InstrumentSans, sans-serif;
+    font-size: clamp(30px, 2.8vw, 46px);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: rgb(255 255 255 / 0.18);
+    transition:
+      color 400ms ease,
+      translate 600ms var(--suave),
+      text-shadow 400ms ease;
+  }
+
+  .sobre__tema:hover {
+    color: rgb(255 255 255 / 0.45);
+  }
+
+  .sobre__tema[aria-selected='true'] {
+    color: var(--c);
+    translate: 12px 0;
+    text-shadow: 0 0 24px color-mix(in oklab, var(--c) 40%, transparent);
+  }
+
+  .sobre__tema:focus-visible {
+    outline: 1px solid var(--c);
+    outline-offset: 4px;
+  }
+
+  /* Los tres textos en la misma celda: el bloque mide lo que el más largo. */
+  .sobre__paneles {
+    display: grid;
+  }
+
+  .sobre__panel {
+    grid-area: 1 / 1;
     margin: 0;
-    font-size: clamp(14px, 1vw, 16px);
+    padding-top: 6px;
+    max-width: 62ch;
+    font-size: clamp(14px, 1.05vw, 17px);
     line-height: 1.6;
     color: rgb(255 255 255 / 0.5);
+  }
+
+  /* Ocultos pero midiendo, para que el bloque no salte al cambiar. */
+  .sobre__panel[hidden] {
+    display: block;
+    visibility: hidden;
   }
 
   .sobre__palabra {
     display: inline-block;
   }
 
-  .es-blanco {
+  .sobre__palabra .es-blanco {
     color: rgb(255 255 255 / 0.82);
   }
 
-  .es-verde {
-    color: color-mix(in oklab, #5ff7c6 75%, #8a8a8a);
+  .sobre__palabra :is(.es-verde, .es-morado) {
+    color: var(--c);
   }
 
-  .es-morado {
-    color: color-mix(in oklab, #b660ff 75%, #8a8a8a);
+  /* Al cambiar de tema, las palabras del nuevo entran desde la izquierda. */
+  .sobre__panel:not(.abierto) .sobre__palabra {
+    opacity: 0;
+    translate: -24px 0;
   }
 
-  /* ── La foto: una tarjeta que se da la vuelta ─────────────── */
+  .sobre__panel.abierto .sobre__palabra {
+    transition:
+      opacity 400ms ease calc(var(--retraso, 120ms) + var(--i) * 7ms),
+      translate 600ms var(--suave) calc(var(--retraso, 120ms) + var(--i) * 7ms);
+  }
+
+  /* ── La foto ──────────────────────────────────────────────── */
   /*
     El marco sigue al ratón (--fx, --fy, los pone el script) y crece un
-    pelo al pasar por encima, despacio. Dentro, la tarjeta gira 180° al
-    hacer clic. La dispersión va en cada cara y no en el marco: un filtro
-    en un antepasado aplanaría el giro en 3D.
+    pelo al pasar por encima, despacio. La dispersión va en la cara.
   */
   .sobre__foto {
     position: relative;
@@ -275,15 +333,12 @@ const bloques = biografia.map((b) => ({
     max-width: calc((100svh - 2 * var(--margen)) * 0.947);
     aspect-ratio: 950 / 1003;
     margin: 0;
-    cursor: pointer;
     perspective: 1400px;
     transform: translate(calc(var(--fx, 0) * 12px), calc(var(--fy, 0) * 12px));
     transition: scale 2400ms var(--suave);
-    outline: none;
   }
 
-  .sobre__foto:hover,
-  .sobre__foto:focus-visible {
+  .sobre__foto:hover {
     scale: 1.03;
   }
 
@@ -291,78 +346,37 @@ const bloques = biografia.map((b) => ({
     position: absolute;
     inset: 0;
     --asoma: 9cqh;
-    transform-style: preserve-3d;
-    transform: rotateX(calc(var(--fy, 0) * -4deg)) rotateY(calc(var(--fx, 0) * 4deg + var(--vuelta, 0deg)));
-  }
-
-  .sobre__cara {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    border-radius: 4px;
-    backface-visibility: hidden;
-    filter: var(--dispersion, none);
+    transform: rotateX(calc(var(--fy, 0) * -4deg)) rotateY(calc(var(--fx, 0) * 4deg));
   }
 
   /*
-    La cara de la guitarra: el marco empieza un poco más abajo (--asoma) y
-    la cabeza sale por encima de él. La cara recorta por los lados y por
-    abajo, pero no por arriba; el fondo va recortado aparte, en su marco.
-    Las capas suben 15cqh para que la máscara y la onda de la entrada
-    cubran también lo que asoma.
+    El marco empieza un poco más abajo (--asoma) y la cabeza sale por
+    encima de él. La cara recorta por los lados y por abajo, pero no por
+    arriba; el fondo va recortado aparte, en su marco. Las capas suben
+    15cqh para que la máscara y la onda de la entrada cubran también lo
+    que asoma.
   */
-  .sobre__cara--frente {
-    overflow: visible;
-    border-radius: 0;
-    clip-path: inset(-15cqh 0 0 0 round 0 0 4px 4px);
-  }
-
-  .sobre__cara--frente .sobre__capas {
-    inset: -15cqh 0 0;
-  }
-
-  .sobre__cara--frente .sobre__capas img {
-    inset: 15cqh 0 auto;
-    height: 100cqh;
-  }
-
-  .sobre__cara--frente .sobre__marco {
+  .sobre__cara {
     position: absolute;
     inset: 0;
-    clip-path: inset(calc(15cqh + var(--asoma)) 0 0 0 round 4px);
+    clip-path: inset(-15cqh 0 0 0 round 0 0 4px 4px);
+    filter: var(--dispersion, none);
   }
 
-  .sobre__cara.sobre__cara--frente::after {
-    inset-block-start: var(--asoma);
-    border-radius: 4px;
-  }
-
-  /* La del violín tiene el pelo cortado en el original: no asoma, su marco
-     empieza a la misma altura que el de la guitarra. */
-  .sobre__cara--dorso {
-    inset-block-start: var(--asoma);
-    transform: rotateY(180deg);
-  }
-
-  /* Luz o sombra en el canto: luz en la de fondo negro, sombra en la clara. */
+  /* Un brillo sutil en el canto, para que el negro no se pierda en el fondo. */
   .sobre__cara::after {
     content: '';
     position: absolute;
-    inset: 0;
-    border-radius: inherit;
+    inset: var(--asoma) 0 0;
+    border-radius: 4px;
     pointer-events: none;
     background: radial-gradient(ellipse at 50% 50%, transparent 58%, rgb(255 255 255 / 0.06) 100%);
     box-shadow: inset 0 0 48px rgb(255 255 255 / 0.05);
   }
 
-  .sobre__cara--dorso::after {
-    background: radial-gradient(ellipse at 50% 50%, transparent 55%, rgb(0 0 0 / 0.3) 100%);
-    box-shadow: inset 0 0 60px rgb(0 0 0 / 0.3);
-  }
-
   .sobre__capas {
     position: absolute;
-    inset: 0;
+    inset: -15cqh 0 0;
     transition: filter 2400ms var(--suave);
   }
 
@@ -370,20 +384,29 @@ const bloques = biografia.map((b) => ({
     filter: brightness(1.15);
   }
 
+  .sobre__marco {
+    position: absolute;
+    inset: 0;
+    clip-path: inset(calc(15cqh + var(--asoma)) 0 0 0 round 4px);
+  }
+
   .sobre__capas img,
   .sobre__nitida {
     position: absolute;
-    inset: 0;
     width: 100%;
-    height: 100%;
     display: block;
     object-fit: cover;
     scale: 1.07;
   }
 
-  /* La del violín es más alta que el marco: se recorta por abajo, no el pelo. */
-  .sobre__cara--dorso img {
-    object-position: 50% 10%;
+  .sobre__capas img {
+    inset: 15cqh 0 auto;
+    height: 100cqh;
+  }
+
+  .sobre__nitida {
+    inset: 0;
+    height: 100%;
   }
 
   .sobre__fondo {
@@ -400,34 +423,6 @@ const bloques = biografia.map((b) => ({
     opacity: 0;
     pointer-events: none;
     mask-image: radial-gradient(ellipse 34% 24% at var(--cara-x) var(--cara-y), #000 35%, transparent 100%);
-  }
-
-  /* El aviso de que se puede girar: un símbolo pequeño en la esquina. */
-  .sobre__girar {
-    position: absolute;
-    inset-block-end: 12px;
-    inset-inline-end: 12px;
-    display: grid;
-    place-items: center;
-    width: 32px;
-    aspect-ratio: 1;
-    border-radius: 50%;
-    background: rgb(5 5 5 / 0.55);
-    color: #f4f1ec;
-    font-size: 16px;
-    opacity: 0.7;
-    transform: translateZ(1px);
-    transition:
-      opacity 300ms ease,
-      background-color 300ms ease,
-      color 300ms ease;
-  }
-
-  .sobre__foto:hover .sobre__girar,
-  .sobre__foto:focus-visible .sobre__girar {
-    opacity: 1;
-    background: var(--verde);
-    color: #050505;
   }
 
   /* ══ Entrada ═══════════════════════════════════════════════
@@ -459,22 +454,28 @@ const bloques = biografia.map((b) => ({
     transition: letter-spacing 2000ms var(--suave);
   }
 
-  .sobre[data-anima] :is(.sobre__palabra, .sobre__tema) {
+  /* El índice y el primer texto entran después del título, en cascada. */
+  .sobre[data-anima]:not([data-dentro]) :is(.sobre__palabra, .sobre__tema) {
     opacity: 0;
     translate: -40px 0;
   }
 
-  .sobre[data-anima][data-dentro] :is(.sobre__palabra, .sobre__tema) {
-    opacity: 1;
-    translate: 0 0;
+  .sobre[data-anima][data-dentro]:not([data-listo]) .sobre__tema {
     transition:
-      opacity 500ms ease calc(600ms + var(--i, 0) * 9ms),
-      translate 700ms var(--suave) calc(600ms + var(--i, 0) * 9ms);
+      opacity 500ms ease calc(600ms + var(--i) * 30ms),
+      translate 700ms var(--suave) calc(600ms + var(--i) * 30ms),
+      color 400ms ease;
+  }
+
+  .sobre[data-anima][data-dentro]:not([data-listo]) .sobre__panel {
+    --retraso: 750ms;
   }
 
   @media (prefers-reduced-motion: reduce) {
     .sobre__foto,
-    .sobre__capas {
+    .sobre__capas,
+    .sobre__tema,
+    .sobre__panel.abierto .sobre__palabra {
       transition: none;
     }
   }
@@ -483,6 +484,16 @@ const bloques = biografia.map((b) => ({
     .sobre__rejilla,
     .sobre__bio {
       grid-template-columns: 1fr;
+    }
+
+    .sobre__indice {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 20px;
+    }
+
+    .sobre__tema[aria-selected='true'] {
+      translate: 0 0;
     }
 
     .sobre__foto {
@@ -498,30 +509,42 @@ const bloques = biografia.map((b) => ({
 
   document.querySelectorAll<HTMLElement>('[data-sobre]').forEach((seccion) => {
     const figura = seccion.querySelector<HTMLElement>('[data-figura]')!;
-    const tarjeta = seccion.querySelector<HTMLElement>('[data-tarjeta-foto]')!;
-    const caras = Array.from(seccion.querySelectorAll<HTMLElement>('[data-cara]'));
+    const cara = seccion.querySelector<HTMLElement>('[data-cara]')!;
 
-    // ── La vuelta de la tarjeta, con muelle ─────────────────
-    let vuelta = 0;
-    let vueltaDestino = 0;
-    let velocidadVuelta = 0;
+    // ── El índice ───────────────────────────────────────────
+    const temas = Array.from(seccion.querySelectorAll<HTMLElement>('[data-tema]'));
+    const paneles = Array.from(seccion.querySelectorAll<HTMLElement>('[data-panel]'));
+    let actual = 0;
 
-    const voltear = () => {
-      vueltaDestino = vueltaDestino === 0 ? 180 : 0;
-      figura.setAttribute('aria-pressed', String(vueltaDestino === 180));
-      if (reducido) tarjeta.style.setProperty('--vuelta', `${vueltaDestino}deg`);
-      else arrancar();
+    const elegir = (k: number) => {
+      if (k === actual) return;
+      actual = k;
+      temas.forEach((t, j) => {
+        t.setAttribute('aria-selected', String(j === k));
+        t.tabIndex = j === k ? 0 : -1;
+      });
+      paneles.forEach((p, j) => {
+        p.hidden = j !== k;
+        p.classList.toggle('abierto', j === k);
+      });
     };
-    figura.addEventListener('click', voltear);
-    figura.addEventListener('keydown', (evento) => {
-      if (evento.key === 'Enter' || evento.key === ' ') {
+
+    temas.forEach((t, k) => {
+      t.addEventListener('click', () => elegir(k));
+      if (conRaton) t.addEventListener('pointerenter', () => elegir(k));
+      // Con el teclado, las flechas pasan de un tema a otro.
+      t.addEventListener('keydown', (evento) => {
+        const paso = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[evento.key];
+        if (!paso) return;
         evento.preventDefault();
-        voltear();
-      }
+        const siguiente = (k + paso + temas.length) % temas.length;
+        elegir(siguiente);
+        temas[siguiente]!.focus();
+      });
     });
 
     // ── Entrada al aparecer en pantalla ─────────────────────
-    const capas = seccion.querySelector<HTMLElement>('[data-capas="0"]')!;
+    const capas = seccion.querySelector<HTMLElement>('[data-capas]')!;
     const nitida = seccion.querySelector<HTMLElement>('[data-nitida]')!;
     const turbulencia = seccion.querySelector<SVGElement>('[data-turbulencia]')!;
     const desplazamiento = seccion.querySelector<SVGElement>('[data-desplazamiento]')!;
@@ -530,6 +553,7 @@ const bloques = biografia.map((b) => ({
     const MAXIMO = 160;
     const DURA = 3000;
     let ondaBucle = 0;
+    let listo = 0;
 
     /*
       La aparición concéntrica: una máscara radial que se abre desde el
@@ -584,8 +608,12 @@ const bloques = biografia.map((b) => ({
           if (e.intersectionRatio >= 0.35 && !seccion.hasAttribute('data-dentro')) {
             seccion.setAttribute('data-dentro', '');
             lanzarOnda(200);
+            // Acabada la cascada de entrada, cambiar de tema va rápido.
+            listo = window.setTimeout(() => seccion.setAttribute('data-listo', ''), 2200);
           } else if (!e.isIntersecting && seccion.hasAttribute('data-dentro')) {
             seccion.removeAttribute('data-dentro');
+            seccion.removeAttribute('data-listo');
+            clearTimeout(listo);
             reiniciarOnda();
           }
         },
@@ -614,58 +642,41 @@ const bloques = biografia.map((b) => ({
     let bucle = 0;
     let anterior = 0;
 
-    function arrancar() {
-      if (bucle) return;
-      anterior = 0;
-      bucle = requestAnimationFrame(paso);
-    }
-
-    function paso(ahora: number) {
+    const paso = (ahora: number) => {
       const dt = anterior ? limitar((ahora - anterior) / 16.67, 0, 2.5) : 1;
       anterior = ahora;
 
-      // La vuelta: un muelle que se pasa un poco y se asienta.
-      velocidadVuelta += (vueltaDestino - vuelta) * 0.06 * dt;
-      velocidadVuelta *= Math.pow(0.8, dt);
-      vuelta += velocidadVuelta * dt;
-      tarjeta.style.setProperty('--vuelta', `${vuelta.toFixed(2)}deg`);
-      const girando = Math.abs(vueltaDestino - vuelta) > 0.05 || Math.abs(velocidadVuelta) > 0.05;
+      // El vaivén: la foto respira aunque el ratón esté quieto.
+      const vaivenX = Math.sin(ahora / 2600) * 0.35;
+      const vaivenY = Math.sin(ahora / 3400 + 1) * 0.3;
+      x += (destinoX + vaivenX - x) * (1 - Math.pow(0.92, dt));
+      y += (destinoY + vaivenY - y) * (1 - Math.pow(0.92, dt));
+      figura.style.setProperty('--fx', x.toFixed(3));
+      figura.style.setProperty('--fy', y.toFixed(3));
 
-      if (!reducido && conRaton && visible) {
-        // El vaivén: la foto respira aunque el ratón esté quieto.
-        const vaivenX = Math.sin(ahora / 2600) * 0.35;
-        const vaivenY = Math.sin(ahora / 3400 + 1) * 0.3;
-        x += (destinoX + vaivenX - x) * (1 - Math.pow(0.92, dt));
-        y += (destinoY + vaivenY - y) * (1 - Math.pow(0.92, dt));
-        figura.style.setProperty('--fx', x.toFixed(3));
-        figura.style.setProperty('--fy', y.toFixed(3));
-
-        velX = velX * Math.pow(0.88, dt) + movX * 0.12;
-        velY = velY * Math.pow(0.88, dt) + movY * 0.12;
-        movX = 0;
-        movY = 0;
-        const dx = limitar(velX * 0.07, -DISPERSION, DISPERSION);
-        const dy = limitar(velY * 0.07, -DISPERSION, DISPERSION);
-        const activa = Math.hypot(dx, dy) > 0.05;
-        if (activa) {
-          rojo.setAttribute('dx', dx.toFixed(2));
-          rojo.setAttribute('dy', dy.toFixed(2));
-          azul.setAttribute('dx', (-dx).toFixed(2));
-          azul.setAttribute('dy', (-dy).toFixed(2));
-        }
-        if (activa !== dispersando) {
-          dispersando = activa;
-          caras.forEach((cara) =>
-            activa
-              ? cara.style.setProperty('--dispersion', filtroDispersion)
-              : cara.style.removeProperty('--dispersion'),
-          );
-        }
+      velX = velX * Math.pow(0.88, dt) + movX * 0.12;
+      velY = velY * Math.pow(0.88, dt) + movY * 0.12;
+      movX = 0;
+      movY = 0;
+      const dx = limitar(velX * 0.07, -DISPERSION, DISPERSION);
+      const dy = limitar(velY * 0.07, -DISPERSION, DISPERSION);
+      const activa = Math.hypot(dx, dy) > 0.05;
+      if (activa) {
+        rojo.setAttribute('dx', dx.toFixed(2));
+        rojo.setAttribute('dy', dy.toFixed(2));
+        azul.setAttribute('dx', (-dx).toFixed(2));
+        azul.setAttribute('dy', (-dy).toFixed(2));
+      }
+      if (activa !== dispersando) {
+        dispersando = activa;
+        if (activa) cara.style.setProperty('--dispersion', filtroDispersion);
+        else cara.style.removeProperty('--dispersion');
       }
 
-      const sigue = (visible && conRaton && !reducido) || girando;
-      bucle = sigue ? requestAnimationFrame(paso) : 0;
-    }
+      bucle = visible ? requestAnimationFrame(paso) : 0;
+    };
+
+    if (reducido || !conRaton) return;
 
     // Solo responde al ratón dentro del módulo; al salir, vuelve al centro.
     seccion.addEventListener('pointerleave', () => {
@@ -689,7 +700,10 @@ const bloques = biografia.map((b) => ({
 
     new IntersectionObserver(([e]) => {
       visible = Boolean(e?.isIntersecting);
-      if (visible) arrancar();
+      if (visible && !bucle) {
+        anterior = 0;
+        bucle = requestAnimationFrame(paso);
+      }
     }).observe(seccion);
   });
 </script>
