@@ -156,6 +156,11 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     box-shadow: 0 -34px 80px -12px rgb(0 0 0 / 0.92);
     /* 0 cuando el módulo asoma por abajo, 1 cuando ya está colocado. */
     --entrada: 1;
+    /* La dispersión en reposo. Va aquí, en la sección, que es donde la
+       cambia el script: declarada más abajo, en el contenido, tapaba la
+       del script y el efecto no se movía nunca. */
+    --dx: 0.6;
+    --dy: 0;
     --gutter: max(24px, 5.5vw);
     /* Poco aire: es una franja de apoyo, no una pantalla. */
     padding: clamp(56px, 6vw, 104px) var(--gutter) clamp(88px, 9vw, 160px);
@@ -202,11 +207,9 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     Los rótulos de sección se quedan limpios.
   */
   .creds__contenido {
-    --dx: 0.35;
-    --dy: 0;
     text-shadow:
-      calc(var(--dx) * 1px) calc(var(--dy) * 1px) rgb(255 40 90 / 0.55),
-      calc(var(--dx) * -1px) calc(var(--dy) * -1px) rgb(0 225 255 / 0.55);
+      calc(var(--dx) * 1px) calc(var(--dy) * 1px) rgb(255 40 90 / 0.65),
+      calc(var(--dx) * -1px) calc(var(--dy) * -1px) rgb(0 225 255 / 0.65);
   }
 
   .creds__titulo {
@@ -214,8 +217,8 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
   }
 
   .creds__clientes img {
-    --dispersion: drop-shadow(calc(var(--dx) * 1px) calc(var(--dy) * 1px) rgb(255 40 90 / 0.55))
-      drop-shadow(calc(var(--dx) * -1px) calc(var(--dy) * -1px) rgb(0 225 255 / 0.55));
+    --dispersion: drop-shadow(calc(var(--dx) * 1px) calc(var(--dy) * 1px) rgb(255 40 90 / 0.65))
+      drop-shadow(calc(var(--dx) * -1px) calc(var(--dy) * -1px) rgb(0 225 255 / 0.65));
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -527,9 +530,9 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
 
     // ── 3 · La dispersión ─────────────────────────────────────
     /** Separación en reposo, en píxeles: siempre hay un pelo de color. */
-    const REPOSO = 0.35;
+    const REPOSO = 0.6;
     /** Cuánto se abre como mucho con el ratón, en píxeles. */
-    const MAXIMA = 3;
+    const MAXIMA = 5;
     let velX = 0;
     let velY = 0;
     let movX = 0;
@@ -555,8 +558,8 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
       velY = velY * Math.pow(0.88, dt) + movY * 0.12;
       movX = 0;
       movY = 0;
-      const dx = REPOSO + limitar(velX * 0.25, -MAXIMA, MAXIMA);
-      const dy = limitar(velY * 0.25, -MAXIMA, MAXIMA);
+      const dx = REPOSO + limitar(velX * 0.4, -MAXIMA, MAXIMA);
+      const dy = limitar(velY * 0.4, -MAXIMA, MAXIMA);
       seccion.style.setProperty('--dx', dx.toFixed(2));
       seccion.style.setProperty('--dy', dy.toFixed(2));
 
