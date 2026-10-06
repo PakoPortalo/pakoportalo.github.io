@@ -174,12 +174,41 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     fondo se quede quieto; escalando la sección, el propio fondo crecería y
     se vería el borde moverse.
   */
+  /*
+    Tres movimientos en una sola transformación:
+    - la entrada: llega ampliado y se va colocando hasta un tamaño final
+      algo mayor que el natural (--final);
+    - el ratón: se desplaza hacia él (--mx, --my, en píxeles) y se inclina
+      un poco (--rx, --ry, en grados), como la escena del hero;
+    - el glitch: un tirón lateral muy corto (--gx), solo durante el destello.
+    El origen va al centro: el zoom termina con el módulo centrado en la
+    pantalla, y desde ahí es desde donde tiene que crecer.
+  */
   .creds__contenido {
     position: relative;
     z-index: 1;
-    transform: scale(calc(1 + var(--zoom, 0.5) * (1 - var(--entrada))));
-    transform-origin: 50% 0;
+    transform: perspective(1400px) translate(calc(var(--mx, 0) * 1px + var(--gx, 0px)), calc(var(--my, 0) * 1px))
+      rotateX(calc(var(--rx, 0) * 1deg)) rotateY(calc(var(--ry, 0) * 1deg))
+      scale(calc(var(--final, 1.06) + var(--zoom, 0.5) * (1 - var(--entrada))));
+    transform-origin: 50% 50%;
     will-change: transform;
+  }
+
+  /*
+    El glitch: el color se separa en rojo y cian durante un instante, en el
+    texto y en los logotipos. Sin transiciones mientras dura, o el destello
+    se emborronaría con las del hover.
+  */
+  .creds[data-glitch] .creds__contenido {
+    text-shadow:
+      calc(var(--gs, 2) * 1px) 0 rgb(255 40 90 / 0.65),
+      calc(var(--gs, 2) * -1px) 0 rgb(0 225 255 / 0.65);
+  }
+
+  .creds[data-glitch] .creds__clientes img {
+    transition: none;
+    filter: brightness(0) invert(1) drop-shadow(calc(var(--gs, 2) * 1px) 0 rgb(255 40 90 / 0.7))
+      drop-shadow(calc(var(--gs, 2) * -1px) 0 rgb(0 225 255 / 0.7));
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -426,41 +455,123 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
 </style>
 
 <script>
+  const limitar = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+
   /**
-   * Da la sensación de que el módulo llega de frente.
+   * El módulo de credenciales se mueve en tres capas, todas sobre variables
+   * que lee el CSS:
    *
-   * Se escribe una variable con lo colocado que está y de ahí tira el CSS.
-   * Va en requestAnimationFrame porque el scroll se dispara muchas más veces
-   * de las que hay fotogramas.
+   * 1. La entrada. De 0 con el canto de arriba en el borde de abajo de la
+   *    pantalla a 1 cuando el CENTRO del módulo llega al centro de la
+   *    pantalla. Antes acababa al tocar arriba, y el zoom seguía corriendo
+   *    con el módulo ya pasado de su sitio.
+   * 2. El ratón. Como la escena del hero: el contenido se desplaza hacia
+   *    él y se inclina un poco, con retraso.
+   * 3. El glitch. Un destello corto de vez en cuando, y alguno más si el
+   *    ratón se mueve rápido. Poco: es un guiño, no un efecto.
    */
+  const quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const conRaton = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
   document.querySelectorAll<HTMLElement>('.creds').forEach((seccion) => {
-    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      let pedido = false;
+    if (quieto) return;
 
-      const actualizar = () => {
-        pedido = false;
-        const alto = Math.max(window.innerHeight, 1);
-        const arriba = seccion.getBoundingClientRect().top;
-        // 0 con el canto del módulo en el borde de abajo, 1 al llegar al de arriba.
-        const avance = Math.min(Math.max((alto - arriba) / alto, 0), 1);
-        seccion.style.setProperty('--entrada', avance.toFixed(4));
-      };
+    // ?zoom=0.7 en la URL para probar cuánto conviene sin tocar el código.
+    const pedidoZoom = Number(new URLSearchParams(location.search).get('zoom'));
+    if (Number.isFinite(pedidoZoom) && pedidoZoom > 0 && pedidoZoom <= 1.5) {
+      seccion.style.setProperty('--zoom', String(pedidoZoom));
+    }
 
-      // ?zoom=0.7 en la URL para probar cuánto conviene sin tocar el código.
-      const pedidoZoom = Number(new URLSearchParams(location.search).get('zoom'));
-      if (Number.isFinite(pedidoZoom) && pedidoZoom > 0 && pedidoZoom <= 1.5) {
-        seccion.style.setProperty('--zoom', String(pedidoZoom));
+    // ── 1 · La entrada ────────────────────────────────────────
+    let pedido = false;
+    const entrar = () => {
+      pedido = false;
+      const alto = Math.max(window.innerHeight, 1);
+      const caja = seccion.getBoundingClientRect();
+      const final = alto / 2 - caja.height / 2;
+      const avance = limitar((alto - caja.top) / Math.max(alto - final, 1), 0, 1);
+      seccion.style.setProperty('--entrada', avance.toFixed(4));
+    };
+    const alHacerScroll = () => {
+      if (pedido) return;
+      pedido = true;
+      requestAnimationFrame(entrar);
+    };
+    window.addEventListener('scroll', alHacerScroll, { passive: true });
+    window.addEventListener('resize', alHacerScroll, { passive: true });
+    entrar();
+
+    if (!conRaton) return;
+
+    // ── 2 · El ratón ──────────────────────────────────────────
+    /** Cuánto se desplaza como mucho, en píxeles, y cuánto se inclina, en grados. */
+    const DESPLAZA = 14;
+    const INCLINA = 2.5;
+    let destinoX = 0;
+    let destinoY = 0;
+    let x = 0;
+    let y = 0;
+    let visible = false;
+    let bucle = 0;
+    let anterior = 0;
+
+    // ── 3 · El glitch ─────────────────────────────────────────
+    let glitchHasta = 0;
+    let proximoGlitch = performance.now() + 2500 + Math.random() * 3000;
+    const glitch = (ahora: number, fuerza: number) => {
+      glitchHasta = ahora + 70 + Math.random() * 90;
+      seccion.style.setProperty('--gs', (1.5 + fuerza * 2).toFixed(1));
+      seccion.style.setProperty('--gx', `${((Math.random() - 0.5) * 6 * (0.5 + fuerza)).toFixed(1)}px`);
+      seccion.setAttribute('data-glitch', '');
+    };
+
+    const paso = (ahora: number) => {
+      const dt = anterior ? limitar((ahora - anterior) / 16.67, 0, 2.5) : 1;
+      anterior = ahora;
+      x += (destinoX - x) * (1 - Math.pow(0.92, dt));
+      y += (destinoY - y) * (1 - Math.pow(0.92, dt));
+      seccion.style.setProperty('--mx', (x * DESPLAZA).toFixed(2));
+      seccion.style.setProperty('--my', (y * DESPLAZA).toFixed(2));
+      seccion.style.setProperty('--ry', (x * INCLINA).toFixed(3));
+      seccion.style.setProperty('--rx', (-y * INCLINA).toFixed(3));
+
+      if (glitchHasta && ahora > glitchHasta) {
+        glitchHasta = 0;
+        seccion.removeAttribute('data-glitch');
+        seccion.style.setProperty('--gx', '0px');
+      } else if (!glitchHasta && ahora > proximoGlitch) {
+        glitch(ahora, 0);
+        // A veces, un segundo destello pegado al primero: así parece un
+        // fallo de señal y no un parpadeo programado.
+        proximoGlitch = ahora + (Math.random() < 0.3 ? 220 : 3500 + Math.random() * 4500);
       }
 
-      const alHacerScroll = () => {
-        if (pedido) return;
-        pedido = true;
-        requestAnimationFrame(actualizar);
-      };
+      bucle = visible ? requestAnimationFrame(paso) : 0;
+    };
 
-      window.addEventListener('scroll', alHacerScroll, { passive: true });
-      window.addEventListener('resize', alHacerScroll, { passive: true });
-      actualizar();
-    }
+    let ultimo = { x: 0, y: 0, t: 0 };
+    window.addEventListener(
+      'pointermove',
+      (evento) => {
+        if (!visible) return;
+        destinoX = (evento.clientX / window.innerWidth - 0.5) * 2;
+        destinoY = (evento.clientY / window.innerHeight - 0.5) * 2;
+        // Un tirón rápido del ratón también hace saltar la señal, a veces.
+        const ahora = performance.now();
+        const velocidad = Math.hypot(evento.clientX - ultimo.x, evento.clientY - ultimo.y) / Math.max(ahora - ultimo.t, 1);
+        ultimo = { x: evento.clientX, y: evento.clientY, t: ahora };
+        if (velocidad > 3 && !glitchHasta && Math.random() < 0.15) glitch(ahora, 1);
+      },
+      { passive: true },
+    );
+
+    // Solo se anima mientras se ve.
+    new IntersectionObserver(([entrada]) => {
+      visible = Boolean(entrada?.isIntersecting);
+      if (visible && !bucle) {
+        anterior = 0;
+        bucle = requestAnimationFrame(paso);
+      }
+    }).observe(seccion);
   });
 </script>
