@@ -56,20 +56,40 @@ import MarcasCierre from './MarcasCierre.astro';
 const orbitas =
   marcas === 'orbitas3'
     ? [
-        { r: 104, color: 'gris', segundos: 22, sentido: 1 },
-        { r: 156, color: 'verde', segundos: 38, sentido: 1 },
-        { r: 214, color: 'morado', segundos: 30, sentido: -1 },
+        { r: 98, color: 'gris', segundos: 22, sentido: 1, punto: 3.5 },
+        { r: 154, color: 'verde', segundos: 38, sentido: 1, punto: 5.5 },
+        { r: 210, color: 'morado', segundos: 30, sentido: -1, punto: 7.5 },
       ]
     : marcas === 'orbitas2'
       ? [
-          { r: 132, color: 'verde', segundos: 34, sentido: 1 },
-          { r: 204, color: 'morado', segundos: 26, sentido: -1 },
+          { r: 126, color: 'verde', segundos: 34, sentido: 1, punto: 5 },
+          { r: 210, color: 'morado', segundos: 26, sentido: -1, punto: 7.5 },
         ]
       : null;
 ---
 
 <section class:list={['atajo', texto && 'atajo--cierre', orbitas && 'atajo--orbitas']} aria-label="Contacto" id={id} data-atajo>
   {marcas && !orbitas && <MarcasCierre version={marcas} />}
+  {
+    orbitas && (
+      <div class="atajo__orbitas" aria-hidden="true">
+        <svg viewBox="-260 -260 520 520">
+          {Array.from({ length: 7 }, (_, k) => (
+            <circle class="atajo__anillo" r={70 + k * 28} />
+          ))}
+          {orbitas.map((o) => (
+            <g
+              class={`atajo__orbita atajo__orbita--${o.color}`}
+              style={`--segundos: ${o.segundos}s; --sentido: ${o.sentido === 1 ? 'normal' : 'reverse'}`}
+            >
+              <circle r={o.r} class="atajo__rastro" />
+              <circle cx={o.r} cy="0" r={o.punto} class="atajo__satelite" />
+            </g>
+          ))}
+        </svg>
+      </div>
+    )
+  }
   <a class="atajo__enlace" href={destino} aria-label={`${pregunta} ${respuesta}`} data-tarjeta>
     <span class="atajo__frases" aria-hidden="true">
       <span class="atajo__frase atajo__frase--pregunta">
@@ -108,30 +128,10 @@ const orbitas =
         }
       </span>
     </span>
-    <span class="atajo__ancla">
-      {
-        orbitas && (
-          <svg class="atajo__orbitas" viewBox="-260 -260 520 520" aria-hidden="true">
-            {Array.from({ length: 7 }, (_, k) => (
-              <circle class="atajo__anillo" r={70 + k * 28} />
-            ))}
-            {orbitas.map((o) => (
-              <g
-                class={`atajo__orbita atajo__orbita--${o.color}`}
-                style={`--segundos: ${o.segundos}s; --sentido: ${o.sentido === 1 ? 'normal' : 'reverse'}`}
-              >
-                <circle r={o.r} class="atajo__rastro" />
-                <circle cx={o.r} cy="0" r="5" class="atajo__satelite" />
-              </g>
-            ))}
-          </svg>
-        )
-      }
-      <span class="atajo__flecha" aria-hidden="true">
+    <span class="atajo__flecha" aria-hidden="true">
       <svg viewBox="0 0 24 24" width="24" height="24">
         <path d="M7 17 17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
       </svg>
-    </span>
     </span>
   </a>
   <p class="atajo__movil" aria-hidden="true">{respuesta}</p>
@@ -200,27 +200,52 @@ const orbitas =
   }
 
   /* ── Órbitas alrededor de la flecha ───────────────────────── */
-  .atajo__ancla {
-    position: relative;
-    flex: none;
-    display: grid;
-    place-items: center;
+  /*
+    La flecha se coloca a mano en el centro vertical de la franja y en el
+    margen derecho, y la capa de órbitas usa ese mismo punto como centro.
+    La capa ocupa toda la franja y recorta lo que se sale, así los anillos
+    no invaden el módulo de arriba ni crean scroll.
+  */
+  .atajo--orbitas {
+    --flecha: clamp(56px, 6vw, 96px);
+    --margen: max(24px, 5.5vw);
   }
 
-  .atajo--orbitas {
-    /* Los anillos se salen por la derecha: se recortan sin crear scroll. */
-    overflow-x: clip;
+  .atajo--orbitas .atajo__enlace {
+    position: static;
+    padding-inline-end: calc(var(--flecha) + 32px);
+  }
+
+  .atajo--orbitas .atajo__frases {
+    position: relative;
+    z-index: 1;
+  }
+
+  .atajo--orbitas .atajo__flecha {
+    position: absolute;
+    z-index: 1;
+    inset-block-start: 50%;
+    inset-inline-end: var(--margen);
+    width: var(--flecha);
+    translate: 0 -50%;
   }
 
   .atajo__orbitas {
     position: absolute;
-    inset-block-start: 50%;
-    inset-inline-start: 50%;
-    width: 520px;
-    height: 520px;
-    translate: -50% -50%;
-    overflow: visible;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
     pointer-events: none;
+  }
+
+  .atajo__orbitas svg {
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-end: calc(var(--margen) + var(--flecha) / 2);
+    width: min(520px, 100svh);
+    height: min(520px, 100svh);
+    translate: 50% -50%;
+    overflow: visible;
     fill: none;
   }
 
@@ -233,13 +258,16 @@ const orbitas =
     animation: orbita var(--segundos) linear infinite var(--sentido);
   }
 
+  /* La órbita es el propio anillo, en línea continua y teñida del color de
+     su punto: el punto va montado sobre la línea, no al lado. */
   .atajo__rastro {
-    stroke-width: 1.6;
-    stroke-dasharray: 2 8;
+    stroke: var(--c);
+    stroke-width: 1;
+    opacity: 0.45;
   }
 
   .atajo__orbita--gris {
-    --c: rgb(5 5 5 / 0.32);
+    --c: rgb(5 5 5 / 0.45);
   }
 
   .atajo__orbita--verde {
@@ -248,10 +276,6 @@ const orbitas =
 
   .atajo__orbita--morado {
     --c: color-mix(in oklab, #b660ff 75%, #6b6b6b);
-  }
-
-  .atajo__orbita .atajo__rastro {
-    stroke: var(--c);
   }
 
   .atajo__satelite {
@@ -268,6 +292,19 @@ const orbitas =
     .atajo__orbita {
       animation: none;
     }
+  }
+
+  /* En el cierre, la respuesta se alinea a la izquierda como la pregunta y
+     el texto: centrada rompía la columna. */
+  .atajo--cierre .atajo__frase--respuesta {
+    justify-self: start;
+    text-align: start;
+  }
+
+  /* Y crece desde su arranque, no desde el centro: así no se sale por la
+     izquierda de la columna. */
+  .atajo--cierre .atajo__frases {
+    transform-origin: 0 50%;
   }
 
   .atajo__texto {
@@ -295,7 +332,11 @@ const orbitas =
     flex: 1 1 0;
     min-width: 0;
     display: grid;
-    overflow: hidden;
+    /* Solo se recorta en vertical, que es lo que necesita el rodar de las
+       letras: en horizontal, al crecer o seguir al ratón, cortaba el
+       principio y el final de la frase. */
+    overflow-x: visible;
+    overflow-y: clip;
     font-family: ClashDisplay, InstrumentSans, sans-serif;
     font-size: clamp(30px, 5vw, 96px);
     /* Crecen un pelín más que la franja, para que se lea como que se
