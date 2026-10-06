@@ -1,0 +1,65 @@
+---
+/**
+ * Página de trabajo: cuatro desplegables para Publicidad, Videojuegos y
+ * Escenario en "Quién soy". No está enlazada; cuando elijamos, se borra.
+ */
+import QuienSoyDesplegable from '../components/QuienSoyDesplegable.astro';
+import '../styles/global.css';
+
+const ideas = [
+  { variante: 'acordeon', nombre: 'Acordeón', nota: 'Tres filas con lo destacado de cada una a la vista. Al abrir una se cierra la otra; pulsar la abierta la cierra.' },
+  { variante: 'pestanas', nombre: 'Pestañas', nota: 'Tres pestañas con una raya de neón que se desliza a la elegida. El texto cambia en el mismo sitio.' },
+  { variante: 'columnas', nombre: 'Columnas que se ensanchan', nota: 'Las tres columnas de ahora: al pasar el ratón, la elegida se abre y las otras se quedan en título y destacados.' },
+  { variante: 'indice', nombre: 'Índice', nota: 'Los tres temas en grande, apagados; al pasar el ratón se enciende uno en su color y su texto aparece al lado.' },
+] as const;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Quién soy — desplegables</title>
+    <style is:global>
+      body {
+        margin: 0;
+        background: #050505;
+        color: #f4f1ec;
+        font-family: InstrumentSans, ui-sans-serif, system-ui, sans-serif;
+      }
+      .rotulo {
+        display: grid;
+        gap: 6px;
+        margin: 0;
+        padding: 64px max(16px, 5.5vw) 0;
+        border-top: 1px solid rgb(255 255 255 / 0.1);
+      }
+      .rotulo strong {
+        font-family: ClashDisplay, InstrumentSans, sans-serif;
+        font-size: 26px;
+        font-weight: 500;
+      }
+      .rotulo span {
+        max-width: 70ch;
+        font-size: 14px;
+        color: rgb(255 255 255 / 0.55);
+      }
+    </style>
+  </head>
+  <body>
+    {
+      ideas.map((idea, i) => (
+        <Fragment>
+          <p class="rotulo">
+            <strong>
+              {i + 1} · {idea.nombre}
+            </strong>
+            <span>{idea.nota}</span>
+          </p>
+          <QuienSoyDesplegable variante={idea.variante} />
+        </Fragment>
+      ))
+    }
+  </body>
+</html>

@@ -29,3 +29,26 @@ export const trozos = (texto: string) =>
     texto: m[1] ?? m[3] ?? m[4] ?? '',
     tono: (m[1] ? 'blanco' : m[2]) as Tono,
   }));
+
+/**
+ * El texto partido en palabras para animarlas una a una. Cada palabra es
+ * una lista de piezas con su tono: así la puntuación pegada a un
+ * resaltado ("Red Bull.") va en la misma palabra y no salta de línea sola.
+ */
+export const palabras = (texto: string) => {
+  const grupos: { texto: string; tono: Tono }[][] = [];
+  let nueva = true;
+  for (const t of trozos(texto)) {
+    for (const parte of t.texto.split(/(\s+)/)) {
+      if (parte === '') continue;
+      if (/^\s+$/.test(parte)) {
+        nueva = true;
+        continue;
+      }
+      if (nueva) grupos.push([]);
+      grupos[grupos.length - 1]!.push({ texto: parte, tono: t.tono });
+      nueva = false;
+    }
+  }
+  return grupos;
+};
