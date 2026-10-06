@@ -185,12 +185,15 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     El papel del frente: el grano sacado de una foto de papel de verdad
     (solo el relieve, sin el viñeteado), en "overlay" sobre el color.
   */
-  .tarjeta__cara--frente {
-    background:
-      var(--grano) center / cover,
-      radial-gradient(120% 90% at 0% 0%, #fbf9f5, transparent 60%),
-      #ece8e1;
-    background-blend-mode: overlay, normal, normal;
+  .tarjeta__cara--frente::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--grano) center / cover;
+    mix-blend-mode: overlay;
+    opacity: 0.55;
+    pointer-events: none;
   }
 
   .tarjeta__cara--dorso {
@@ -353,7 +356,7 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
   }
 
   .tarjeta__cara--frente[data-cursor] .tarjeta__punto {
-    opacity: 0.7;
+    opacity: 0.85;
     scale: 1;
   }
 
