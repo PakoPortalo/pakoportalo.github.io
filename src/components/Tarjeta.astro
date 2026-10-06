@@ -223,7 +223,7 @@ const telefono = '+34 636 25 06 34';
   /*
     El glitch del nombre, como el de "Quién soy": de vez en cuando un
     espasmo corto. El nombre da un par de tirones de pocos píxeles y dos
-    copias, una verde y otra morada, saltan por franjas a los lados. Sobre
+    copias, una roja y otra cian, saltan por franjas a los lados. Sobre
     el papel claro se multiplican en vez de sumarse. Lo dispara el script.
   */
   .tarjeta__nombre span::before,
@@ -236,12 +236,13 @@ const telefono = '+34 636 25 06 34';
     mix-blend-mode: multiply;
   }
 
+  /* Los colores del glitch de siempre: rojo y cian, como un RGB descolocado. */
   .tarjeta__nombre span::before {
-    color: #2fd9a2;
+    color: #ff1744;
   }
 
   .tarjeta__nombre span::after {
-    color: #b660ff;
+    color: #00e5ff;
   }
 
   .tarjeta__nombre[data-glitch] {
@@ -671,7 +672,7 @@ const telefono = '+34 636 25 06 34';
         }
         dato.setAttribute('data-copiado', '');
         clearTimeout(espera);
-        espera = window.setTimeout(() => dato.removeAttribute('data-copiado'), 900);
+        espera = window.setTimeout(() => dato.removeAttribute('data-copiado'), 750);
       });
     });
 
