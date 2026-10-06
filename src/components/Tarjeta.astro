@@ -192,7 +192,7 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     z-index: -1;
     background: var(--grano) center / cover;
     mix-blend-mode: overlay;
-    opacity: 0.3;
+    opacity: 0.15;
     pointer-events: none;
   }
 
@@ -340,10 +340,10 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     border-radius: 50%;
     background: radial-gradient(
       circle,
-      rgb(47 217 162 / 0.85) 0%,
-      rgb(95 247 198 / 0.55) 20%,
-      rgb(95 247 198 / 0.22) 44%,
-      rgb(95 247 198 / 0) 68%
+      rgb(var(--punto-centro) / 0.85) 0%,
+      rgb(var(--punto-halo) / 0.55) 20%,
+      rgb(var(--punto-halo) / 0.22) 44%,
+      rgb(var(--punto-halo) / 0) 68%
     );
     filter: blur(5px) saturate(1.1);
     mix-blend-mode: multiply;
@@ -353,6 +353,17 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     transition:
       opacity 500ms ease,
       scale 700ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Verde una vez, morado la siguiente: cambia al abrir y al volver atrás. */
+  .tarjeta__cara--frente {
+    --punto-centro: 47 217 162;
+    --punto-halo: 95 247 198;
+  }
+
+  .tarjeta__cara--frente[data-tono='morado'] {
+    --punto-centro: 150 70 235;
+    --punto-halo: 182 96 255;
   }
 
   .tarjeta__cara--frente[data-cursor] .tarjeta__punto {
@@ -613,8 +624,15 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     });
     dorso.addEventListener('pointerleave', () => liquido?.raton(null, 0));
 
-    // El punto verde del frente: persigue al cursor con retraso.
+    // El punto del frente: persigue al cursor con retraso.
     const frente = dialogo.querySelector<HTMLElement>('.tarjeta__cara--frente')!;
+    // Su color va alternando: verde la primera vez que se abre, morado al
+    // volver atrás o al abrir otra vez, y así.
+    let vecesPunto = 0;
+    const alternarPunto = () => {
+      frente.dataset.tono = vecesPunto % 2 === 0 ? 'verde' : 'morado';
+      vecesPunto += 1;
+    };
     const punto = { x: 50, y: 50, destinoX: 50, destinoY: 50, dentro: false };
     frente.addEventListener('pointermove', (evento) => {
       const r = frente.getBoundingClientRect();
@@ -685,6 +703,7 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
       vueltaDestino = 0;
       velocidadVuelta = 0;
       dialogo.showModal();
+      alternarPunto();
       clearTimeout(glitch);
       if (!quieto) programarGlitch(0, 1500);
       requestAnimationFrame(() => dialogo.setAttribute('data-abierta', ''));
@@ -748,6 +767,7 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     dialogo.querySelectorAll('[data-voltear]').forEach((boton) =>
       boton.addEventListener('click', () => {
         vueltaDestino = vueltaDestino === 0 ? 180 : 0;
+        if (vueltaDestino === 0) alternarPunto();
         if (quieto) {
           giro.style.setProperty('--vuelta', `${vueltaDestino}deg`);
           mostrarCara(vueltaDestino);
