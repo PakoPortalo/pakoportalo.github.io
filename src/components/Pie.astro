@@ -1,12 +1,10 @@
 ---
 /**
- * El pie de la página, en negro, después del cierre claro: el copyright y
- * "otros proyectos" (Mololo) a la izquierda, Instagram y correo a la
- * derecha. Sin adornos.
+ * El pie de la página, en negro, después del cierre claro: el copyright a
+ * la izquierda, Instagram y correo a la derecha. Sin adornos.
  */
 
 const correo = 'pakoportalo@gmail.com';
-const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
 const instagram = 'https://www.instagram.com/pakoportalo/';
 const ano = 2026;
 ---
@@ -15,25 +13,18 @@ const ano = 2026;
   <div class="pie__fila">
     <div class="pie__izq">
       <p class="pie__copy">© {ano} Pako Portalo</p>
-      <p class="pie__otros">
-        <span class="pie__etiqueta">Otros proyectos</span>
-        <a class="pie__proyecto" href="https://mololo.es" target="_blank" rel="noreferrer">
-          <img class="pie__calavera" src={`${base}logos/mololo-calavera.webp`} alt="" width="120" height="120" loading="lazy" />
-          <img src={`${base}logos/mololo.webp`} alt="Mololo" width="350" height="100" loading="lazy" />
-        </a>
-      </p>
     </div>
 
     <nav class="pie__redes" aria-label="Redes y contacto">
       <a class="pie__icono" href={instagram} target="_blank" rel="noreferrer" aria-label="Instagram: @pakoportalo">
-        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
           <rect x="3" y="3" width="18" height="18" rx="5" />
           <circle cx="12" cy="12" r="4.2" />
           <circle cx="17.4" cy="6.6" r="1.1" class="pie__lleno" />
         </svg>
       </a>
       <a class="pie__icono" href={`mailto:${correo}`} aria-label={`Correo: ${correo}`}>
-        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
           <rect x="3" y="5" width="18" height="14" rx="2.5" />
           <path d="M4 7l8 6 8-6" />
         </svg>
@@ -59,7 +50,8 @@ const ano = 2026;
     align-items: center;
     justify-content: space-between;
     gap: 20px 40px;
-    padding: clamp(32px, 4vw, 48px) var(--margen);
+    padding: 18px var(--margen);
+    border-block-start: 1px solid rgb(255 255 255 / 0.08);
   }
 
   .pie__izq {
@@ -70,72 +62,19 @@ const ano = 2026;
   }
 
   .pie__copy,
-  .pie__otros {
-    margin: 0;
-    font-size: 14px;
-  }
-
-  .pie__copy {
-    color: rgb(255 255 255 / 0.7);
-  }
-
-  .pie__otros {
-    display: flex;
-    gap: 14px;
-    align-items: center;
-  }
-
-  .pie__etiqueta {
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: rgb(255 255 255 / 0.4);
-  }
-
-  .pie__proyecto {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    opacity: 0.75;
-    transition:
-      opacity 300ms ease,
-      scale 500ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .pie__proyecto img {
-    display: block;
-    height: 22px;
-    width: auto;
-  }
-
-  .pie__proyecto .pie__calavera {
-    height: 26px;
-  }
-
-  .pie__proyecto:hover,
-  .pie__proyecto:focus-visible {
-    opacity: 1;
-    scale: 1.05;
-  }
-
   .pie__redes {
     display: flex;
-    gap: 10px;
+    gap: 6px;
   }
 
+  /* Clásico: iconos sueltos, sin círculo, que se encienden al pasar. */
   .pie__icono {
     display: grid;
     place-items: center;
-    width: 44px;
+    width: 32px;
     aspect-ratio: 1;
-    border: 1px solid rgb(255 255 255 / 0.2);
-    border-radius: 50%;
-    color: #f4f1ec;
-    transition:
-      background-color 300ms ease,
-      border-color 300ms ease,
-      color 300ms ease;
+    color: rgb(255 255 255 / 0.6);
+    transition: color 250ms ease;
   }
 
   .pie__icono svg {
@@ -153,21 +92,11 @@ const ano = 2026;
 
   .pie__icono:hover,
   .pie__icono:focus-visible {
-    background: #5ff7c6;
-    border-color: #5ff7c6;
-    color: #050505;
+    color: #5ff7c6;
   }
 
   .pie__icono + .pie__icono:hover,
   .pie__icono + .pie__icono:focus-visible {
-    background: #b660ff;
-    border-color: #b660ff;
-  }
-
-  @media (max-width: 600px) {
-    .pie__fila {
-      flex-direction: column;
-      align-items: flex-start;
-    }
+    color: #b660ff;
   }
 </style>
