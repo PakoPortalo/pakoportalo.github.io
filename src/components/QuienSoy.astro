@@ -26,6 +26,8 @@ interface Props {
 
 const { id = 'sobre' } = Astro.props;
 
+import BarraColor from './BarraColor.astro';
+
 const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
 /**
  * Una por página: la guitarra en directo delante, el violín en la segunda.
@@ -95,6 +97,7 @@ const parrafosCompletos = completa.map((parrafo) =>
 ---
 
 <section class="sobre" aria-labelledby={`${id}-titulo`} data-sobre>
+  <BarraColor />
   {/*
     El filtro de la entrada de la foto: ruido fractal que desplaza los
     píxeles, igual en las dos direcciones para que forme volutas, como el

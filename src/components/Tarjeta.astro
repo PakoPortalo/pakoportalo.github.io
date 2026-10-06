@@ -1,0 +1,411 @@
+---
+/**
+ * La tarjeta de visita: se abre encima de la página desde cualquier enlace
+ * marcado con data-tarjeta (las franjas de contacto). Sin JavaScript esos
+ * enlaces siguen llevando a /contacto.
+ *
+ * Es una tarjeta de papel claro que entra girando y luego se inclina en 3D
+ * siguiendo el ratón, con un reflejo tornasolado (verde y morado, los de
+ * los puntos de la web) que se mueve con la luz. Por delante, el nombre y
+ * el correo; por detrás, al darle la vuelta, cómo trabaja.
+ */
+const correo = 'pakoportalo@gmail.com';
+---
+
+<dialog class="tarjeta" data-tarjeta-dialogo aria-labelledby="tarjeta-nombre">
+  <div class="tarjeta__escena" data-escena>
+    <div class="tarjeta__giro" data-giro>
+      <section class="tarjeta__cara tarjeta__cara--frente">
+        <p class="tarjeta__antetitulo">Contacto</p>
+        <h2 class="tarjeta__nombre" id="tarjeta-nombre">
+          <span>Pako</span>
+          <span>Portalo</span>
+        </h2>
+        <p class="tarjeta__lema">Música &amp; Diseño sonoro.</p>
+
+        <div class="tarjeta__pie">
+          <a class="tarjeta__correo" href={`mailto:${correo}`}>{correo}</a>
+          <div class="tarjeta__acciones">
+            <button class="tarjeta__boton" type="button" data-copiar={correo}>Copiar</button>
+            <button class="tarjeta__boton" type="button" data-voltear>Cómo trabajo ↻</button>
+          </div>
+        </div>
+        <span class="tarjeta__brillo" aria-hidden="true"></span>
+      </section>
+
+      <section class="tarjeta__cara tarjeta__cara--dorso" aria-label="Cómo trabajo">
+        <p class="tarjeta__antetitulo">Cómo trabajo</p>
+        <p class="tarjeta__proceso">
+          Me cuentas la pieza y lo que buscas, te propongo varias ideas y afinamos juntos hasta el máster final.
+        </p>
+        <div class="tarjeta__acciones">
+          <a class="tarjeta__boton tarjeta__boton--lleno" href={`mailto:${correo}`}>Escríbeme</a>
+          <button class="tarjeta__boton" type="button" data-voltear>↺ Volver</button>
+        </div>
+        <span class="tarjeta__brillo" aria-hidden="true"></span>
+      </section>
+    </div>
+  </div>
+
+  <button class="tarjeta__cerrar" type="button" data-cerrar-tarjeta>Cerrar</button>
+</dialog>
+
+<style>
+  .tarjeta {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100svh;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    overflow: hidden;
+    color: #050505;
+    font-family: InstrumentSans, ui-sans-serif, system-ui, sans-serif;
+    --romana: 'Times New Roman', Times, 'Liberation Serif', 'Nimbus Roman', serif;
+    --verde: #5ff7c6;
+    --morado: #b660ff;
+  }
+
+  .tarjeta::backdrop {
+    background: rgb(5 5 5 / 0.82);
+    backdrop-filter: blur(6px);
+    opacity: 0;
+    transition: opacity 500ms ease;
+  }
+
+  .tarjeta[data-abierta]::backdrop {
+    opacity: 1;
+  }
+
+  /* La escena da la perspectiva; el giro lleva la inclinación con el ratón
+     (--rx, --ry) y la vuelta de la tarjeta (--vuelta). */
+  .tarjeta__escena {
+    display: grid;
+    place-items: center;
+    height: 100%;
+    perspective: 1400px;
+  }
+
+  .tarjeta__giro {
+    position: relative;
+    width: min(600px, 88vw);
+    aspect-ratio: 1.75;
+    transform-style: preserve-3d;
+    transform: rotateX(calc(var(--rx, 0) * 1deg)) rotateY(calc(var(--ry, 0) * 1deg + var(--vuelta, 0deg)));
+    /* La entrada: llega de canto, de abajo y algo más pequeña. */
+    opacity: 0;
+    translate: 0 60px;
+    scale: 0.85;
+  }
+
+  .tarjeta[data-abierta] .tarjeta__giro {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+    transition:
+      opacity 400ms ease,
+      translate 900ms cubic-bezier(0.16, 1, 0.3, 1),
+      scale 900ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .tarjeta__cara {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-rows: auto auto auto 1fr;
+    padding: clamp(22px, 4vw, 40px);
+    border-radius: 14px;
+    overflow: hidden;
+    background:
+      radial-gradient(120% 90% at 0% 0%, #fbf9f5, transparent 60%),
+      #ece8e1;
+    box-shadow:
+      0 30px 80px -20px rgb(0 0 0 / 0.7),
+      0 0 0 1px rgb(0 0 0 / 0.06);
+    backface-visibility: hidden;
+  }
+
+  .tarjeta__cara--dorso {
+    grid-template-rows: auto 1fr auto;
+    transform: rotateY(180deg);
+    background:
+      radial-gradient(120% 90% at 100% 0%, #26232a, transparent 60%),
+      #0d0c0e;
+    color: #f4f1ec;
+  }
+
+  .tarjeta__antetitulo {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    opacity: 0.5;
+  }
+
+  .tarjeta__nombre {
+    display: grid;
+    margin: clamp(10px, 2vw, 18px) 0 0;
+    font-family: var(--romana);
+    font-weight: 700;
+    font-size: clamp(40px, 8vw, 76px);
+    letter-spacing: -0.05em;
+    line-height: 0.8;
+    text-transform: uppercase;
+  }
+
+  .tarjeta__nombre span {
+    display: block;
+    transform: scaleX(0.94);
+    transform-origin: 0 50%;
+  }
+
+  .tarjeta__lema {
+    margin: 10px 0 0;
+    font-family: var(--romana);
+    font-style: italic;
+    font-size: clamp(18px, 2.6vw, 26px);
+  }
+
+  .tarjeta__pie {
+    align-self: end;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 20px;
+  }
+
+  .tarjeta__correo {
+    font-size: clamp(15px, 2vw, 19px);
+    font-weight: 600;
+    color: inherit;
+    text-decoration: none;
+    background: linear-gradient(var(--verde), var(--verde)) 0 100% / 0% 0.3em no-repeat;
+    transition: background-size 500ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .tarjeta__correo:hover,
+  .tarjeta__correo:focus-visible {
+    background-size: 100% 0.3em;
+  }
+
+  .tarjeta__acciones {
+    display: flex;
+    gap: 8px;
+  }
+
+  .tarjeta__boton {
+    padding: 8px 14px;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-decoration: none;
+    cursor: pointer;
+    opacity: 0.75;
+    transition:
+      opacity 250ms ease,
+      background-color 250ms ease,
+      color 250ms ease;
+  }
+
+  .tarjeta__boton:hover,
+  .tarjeta__boton:focus-visible {
+    opacity: 1;
+  }
+
+  .tarjeta__boton--lleno {
+    background: var(--verde);
+    border-color: var(--verde);
+    color: #050505;
+    opacity: 1;
+  }
+
+  .tarjeta__proceso {
+    align-self: center;
+    margin: 0;
+    font-family: var(--romana);
+    font-style: italic;
+    font-size: clamp(20px, 3vw, 30px);
+    line-height: 1.25;
+  }
+
+  /*
+    El reflejo: un degradado tornasolado (verde y morado) que sigue a la
+    luz, más un punto de brillo blanco, mezclados con la tarjeta. Es lo que
+    hace que parezca un objeto y no un recuadro.
+  */
+  .tarjeta__brillo {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at var(--lx, 50%) var(--ly, 50%), rgb(255 255 255 / 0.55), transparent 40%),
+      linear-gradient(
+        calc(115deg + var(--ry, 0) * 3deg),
+        transparent 20%,
+        rgb(95 247 198 / 0.22) 40%,
+        rgb(182 96 255 / 0.22) 60%,
+        transparent 80%
+      );
+    background-size: 100% 100%, 220% 220%;
+    background-position: 0 0, var(--lx, 50%) var(--ly, 50%);
+    mix-blend-mode: soft-light;
+  }
+
+  .tarjeta__cara--dorso .tarjeta__brillo {
+    mix-blend-mode: screen;
+    opacity: 0.5;
+  }
+
+  .tarjeta__cerrar {
+    position: absolute;
+    inset-block-start: clamp(16px, 2.4vw, 32px);
+    inset-inline-end: max(16px, 5.5vw);
+    padding: 10px 0;
+    border: 0;
+    background: none;
+    color: #f4f1ec;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    opacity: 0.7;
+  }
+
+  .tarjeta__cerrar:hover,
+  .tarjeta__cerrar:focus-visible {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tarjeta__giro,
+    .tarjeta[data-abierta] .tarjeta__giro {
+      transition: none;
+      translate: none;
+      scale: none;
+    }
+  }
+</style>
+
+<script>
+  const limitar = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+  const dialogo = document.querySelector<HTMLDialogElement>('[data-tarjeta-dialogo]');
+
+  if (dialogo) {
+    const giro = dialogo.querySelector<HTMLElement>('[data-giro]')!;
+    const quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    /** Cuánto se inclina como mucho, en grados. */
+    const INCLINA = 14;
+
+    let destinoX = 0;
+    let destinoY = 0;
+    let x = 0;
+    let y = 0;
+    /** La vuelta: 0 de frente, 180 del revés. Va con muelle. */
+    let vuelta = 0;
+    let vueltaDestino = 0;
+    let velocidadVuelta = 0;
+    let bucle = 0;
+    let anterior = 0;
+    let origen: HTMLElement | null = null;
+
+    const paso = (ahora: number) => {
+      const dt = anterior ? limitar((ahora - anterior) / 16.67, 0, 2.5) : 1;
+      anterior = ahora;
+      // Cuando el ratón no se mueve, la tarjeta flota sola un poco.
+      const flotaX = Math.sin(ahora / 1700) * 0.12;
+      const flotaY = Math.cos(ahora / 2100) * 0.1;
+      x += (destinoX + flotaX - x) * (1 - Math.pow(0.9, dt));
+      y += (destinoY + flotaY - y) * (1 - Math.pow(0.9, dt));
+      velocidadVuelta += (vueltaDestino - vuelta) * 0.06 * dt;
+      velocidadVuelta *= Math.pow(0.78, dt);
+      vuelta += velocidadVuelta * dt;
+
+      giro.style.setProperty('--ry', (x * INCLINA).toFixed(2));
+      giro.style.setProperty('--rx', (-y * INCLINA).toFixed(2));
+      giro.style.setProperty('--vuelta', `${vuelta.toFixed(2)}deg`);
+      giro.style.setProperty('--lx', `${(50 + x * 45).toFixed(1)}%`);
+      giro.style.setProperty('--ly', `${(50 + y * 45).toFixed(1)}%`);
+      bucle = dialogo.open ? requestAnimationFrame(paso) : 0;
+    };
+
+    const abrir = (desde: HTMLElement) => {
+      origen = desde;
+      // Llega de canto y se endereza: la vuelta arranca girada.
+      vuelta = quieto ? 0 : -70;
+      vueltaDestino = 0;
+      velocidadVuelta = 0;
+      dialogo.showModal();
+      requestAnimationFrame(() => dialogo.setAttribute('data-abierta', ''));
+      if (!quieto && !bucle) {
+        anterior = 0;
+        bucle = requestAnimationFrame(paso);
+      } else if (quieto) {
+        giro.style.setProperty('--vuelta', '0deg');
+      }
+    };
+
+    const cerrar = () => {
+      dialogo.removeAttribute('data-abierta');
+      window.setTimeout(() => {
+        dialogo.close();
+        origen?.focus({ preventScroll: true });
+      }, 300);
+    };
+
+    document.addEventListener('click', (evento) => {
+      if (evento.defaultPrevented || evento.button !== 0) return;
+      if (evento.metaKey || evento.ctrlKey || evento.shiftKey || evento.altKey) return;
+      const enlace = (evento.target as Element).closest<HTMLElement>('[data-tarjeta]');
+      if (!enlace) return;
+      evento.preventDefault();
+      abrir(enlace);
+    });
+
+    dialogo.addEventListener('pointermove', (evento) => {
+      destinoX = (evento.clientX / window.innerWidth - 0.5) * 2;
+      destinoY = (evento.clientY / window.innerHeight - 0.5) * 2;
+    });
+
+    dialogo.querySelectorAll('[data-voltear]').forEach((boton) =>
+      boton.addEventListener('click', () => {
+        vueltaDestino = vueltaDestino === 0 ? 180 : 0;
+        if (quieto) giro.style.setProperty('--vuelta', `${vueltaDestino}deg`);
+      }),
+    );
+
+    dialogo.querySelector<HTMLButtonElement>('[data-copiar]')!.addEventListener('click', async (evento) => {
+      const boton = evento.currentTarget as HTMLButtonElement;
+      try {
+        await navigator.clipboard.writeText(boton.dataset.copiar!);
+        boton.textContent = 'Copiado';
+      } catch {
+        boton.textContent = 'No se pudo';
+      }
+      window.setTimeout(() => (boton.textContent = 'Copiar'), 1800);
+    });
+
+    dialogo.querySelector('[data-cerrar-tarjeta]')!.addEventListener('click', cerrar);
+    dialogo.addEventListener('cancel', (evento) => {
+      evento.preventDefault();
+      cerrar();
+    });
+    // Clic fuera de la tarjeta, en el fondo.
+    dialogo.addEventListener('click', (evento) => {
+      const t = evento.target as Element;
+      if (t === dialogo || t.classList.contains('tarjeta__escena')) cerrar();
+    });
+  }
+</script>

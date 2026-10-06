@@ -5,6 +5,7 @@ import ProyectosRecorrido from '../components/ProyectosRecorrido.astro';
 import ContactoAtajo from '../components/ContactoAtajo.astro';
 import Encargos from '../components/Encargos.astro';
 import QuienSoy from '../components/QuienSoy.astro';
+import Tarjeta from '../components/Tarjeta.astro';
 import VentanaProyecto from '../components/VentanaProyecto.astro';
 import CursorRastro from '../components/CursorRastro.astro';
 import '../styles/global.css';
@@ -41,9 +42,15 @@ import '../styles/global.css';
     <Encargos fondo="montaje" opacidadFondo={0.3} />
     <Credenciales />
     <QuienSoy />
-    <ContactoAtajo id="contacto" pregunta="¿Hablamos de tu proyecto?" respuesta="¡Escríbeme!" />
+    <ContactoAtajo
+      id="contacto"
+      pregunta="¿Hablamos de tu proyecto?"
+      respuesta="¡Escríbeme!"
+      texto="Un spot, un videojuego, una película. Cuéntame la pieza y lo que buscas: te propongo varias ideas y afinamos juntos hasta el máster final."
+    />
 
     <VentanaProyecto />
+    <Tarjeta />
     <CursorRastro />
   </body>
 </html>

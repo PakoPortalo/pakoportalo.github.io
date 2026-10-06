@@ -1,7 +1,8 @@
 ---
 /**
  * Franja de contacto: una pregunta en grande que, al pasar el ratón, rueda
- * letra a letra y deja ver la respuesta. Lleva a la página de contacto.
+ * letra a letra y deja ver la respuesta. Abre la tarjeta de visita
+ * (Tarjeta.astro); sin JavaScript, lleva a la página de contacto.
  *
  * Sale dos veces: justo después de los proyectos, que es cuando alguien se
  * convence y no tiene por qué bajar hasta el final para escribir, y como
@@ -13,6 +14,8 @@ interface Props {
   respuesta?: string;
   destino?: string;
   id?: string;
+  /** El cierre de la página: más alto, con un texto debajo de la frase. */
+  texto?: string;
 }
 
 const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
@@ -22,6 +25,7 @@ const {
   respuesta = '¡Contacta aquí!',
   destino = `${base}contacto/`,
   id,
+  texto,
 } = Astro.props;
 
 /*
@@ -40,8 +44,8 @@ const pisaAcento = (palabra: { letra: string }[], k: number) =>
   (palabra[k]?.letra === '!' || palabra[k]?.letra === '?') && /[áéíóú]/i.test(palabra[k - 1]?.letra ?? '');
 ---
 
-<section class="atajo" aria-label="Contacto" id={id} data-atajo>
-  <a class="atajo__enlace" href={destino} aria-label={`${pregunta} ${respuesta}`}>
+<section class:list={['atajo', texto && 'atajo--cierre']} aria-label="Contacto" id={id} data-atajo>
+  <a class="atajo__enlace" href={destino} aria-label={`${pregunta} ${respuesta}`} data-tarjeta>
     <span class="atajo__frases" aria-hidden="true">
       <span class="atajo__frase atajo__frase--pregunta">
         {
@@ -86,6 +90,7 @@ const pisaAcento = (palabra: { letra: string }[], k: number) =>
     </span>
   </a>
   <p class="atajo__movil" aria-hidden="true">{respuesta}</p>
+  {texto && <p class="atajo__texto">{texto}</p>}
 </section>
 
 <style>
@@ -127,6 +132,27 @@ const pisaAcento = (palabra: { letra: string }[], k: number) =>
   .atajo:has(.atajo__enlace:hover)::before,
   .atajo:has(.atajo__enlace:focus-visible)::before {
     scale: 1.03 1.1;
+  }
+
+  /* ── El cierre: más alto, con texto, y la página acaba en claro ── */
+  .atajo--cierre {
+    display: grid;
+    align-content: center;
+    min-height: 60svh;
+    padding-block: clamp(64px, 10svh, 120px);
+  }
+
+  .atajo--cierre:has(.atajo__enlace:hover)::before,
+  .atajo--cierre:has(.atajo__enlace:focus-visible)::before {
+    scale: 1.01 1.03;
+  }
+
+  .atajo__texto {
+    max-width: 46ch;
+    margin: clamp(24px, 4svh, 44px) 0 0;
+    font-size: clamp(17px, 1.4vw, 22px);
+    line-height: 1.5;
+    color: rgb(5 5 5 / 0.62);
   }
 
   .atajo__enlace {
