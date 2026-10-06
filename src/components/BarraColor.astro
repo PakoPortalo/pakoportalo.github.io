@@ -8,9 +8,15 @@
  *
  * Guiño a las tiras de control de color de imprenta.
  */
+interface Props {
+  /** Volteada en horizontal: los colores, a la derecha. */
+  invertida?: boolean;
+}
+
+const { invertida = false } = Astro.props;
 ---
 
-<div class="barra-color" aria-hidden="true"></div>
+<div class:list={['barra-color', invertida && 'barra-color--invertida']} aria-hidden="true"></div>
 
 <style>
   .barra-color {
@@ -31,5 +37,9 @@
       rgb(255 255 255 / 0.12) 62%,
       rgb(255 255 255 / 0.12) 100%
     );
+  }
+
+  .barra-color--invertida {
+    scale: -1 1;
   }
 </style>

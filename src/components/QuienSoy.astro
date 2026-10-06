@@ -97,7 +97,7 @@ const parrafosCompletos = completa.map((parrafo) =>
 ---
 
 <section class="sobre" aria-labelledby={`${id}-titulo`} data-sobre>
-  <BarraColor />
+  <BarraColor invertida />
   {/*
     El filtro de la entrada de la foto: ruido fractal que desplaza los
     píxeles, igual en las dos direcciones para que forme volutas, como el
@@ -897,7 +897,17 @@ const parrafosCompletos = completa.map((parrafo) =>
       bucle = visible ? requestAnimationFrame(paso) : 0;
     };
 
-    window.addEventListener(
+    /*
+      Solo responde al ratón dentro del módulo. Al salir, la foto vuelve al
+      centro (y sigue con su vaivén), y la dispersión no se dispara con
+      movimientos que pasan en otros módulos.
+    */
+    seccion.addEventListener('pointerleave', () => {
+      destinoX = 0;
+      destinoY = 0;
+      ultimo = null;
+    });
+    seccion.addEventListener(
       'pointermove',
       (evento) => {
         if (!visible) return;
