@@ -122,6 +122,13 @@
 html {
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
+  /*
+    Lo que se salga por los lados durante una animación (la franja de
+    contacto al crecer, los zooms de entrada) no saca barra horizontal.
+    "clip" y no "hidden": no convierte la página en un contenedor con
+    scroll, así que los sticky siguen funcionando.
+  */
+  overflow-x: clip;
 }
 
 @media (prefers-reduced-motion: reduce) {
