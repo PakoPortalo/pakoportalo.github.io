@@ -16,6 +16,8 @@ interface Props {
   id?: string;
   /** El cierre de la página: más alto, con un texto debajo de la frase. */
   texto?: string;
+  /** Marcas gráficas de fondo (ver MarcasCierre.astro). */
+  marcas?: 'puntos' | 'senal' | 'orbitas' | 'niveles';
 }
 
 const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
@@ -26,6 +28,7 @@ const {
   destino = `${base}contacto/`,
   id,
   texto,
+  marcas,
 } = Astro.props;
 
 /*
@@ -42,9 +45,11 @@ const palabras = (texto: string) => {
 /** Un signo de cierre detrás de una vocal con tilde: el acento lo pisaría. */
 const pisaAcento = (palabra: { letra: string }[], k: number) =>
   (palabra[k]?.letra === '!' || palabra[k]?.letra === '?') && /[áéíóú]/i.test(palabra[k - 1]?.letra ?? '');
+import MarcasCierre from './MarcasCierre.astro';
 ---
 
 <section class:list={['atajo', texto && 'atajo--cierre']} aria-label="Contacto" id={id} data-atajo>
+  {marcas && <MarcasCierre version={marcas} />}
   <a class="atajo__enlace" href={destino} aria-label={`${pregunta} ${respuesta}`} data-tarjeta>
     <span class="atajo__frases" aria-hidden="true">
       <span class="atajo__frase atajo__frase--pregunta">
@@ -145,6 +150,13 @@ const pisaAcento = (palabra: { letra: string }[], k: number) =>
   .atajo--cierre:has(.atajo__enlace:hover)::before,
   .atajo--cierre:has(.atajo__enlace:focus-visible)::before {
     scale: 1.01 1.03;
+  }
+
+  .atajo__enlace,
+  .atajo__texto,
+  .atajo__movil {
+    position: relative;
+    z-index: 1;
   }
 
   .atajo__texto {

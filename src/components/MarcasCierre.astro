@@ -1,0 +1,264 @@
+---
+/**
+ * Marcas gráficas para la franja clara del cierre: la misma familia que
+ * las del hero (línea fina, retículas de puntos, anillos, cruces de
+ * contorno), pero composiciones distintas y en gris claro sobre el papel.
+ * Van detrás del texto y no reciben el ratón.
+ *
+ * Cuatro composiciones mientras elegimos (prop `version`):
+ * - puntos:   retícula de puntos que se desvanece + escalerilla de cruces.
+ * - senal:    caja con una onda dentro, una regla debajo y una fila de puntos.
+ * - orbitas:  anillos concéntricos que asoman por la derecha, uno girando.
+ * - niveles:  barras de un medidor de nivel que respiran + crucecita.
+ */
+type Version = 'puntos' | 'senal' | 'orbitas' | 'niveles';
+
+interface Props {
+  version: Version;
+}
+
+const { version } = Astro.props;
+
+/** Una cruz de contorno, como las del hero: los doce vértices de un signo más. */
+const cruz = (cx: number, cy: number, brazo: number, grueso: number) => {
+  const a = brazo;
+  const g = grueso / 2;
+  return `M${cx - g},${cy - a} H${cx + g} V${cy - g} H${cx + a} V${cy + g} H${cx + g} V${cy + a} H${cx - g} V${cy + g} H${cx - a} V${cy - g} H${cx - g} Z`;
+};
+
+/** La onda de la caja de "señal": un seno que se va apagando hacia los lados. */
+const onda = (ancho: number, alto: number) => {
+  const puntos: string[] = [];
+  for (let i = 0; i <= 200; i += 1) {
+    const t = i / 200;
+    const envolvente = Math.sin(Math.PI * t);
+    const y = alto / 2 - Math.sin(t * Math.PI * 14) * envolvente * alto * 0.36;
+    puntos.push(`${(t * ancho).toFixed(1)},${y.toFixed(1)}`);
+  }
+  return `M${puntos.join(' L')}`;
+};
+---
+
+<div class={`marcas marcas--${version}`} aria-hidden="true">
+  {
+    version === 'puntos' && (
+      <>
+        <svg class="marcas__pieza marcas__reticula" viewBox="0 0 300 120">
+          {Array.from({ length: 16 * 6 }, (_, k) => {
+            const c = k % 16;
+            const f = Math.floor(k / 16);
+            const r = 1 + (c / 15) * 3.2;
+            return <circle cx={10 + c * 18.6} cy={10 + f * 20} r={r.toFixed(2)} />;
+          })}
+        </svg>
+        <svg class="marcas__pieza marcas__cruces" viewBox="0 0 120 170">
+          {[
+            [0, 0],
+            [0, 1],
+            [1, 1],
+            [0, 2],
+            [1, 2],
+            [2, 2],
+          ].map(([c, f]) => (
+            <path d={cruz(18 + c! * 40, 18 + f! * 52, 15, 5)} />
+          ))}
+        </svg>
+      </>
+    )
+  }
+
+  {
+    version === 'senal' && (
+      <>
+        <svg class="marcas__pieza marcas__caja" viewBox="0 0 400 130">
+          <rect x="1" y="1" width="398" height="128" rx="6" />
+          <path d={onda(398, 128)} transform="translate(1 1)" />
+        </svg>
+        <svg class="marcas__pieza marcas__regla" viewBox="0 0 400 24">
+          {Array.from({ length: 41 }, (_, k) => (
+            <line x1={k * 10 + 0.5} x2={k * 10 + 0.5} y1="0" y2={k % 5 === 0 ? 22 : 10} />
+          ))}
+        </svg>
+        <svg class="marcas__pieza marcas__fila" viewBox="0 0 220 10">
+          {Array.from({ length: 12 }, (_, k) => (
+            <circle cx={5 + k * 19} cy="5" r={(4 - k * 0.3).toFixed(2)} />
+          ))}
+        </svg>
+      </>
+    )
+  }
+
+  {
+    version === 'orbitas' && (
+      <>
+        <svg class="marcas__pieza marcas__anillos" viewBox="-300 -300 600 600">
+          {Array.from({ length: 9 }, (_, k) => (
+            <circle r={60 + k * 28} />
+          ))}
+          <g class="marcas__giro">
+            <circle r="228" class="marcas__discontinuo" />
+            <circle cx="228" cy="0" r="6" class="marcas__lleno" />
+          </g>
+        </svg>
+        <svg class="marcas__pieza marcas__mira" viewBox="0 0 60 60">
+          <circle cx="30" cy="30" r="12" />
+          <line x1="30" x2="30" y1="0" y2="60" />
+          <line x1="0" x2="60" y1="30" y2="30" />
+        </svg>
+      </>
+    )
+  }
+
+  {
+    version === 'niveles' && (
+      <>
+        <svg class="marcas__pieza marcas__barras" viewBox="0 0 330 160">
+          {Array.from({ length: 22 }, (_, k) => {
+            const alto = 30 + Math.abs(Math.sin(k * 1.7)) * 110;
+            return <rect class="marcas__barra" x={k * 15} y={160 - alto} width="6" height={alto.toFixed(1)} rx="1" style={`--k: ${k}`} />;
+          })}
+        </svg>
+        <svg class="marcas__pieza marcas__cruces marcas__cruces--sola" viewBox="0 0 40 40">
+          <path d={cruz(20, 20, 16, 5)} />
+        </svg>
+      </>
+    )
+  }
+</div>
+
+<style>
+  .marcas {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+    --tinta: rgb(5 5 5 / 0.16);
+  }
+
+  .marcas__pieza {
+    position: absolute;
+    overflow: visible;
+    fill: none;
+    stroke: var(--tinta);
+    stroke-width: 1.2;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .marcas__pieza :is(circle, rect, path, line) {
+    vector-effect: non-scaling-stroke;
+  }
+
+  /* ── puntos ─────────────────────────────────────────────────── */
+  .marcas__reticula {
+    inset-block-start: clamp(28px, 6svh, 64px);
+    inset-inline-end: max(24px, 5.5vw);
+    width: clamp(200px, 22vw, 340px);
+    fill: var(--tinta);
+    stroke: none;
+  }
+
+  .marcas__cruces {
+    inset-block-end: clamp(28px, 6svh, 64px);
+    inset-inline-end: max(24px, 5.5vw);
+    width: clamp(70px, 7vw, 110px);
+  }
+
+  /* ── señal ──────────────────────────────────────────────────── */
+  .marcas__caja {
+    inset-block-start: clamp(28px, 6svh, 64px);
+    inset-inline-end: max(24px, 5.5vw);
+    width: clamp(240px, 26vw, 400px);
+  }
+
+  .marcas__regla {
+    inset-block-end: clamp(28px, 6svh, 64px);
+    inset-inline-end: max(24px, 5.5vw);
+    width: clamp(240px, 26vw, 400px);
+  }
+
+  .marcas__fila {
+    inset-block-end: clamp(70px, 12svh, 120px);
+    inset-inline-end: max(24px, 5.5vw);
+    width: clamp(140px, 14vw, 220px);
+    fill: var(--tinta);
+    stroke: none;
+  }
+
+  /* ── órbitas ────────────────────────────────────────────────── */
+  .marcas__anillos {
+    inset-block-start: 50%;
+    inset-inline-end: 0;
+    width: clamp(420px, 46vw, 720px);
+    translate: 38% -50%;
+  }
+
+  .marcas__discontinuo {
+    stroke-dasharray: 2 9;
+    stroke-width: 2;
+  }
+
+  .marcas__lleno {
+    fill: var(--tinta);
+    stroke: none;
+  }
+
+  .marcas__giro {
+    animation: gira 60s linear infinite;
+  }
+
+  .marcas__mira {
+    inset-block-start: clamp(28px, 6svh, 64px);
+    inset-inline-start: max(24px, 5.5vw);
+    width: 34px;
+  }
+
+  @keyframes gira {
+    to {
+      rotate: 360deg;
+    }
+  }
+
+  /* ── niveles ────────────────────────────────────────────────── */
+  .marcas__barras {
+    inset-block-end: 0;
+    inset-inline-end: max(24px, 5.5vw);
+    width: clamp(220px, 24vw, 340px);
+    fill: rgb(5 5 5 / 0.07);
+  }
+
+  /* Cada barra respira a su ritmo, desde abajo: un medidor en reposo. */
+  .marcas__barra {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    animation: respira 2.6s ease-in-out calc(var(--k) * -0.37s) infinite alternate;
+  }
+
+  .marcas__cruces--sola {
+    inset-block-start: clamp(28px, 6svh, 64px);
+    inset-inline-end: max(24px, 5.5vw);
+    width: 30px;
+  }
+
+  @keyframes respira {
+    from {
+      scale: 1 1;
+    }
+    to {
+      scale: 1 0.55;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .marcas__giro,
+    .marcas__barra {
+      animation: none;
+    }
+  }
+
+  @media (max-width: 760px) {
+    .marcas {
+      opacity: 0.6;
+    }
+  }
+</style>
