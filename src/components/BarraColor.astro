@@ -6,8 +6,8 @@
  * quedaba fija detrás y el módulo se la comía al subir. Puesta aquí, sube con
  * él. El módulo que la lleve tiene que tener position: relative.
  *
- * El tramo de color sigue al ratón en horizontal, con retraso, como un
- * foco que lo acompaña; si el ratón sale de la ventana, se queda donde
+ * El tramo de color sigue al ratón en horizontal con inercia, como si
+ * colgara de un muelle: se pasa un poco al pararse el ratón y vuelve; si el ratón sale de la ventana, se queda donde
  * estaba. Antes de mover el ratón, cada barra está en su sitio. Guiño
  * a las tiras de control de color de imprenta.
  */
@@ -75,6 +75,8 @@ const { invertida = false } = Astro.props;
     let x = 26;
     /** Ancho del tramo: 0,85 quieto, hasta 1,35 moviéndose rápido. */
     let ancho = 0.85;
+    /** Velocidad del tramo, en % del ancho por fotograma. */
+    let velocidad = 0;
     let primera = true;
     let bucle = 0;
     let anterior = 0;
@@ -82,16 +84,23 @@ const { invertida = false } = Astro.props;
     const paso = (ahora: number) => {
       const dt = anterior ? Math.min((ahora - anterior) / 16.67, 2.5) : 1;
       anterior = ahora;
-      const antes = x;
-      x += (destino - x) * (1 - Math.pow(0.9, dt));
+      /*
+        Un muelle poco amortiguado: el tramo tiene inercia, así que si el
+        ratón se para de golpe sigue un poco hacia delante, se frena como
+        un elástico y vuelve. La pérdida se eleva a dt para que vaya igual
+        con fotogramas perdidos.
+      */
+      velocidad += (destino - x) * 0.018 * dt;
+      velocidad *= Math.pow(0.88, dt);
+      x += velocidad * dt;
       // Cuanto más rápido va, más se estira; al pararse se recoge despacio.
-      const velocidad = Math.abs(x - antes) / dt;
-      const metaAncho = 0.85 + Math.min(velocidad * 0.25, 0.5);
+      const metaAncho = 0.85 + Math.min(Math.abs(velocidad) * 0.25, 0.5);
       const k = metaAncho > ancho ? 0.18 : 0.05;
       ancho += (metaAncho - ancho) * (1 - Math.pow(1 - k, dt));
       raiz.style.setProperty('--barra-centro', `${x.toFixed(2)}%`);
       raiz.style.setProperty('--barra-ancho', ancho.toFixed(3));
-      const quietaYa = Math.abs(destino - x) < 0.05 && Math.abs(0.85 - ancho) < 0.003;
+      const quietaYa =
+        Math.abs(destino - x) < 0.05 && Math.abs(velocidad) < 0.01 && Math.abs(0.85 - ancho) < 0.003;
       bucle = quietaYa ? 0 : requestAnimationFrame(paso);
     };
 
