@@ -96,9 +96,6 @@ const pisaAcento = (palabra: { letra: string }[], k: number) =>
        para leerse como una lámina sobre el negro, y sobre este fondo claro
        se quedaba como una mancha gris. */
     z-index: 2;
-    /* Al revés que el resto: una franja clara entre módulos negros. Es el
-       único corte de color de la página, y por eso se ve sin buscarla. */
-    background: #f4f1ec;
     color: #050505;
     padding: clamp(26px, 3vw, 48px) max(24px, 5.5vw);
     /* El color de la respuesta: verde la primera vez que pasas el ratón,
@@ -108,6 +105,28 @@ const pisaAcento = (palabra: { letra: string }[], k: number) =>
 
   .atajo[data-tono='morado'] {
     --acento: #b660ff;
+  }
+
+  /*
+    El fondo claro va en una capa aparte para poder ampliarlo al pasar el
+    ratón sin mover nada: crece por encima de los módulos de al lado en vez
+    de empujarlos, y la página no da saltos.
+
+    Al revés que el resto: una franja clara entre módulos negros. Es el
+    único corte de color de la página, y por eso se ve sin buscarla.
+  */
+  .atajo::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: #f4f1ec;
+    transition: scale 650ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .atajo:has(.atajo__enlace:hover)::before,
+  .atajo:has(.atajo__enlace:focus-visible)::before {
+    scale: 1.03 1.1;
   }
 
   .atajo__enlace {
@@ -130,6 +149,10 @@ const pisaAcento = (palabra: { letra: string }[], k: number) =>
     overflow: hidden;
     font-family: ClashDisplay, InstrumentSans, sans-serif;
     font-size: clamp(30px, 5vw, 96px);
+    /* Crecen un pelín más que la franja, para que se lea como que se
+       acercan. El desplazamiento lateral (translate) lo pone el script. */
+    transform-origin: 50% 50%;
+    transition: scale 650ms cubic-bezier(0.16, 1, 0.3, 1);
     font-weight: 500;
     letter-spacing: -0.035em;
     line-height: 1.1;
@@ -180,6 +203,11 @@ const pisaAcento = (palabra: { letra: string }[], k: number) =>
     translate: 0 110%;
   }
 
+  .atajo__enlace:hover .atajo__frases,
+  .atajo__enlace:focus-visible .atajo__frases {
+    scale: 1.14;
+  }
+
   .atajo__enlace:hover .atajo__frase--pregunta .atajo__letra,
   .atajo__enlace:focus-visible .atajo__frase--pregunta .atajo__letra {
     translate: 0 -110%;
@@ -224,7 +252,9 @@ const pisaAcento = (palabra: { letra: string }[], k: number) =>
 
   @media (prefers-reduced-motion: reduce) {
     .atajo__letra,
-    .atajo__flecha {
+    .atajo__flecha,
+    .atajo__frases,
+    .atajo::before {
       transition: none;
     }
   }
@@ -261,4 +291,52 @@ const pisaAcento = (palabra: { letra: string }[], k: number) =>
     enlace.addEventListener('pointerenter', alternar);
     enlace.addEventListener('focus', alternar);
   });
+
+  /*
+    Las letras siguen al ratón en horizontal, con retraso, como si tuvieran
+    peso: a la izquierda de la franja se van un poco a la izquierda, a la
+    derecha, a la derecha. El círculo también, pero menos. Al salir vuelven
+    al centro. Sin movimiento reducido.
+  */
+  const limitar = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+  const quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const conRaton = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+  if (!quieto && conRaton) {
+    document.querySelectorAll<HTMLElement>('[data-atajo]').forEach((franja) => {
+      const frases = franja.querySelector<HTMLElement>('.atajo__frases')!;
+      const flecha = franja.querySelector<HTMLElement>('.atajo__flecha')!;
+      /** Cuánto se desplazan como mucho, en píxeles. */
+      const RECORRIDO = 36;
+      let destino = 0;
+      let x = 0;
+      let bucle = 0;
+      let anterior = 0;
+
+      const paso = (ahora: number) => {
+        const dt = anterior ? limitar((ahora - anterior) / 16.67, 0, 2.5) : 1;
+        anterior = ahora;
+        x += (destino - x) * (1 - Math.pow(0.9, dt));
+        frases.style.translate = `${x.toFixed(2)}px 0`;
+        flecha.style.translate = `${(x * 0.4).toFixed(2)}px 0`;
+        bucle = Math.abs(destino - x) > 0.05 ? requestAnimationFrame(paso) : 0;
+      };
+
+      const arrancar = () => {
+        if (bucle) return;
+        anterior = 0;
+        bucle = requestAnimationFrame(paso);
+      };
+
+      franja.addEventListener('pointermove', (evento) => {
+        const caja = franja.getBoundingClientRect();
+        destino = ((evento.clientX - caja.left) / caja.width - 0.5) * 2 * RECORRIDO;
+        arrancar();
+      });
+      franja.addEventListener('pointerleave', () => {
+        destino = 0;
+        arrancar();
+      });
+    });
+  }
 </script>
