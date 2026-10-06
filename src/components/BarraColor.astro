@@ -26,7 +26,8 @@ const { invertida = false } = Astro.props;
     --c es el centro del tramo de color, en porcentaje del ancho. Lo mueve
     el script en :root, así todas las barras van a la vez. Los colores van
     de c-26% a c+20%, se blanquean en c+26% y se apagan en c+36%; por la
-    izquierda, el mismo apagado en espejo.
+    izquierda, el mismo apagado en espejo. Todas esas distancias se
+    multiplican por --e, el ancho, que también mueve el script.
   */
   .barra-color {
     position: absolute;
@@ -35,18 +36,20 @@ const { invertida = false } = Astro.props;
     inset-block-start: 0;
     height: var(--barra);
     --c: var(--barra-centro, 26%);
+    /* El ancho del tramo: se estira en movimiento y se recoge en reposo. */
+    --e: var(--barra-ancho, 0.85);
     background: linear-gradient(
       90deg,
-      rgb(255 255 255 / 0.12) calc(var(--c) - 36%),
-      rgb(255 255 255 / 0.5) calc(var(--c) - 30%),
-      #18c6d4 calc(var(--c) - 26%),
-      #2f3ad0 calc(var(--c) - 14%),
-      #7b2fd0 calc(var(--c) - 4%),
-      #d92b6a calc(var(--c) + 5%),
-      #e8603a calc(var(--c) + 13%),
-      #e8e030 calc(var(--c) + 20%),
-      rgb(255 255 255 / 0.5) calc(var(--c) + 26%),
-      rgb(255 255 255 / 0.12) calc(var(--c) + 36%)
+      rgb(255 255 255 / 0.12) calc(var(--c) - 36% * var(--e)),
+      rgb(255 255 255 / 0.5) calc(var(--c) - 30% * var(--e)),
+      #18c6d4 calc(var(--c) - 26% * var(--e)),
+      #2f3ad0 calc(var(--c) - 14% * var(--e)),
+      #7b2fd0 calc(var(--c) - 4% * var(--e)),
+      #d92b6a calc(var(--c) + 5% * var(--e)),
+      #e8603a calc(var(--c) + 13% * var(--e)),
+      #e8e030 calc(var(--c) + 20% * var(--e)),
+      rgb(255 255 255 / 0.5) calc(var(--c) + 26% * var(--e)),
+      rgb(255 255 255 / 0.12) calc(var(--c) + 36% * var(--e))
     );
   }
 
@@ -70,6 +73,8 @@ const { invertida = false } = Astro.props;
     raiz.dataset.barraColor = '';
     let destino = 26;
     let x = 26;
+    /** Ancho del tramo: 0,85 quieto, hasta 1,35 moviéndose rápido. */
+    let ancho = 0.85;
     let primera = true;
     let bucle = 0;
     let anterior = 0;
@@ -77,9 +82,17 @@ const { invertida = false } = Astro.props;
     const paso = (ahora: number) => {
       const dt = anterior ? Math.min((ahora - anterior) / 16.67, 2.5) : 1;
       anterior = ahora;
+      const antes = x;
       x += (destino - x) * (1 - Math.pow(0.9, dt));
+      // Cuanto más rápido va, más se estira; al pararse se recoge despacio.
+      const velocidad = Math.abs(x - antes) / dt;
+      const metaAncho = 0.85 + Math.min(velocidad * 0.25, 0.5);
+      const k = metaAncho > ancho ? 0.18 : 0.05;
+      ancho += (metaAncho - ancho) * (1 - Math.pow(1 - k, dt));
       raiz.style.setProperty('--barra-centro', `${x.toFixed(2)}%`);
-      bucle = Math.abs(destino - x) > 0.05 ? requestAnimationFrame(paso) : 0;
+      raiz.style.setProperty('--barra-ancho', ancho.toFixed(3));
+      const quietaYa = Math.abs(destino - x) < 0.05 && Math.abs(0.85 - ancho) < 0.003;
+      bucle = quietaYa ? 0 : requestAnimationFrame(paso);
     };
 
     const arrancar = () => {
