@@ -79,20 +79,6 @@ const orbitas =
           <line x1="0" x2="60" y1="30" y2="30" />
         </svg>
         <svg class="atajo__sistema" viewBox="-260 -260 520 520">
-          <defs>
-            {/* Esferas: luz arriba a la izquierda, sombra abajo a la derecha. */}
-            {[
-              ['gris', '#c9c6c1', '#6d6a66', '#2b2927'],
-              ['verde', '#d6fff1', '#5fe6b8', '#1f7a5c'],
-              ['morado', '#f0dcff', '#a866ec', '#4b2178'],
-            ].map(([nombre, luz, medio, sombra]) => (
-              <radialGradient id={`${id ?? 'atajo'}-esfera-${nombre}`} cx="35%" cy="30%" r="75%">
-                <stop offset="0%" stop-color={luz} />
-                <stop offset="45%" stop-color={medio} />
-                <stop offset="100%" stop-color={sombra} />
-              </radialGradient>
-            ))}
-          </defs>
           {Array.from({ length: 7 }, (_, k) => (
             <circle class="atajo__anillo" r={70 + k * 28} />
           ))}
@@ -101,14 +87,7 @@ const orbitas =
               class={`atajo__orbita atajo__orbita--${o.color}`}
               style={`--segundos: ${o.segundos}s; --sentido: ${o.sentido === 1 ? 'normal' : 'reverse'}`}
             >
-              {/* La esfera gira con la órbita pero su luz no: se contrarrota
-                  para que el brillo quede siempre arriba a la izquierda. */}
-              <g transform={`translate(${o.r} 0)`}>
-                <g class="atajo__contragiro">
-                  <circle class="atajo__sombra" cx="1.5" cy="2.5" r={o.punto} />
-                  <circle r={o.punto} fill={`url(#${id ?? 'atajo'}-esfera-${o.color})`} />
-                </g>
-              </g>
+              <circle class="atajo__satelite" cx={o.r} cy="0" r={o.punto} />
             </g>
           ))}
         </svg>
@@ -277,27 +256,32 @@ const orbitas =
     position: absolute;
     inset-block-start: clamp(28px, 6svh, 64px);
     inset-inline-start: max(24px, 5.5vw);
-    width: 34px;
+    width: 40px;
     fill: none;
-    stroke: rgb(5 5 5 / 0.16);
-    stroke-width: 1.2;
+    stroke: rgb(5 5 5 / 0.55);
+    stroke-width: 1.5;
   }
 
-  .atajo__contragiro {
-    animation: orbita var(--segundos) linear infinite;
-    animation-direction: var(--sentido);
-    animation-name: contragiro;
+  /* Los puntos, en neón como los de los premios: color pleno y halo del
+     mismo color alrededor. */
+  .atajo__satelite {
+    fill: var(--c);
+    filter: drop-shadow(0 0 6px var(--halo)) drop-shadow(0 0 2px var(--halo));
   }
 
-  .atajo__sombra {
-    fill: rgb(5 5 5 / 0.12);
-    filter: blur(1.5px);
+  .atajo__orbita--gris {
+    --c: #3a3836;
+    --halo: rgb(5 5 5 / 0.35);
   }
 
-  @keyframes contragiro {
-    to {
-      rotate: -360deg;
-    }
+  .atajo__orbita--verde {
+    --c: #5ff7c6;
+    --halo: rgb(95 247 198 / 0.8);
+  }
+
+  .atajo__orbita--morado {
+    --c: #b660ff;
+    --halo: rgb(182 96 255 / 0.8);
   }
 
   .atajo__orbita {
@@ -311,8 +295,7 @@ const orbitas =
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .atajo__orbita,
-    .atajo__contragiro {
+    .atajo__orbita {
       animation: none;
     }
   }
