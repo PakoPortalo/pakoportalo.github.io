@@ -1394,7 +1394,7 @@ export async function createLiquidHero(
     // Con el hero tapado por los módulos de abajo, el ratón es de ellos: si
     // no, cada movimiento ahí abajo empujaba el líquido sin que se viera, y
     // al volver arriba la masa estaba deshecha o fuera de cuadro.
-    if (!heroVisible) return;
+    if (!heroVisible || !heroActive) return;
     const rect = canvas.getBoundingClientRect();
     const nx = (event.clientX - rect.left) / rect.width;
     const ny = 1 - (event.clientY - rect.top) / rect.height;
@@ -1586,6 +1586,20 @@ export async function createLiquidHero(
   );
   intersectionObserver.observe(heroZone);
 
+  /*
+    El ratón solo empuja la masa mientras el hero es lo que se mira: su
+    sección cruza el centro de la pantalla. Con un trozo asomando arriba
+    mientras se ven los proyectos, las letras se movían con ese ratón.
+  */
+  let heroActive = true;
+  const activeObserver = new IntersectionObserver(
+    ([entry]) => {
+      heroActive = Boolean(entry?.isIntersecting);
+    },
+    { rootMargin: '-50% 0px -50% 0px' },
+  );
+  activeObserver.observe(heroZone);
+
   function onVisibility() {
     if (document.hidden) stop();
     else if (canvas.isConnected && heroVisible && !options.reducedMotion) start();
@@ -1618,6 +1632,7 @@ export async function createLiquidHero(
       stop();
       resizeObserver.disconnect();
       intersectionObserver.disconnect();
+      activeObserver.disconnect();
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('pointermove', onPointerMove);
       stopOrientation();

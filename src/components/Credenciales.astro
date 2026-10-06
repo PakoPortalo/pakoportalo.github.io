@@ -570,7 +570,7 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     window.addEventListener(
       'pointermove',
       (evento) => {
-        if (!visible) return;
+        if (!activo) return;
         destinoX = (evento.clientX / window.innerWidth - 0.5) * 2;
         destinoY = (evento.clientY / window.innerHeight - 0.5) * 2;
         if (ultimo) {
@@ -581,6 +581,25 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
       },
       { passive: true },
     );
+
+    /*
+      Solo responde al ratón cuando es el módulo que se está mirando: el
+      que cruza la línea del centro de la pantalla. Si no, asomando un
+      borde mientras se lee otro módulo, se movía con ese ratón. Al dejar
+      de serlo, vuelve a su sitio despacio.
+    */
+    let activo = false;
+    new IntersectionObserver(
+      ([entrada]) => {
+        activo = Boolean(entrada?.isIntersecting);
+        if (!activo) {
+          destinoX = 0;
+          destinoY = 0;
+          ultimo = null;
+        }
+      },
+      { rootMargin: '-50% 0px -50% 0px' },
+    ).observe(seccion);
 
     // Solo se anima mientras se ve.
     new IntersectionObserver(([entrada]) => {
