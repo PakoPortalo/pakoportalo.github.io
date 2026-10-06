@@ -216,18 +216,36 @@ const orbitas = conOrbitas
     z-index: 1;
   }
 
+  /*
+    La capa crece con el fondo al pasar el ratón (la misma escala que el
+    ::before), así el recorte de los anillos se abre con él y no corta por
+    arriba. Dentro, el sistema se contraescala para que los anillos no se
+    deformen.
+  */
   .atajo__orbitas {
     position: absolute;
     inset: 0;
     z-index: 0;
     overflow: hidden;
     pointer-events: none;
+    transition: scale 650ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .atajo--cierre:has(.atajo__enlace:hover) .atajo__orbitas,
+  .atajo--cierre:has(.atajo__enlace:focus-visible) .atajo__orbitas {
+    scale: 1.01 1.03;
+  }
+
+  .atajo--cierre:has(.atajo__enlace:hover) .atajo__sistema,
+  .atajo--cierre:has(.atajo__enlace:focus-visible) .atajo__sistema {
+    scale: calc(1 / 1.01) calc(1 / 1.03);
   }
 
   /* El centro del sistema es el de la flecha (--ox, --oy, los mide el
      script). Lo que se sale por arriba queda cortado por la franja, por
      detrás del módulo negro. */
   .atajo__sistema {
+    transition: scale 650ms cubic-bezier(0.16, 1, 0.3, 1);
     position: absolute;
     inset-block-start: var(--oy, 50%);
     inset-inline-start: var(--ox, 90%);
@@ -272,6 +290,100 @@ const orbitas = conOrbitas
 
   .atajo__orbita {
     animation: orbita var(--segundos) linear infinite var(--sentido);
+  }
+
+  /*
+    La flecha, como un planeta: al pasar el ratón se enciende con un neón
+    potente de su color y un halo que chisporrotea a saltos irregulares,
+    con una corona más ancha detrás, y el círculo late suavemente.
+  */
+  .atajo--orbitas .atajo__enlace:hover .atajo__flecha,
+  .atajo--orbitas .atajo__enlace:focus-visible .atajo__flecha {
+    /* Dos ritmos a la vez: el halo chisporrotea a saltos y el círculo
+       late suave, creciendo y decreciendo. */
+    animation:
+      crepita 1.7s steps(1, end) infinite,
+      palpita 2.4s ease-in-out infinite;
+  }
+
+  @keyframes palpita {
+    0%,
+    100% {
+      scale: 1;
+    }
+    50% {
+      scale: 1.12;
+    }
+  }
+
+  @keyframes crepita {
+    0% {
+      box-shadow:
+        0 0 14px 3px var(--acento),
+        0 0 46px 10px color-mix(in srgb, var(--acento) 55%, transparent),
+        0 0 90px 24px color-mix(in srgb, var(--acento) 22%, transparent);
+    }
+    9% {
+      box-shadow:
+        0 0 10px 2px var(--acento),
+        0 0 36px 8px color-mix(in srgb, var(--acento) 40%, transparent),
+        0 0 80px 20px color-mix(in srgb, var(--acento) 16%, transparent);
+    }
+    13% {
+      box-shadow:
+        0 0 18px 5px var(--acento),
+        0 0 58px 14px color-mix(in srgb, var(--acento) 65%, transparent),
+        0 0 110px 30px color-mix(in srgb, var(--acento) 26%, transparent);
+    }
+    31% {
+      box-shadow:
+        0 0 12px 3px var(--acento),
+        0 0 44px 10px color-mix(in srgb, var(--acento) 50%, transparent),
+        0 0 86px 22px color-mix(in srgb, var(--acento) 20%, transparent);
+    }
+    34% {
+      box-shadow:
+        0 0 6px 1px var(--acento),
+        0 0 24px 6px color-mix(in srgb, var(--acento) 30%, transparent),
+        0 0 60px 16px color-mix(in srgb, var(--acento) 12%, transparent);
+    }
+    38% {
+      box-shadow:
+        0 0 16px 4px var(--acento),
+        0 0 52px 12px color-mix(in srgb, var(--acento) 60%, transparent),
+        0 0 100px 28px color-mix(in srgb, var(--acento) 24%, transparent);
+    }
+    62% {
+      box-shadow:
+        0 0 15px 4px var(--acento),
+        0 0 50px 12px color-mix(in srgb, var(--acento) 58%, transparent),
+        0 0 96px 26px color-mix(in srgb, var(--acento) 23%, transparent);
+    }
+    66% {
+      box-shadow:
+        0 0 9px 2px var(--acento),
+        0 0 32px 8px color-mix(in srgb, var(--acento) 38%, transparent),
+        0 0 70px 18px color-mix(in srgb, var(--acento) 14%, transparent);
+    }
+    71% {
+      box-shadow:
+        0 0 20px 6px var(--acento),
+        0 0 62px 16px color-mix(in srgb, var(--acento) 70%, transparent),
+        0 0 120px 34px color-mix(in srgb, var(--acento) 28%, transparent);
+    }
+    86% {
+      box-shadow:
+        0 0 13px 3px var(--acento),
+        0 0 46px 10px color-mix(in srgb, var(--acento) 52%, transparent),
+        0 0 90px 24px color-mix(in srgb, var(--acento) 21%, transparent);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .atajo--orbitas .atajo__enlace:hover .atajo__flecha {
+      animation: none;
+      box-shadow: 0 0 46px 10px color-mix(in srgb, var(--acento) 55%, transparent);
+    }
   }
 
   @keyframes orbita {
