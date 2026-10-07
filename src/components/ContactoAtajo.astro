@@ -54,8 +54,9 @@ const pisaAcento = (palabra: { letra: string }[], k: number) =>
 */
 const orbitas = conOrbitas
   ? [
-      { r: 126, color: 'verde', segundos: 34, sentido: 1, punto: 9 },
-      { r: 210, color: 'morado', segundos: 26, sentido: -1, punto: 12 },
+      // El verde pasa por encima del texto; el morado, por debajo.
+      { r: 126, color: 'verde', segundos: 34, sentido: 1, punto: 9, encima: true },
+      { r: 210, color: 'morado', segundos: 26, sentido: -1, punto: 12, encima: false },
     ]
   : null;
 ---
@@ -87,9 +88,24 @@ const orbitas = conOrbitas
             </filter>
           </defs>
           {Array.from({ length: 7 }, (_, k) => (
-            <circle class:list={['atajo__anillo', [0, 2, 5].includes(k) && 'atajo__anillo--base']} r={70 + k * 28} />
+            <circle class="atajo__anillo" r={70 + k * 28} />
           ))}
-          {orbitas.map((o) => (
+          {orbitas.filter((o) => !o.encima).map((o) => (
+            <g
+              class={`atajo__orbita atajo__orbita--${o.color}`}
+              data-orbita
+              data-r={o.r}
+              data-segundos={o.segundos}
+              data-sentido={o.sentido}
+            >
+              <circle class="atajo__satelite" cx={o.r} cy="0" r={o.punto} filter="url(#atajo-brillo)" />
+            </g>
+          ))}
+        </svg>
+      </div>
+      <div class="atajo__orbitas atajo__orbitas--encima" aria-hidden="true">
+        <svg class="atajo__sistema" viewBox="-260 -260 520 520">
+          {orbitas.filter((o) => o.encima).map((o) => (
             <g
               class={`atajo__orbita atajo__orbita--${o.color}`}
               data-orbita
@@ -252,6 +268,11 @@ const orbitas = conOrbitas
     /* Crece desde el centro de las órbitas: desde el de la franja, el
        sistema se desplazaba a la derecha y la flecha perdía el centro. */
     transform-origin: var(--ox, 90%) var(--oy, 50%);
+  }
+
+  /* La capa del planeta verde, por encima de la frase y el texto. */
+  .atajo__orbitas--encima {
+    z-index: 2;
   }
 
   .atajo--cierre:has(.atajo__enlace:hover) .atajo__orbitas,
@@ -557,17 +578,6 @@ const orbitas = conOrbitas
 
     .atajo[data-boing] .atajo__frase--pregunta .atajo__letra {
       animation: ola 1300ms ease-in-out calc(var(--i) * 22ms) both;
-    }
-
-    /* El sistema de órbitas, más pequeño y con solo tres anillos: el de
-       dentro y los dos por los que pasan los planetas. */
-    .atajo__sistema {
-      width: 340px;
-      height: 340px;
-    }
-
-    .atajo__anillo:not(.atajo__anillo--base) {
-      display: none;
     }
 
     .atajo[data-encendida] .atajo__flecha {
