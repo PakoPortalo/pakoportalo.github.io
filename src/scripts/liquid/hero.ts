@@ -409,7 +409,13 @@ export async function createLiquidHero(
    * El bloque de texto, en las unidades del shader, y con cuánta fuerza
    * rechaza al líquido. Lo calcula drawText().
    */
-  const textZone = { right: 0.9, top: 0.6, strength: 0.16 };
+  const textZone = { right: 0.9, top: 0.6, bottom: 0.6, desdeArriba: false, strength: 0.16 };
+  /**
+   * Dónde vive la masa en vertical, en unidades del shader (0 abajo, 1
+   * arriba): su punto de reposo y los topes del paseo. En ancho el texto va
+   * abajo y el líquido arriba; en móvil, al revés. Lo fija drawText().
+   */
+  const masa = { reposo: 0.62, min: 0.42, max: 0.88 };
   /** Alejamiento del texto y el líquido. Lo mueve el scroll de la página. */
   let zoom = 1;
   /**
@@ -625,13 +631,32 @@ export async function createLiquidHero(
     const paraLines = wrap(copy.paragraph, blockWidth);
     const paraLeading = paraSize * 1.5;
 
-    const blockBottom = height - margin - 18;
-    const paraTop = blockBottom - paraLeading * paraLines.length;
-
-    // --- Las dos líneas grandes ---
-    const subtitleBaseline = paraTop - bigSize * 0.34;
-    const titleBaseline = subtitleBaseline - bigSize;
-    const eyebrowBaseline = titleBaseline - bigSize * 1.06;
+    /*
+      En pantalla ancha el bloque se apoya abajo y el líquido flota arriba.
+      En móvil, al revés: el texto arriba, donde se lee nada más entrar, y
+      el líquido abajo. Mismas distancias entre líneas, contadas desde el
+      otro extremo.
+    */
+    const arriba = compact > 0.5;
+    let blockBottom: number;
+    let paraTop: number;
+    let subtitleBaseline: number;
+    let titleBaseline: number;
+    let eyebrowBaseline: number;
+    if (arriba) {
+      eyebrowBaseline = Math.max(margin * 2, height * 0.09) + eyebrowSize;
+      titleBaseline = eyebrowBaseline + bigSize * 1.06;
+      subtitleBaseline = titleBaseline + bigSize;
+      paraTop = subtitleBaseline + bigSize * 0.34;
+      blockBottom = paraTop + paraLeading * paraLines.length;
+    } else {
+      blockBottom = height - margin - 18;
+      paraTop = blockBottom - paraLeading * paraLines.length;
+      subtitleBaseline = paraTop - bigSize * 0.34;
+      titleBaseline = subtitleBaseline - bigSize;
+      eyebrowBaseline = titleBaseline - bigSize * 1.06;
+    }
+    Object.assign(masa, arriba ? { reposo: 0.3, min: 0.1, max: 0.4 } : { reposo: 0.62, min: 0.42, max: 0.88 });
 
     // --- Fila superior: punto de neón, etiqueta, filete, etiqueta ---
     // Todo lo de esta fila es proporcional a su cuerpo, así que se mide una
@@ -709,6 +734,7 @@ export async function createLiquidHero(
       subtitleBaseline,
       blockBottom,
       compact,
+      textoArriba: arriba,
     });
 
     // --- Línea grande ---
@@ -791,6 +817,10 @@ export async function createLiquidHero(
     // arriba, así que ambos se dividen por el ALTO.
     textZone.right = (margin + blockWidth) / height;
     textZone.top = 1 - (eyebrowBaseline - bigSize * 0.9) / height;
+    // Con el texto arriba, lo que cuenta es dónde acaba: por debajo de eso
+    // el líquido es libre, y por encima se le empuja hacia abajo.
+    textZone.bottom = 1 - (blockBottom + bigSize * 1.4) / height;
+    textZone.desdeArriba = arriba;
     // En móvil el texto ocupa todo el ancho de abajo y no hay hueco al que
     // apartarse de lado, así que el empuje hacia arriba tiene que ser mayor.
     textZone.strength = 0.15 + compact * 0.22;
@@ -961,11 +991,17 @@ export async function createLiquidHero(
    * vería un techo invisible; así parece flotabilidad.
    */
   function textLift(x: number, y: number) {
-    if (y >= textZone.top) return 0;
+    if (textZone.desdeArriba ? y <= textZone.bottom : y >= textZone.top) return 0;
     // A la derecha del bloque no hay nada que tapar, así que el empuje se
     // apaga en cuanto se sale de su ancho.
     const across = 1 - smoothstep(textZone.right, textZone.right + 0.3, x);
     if (across <= 0) return 0;
+    // Con el texto arriba (móvil) el empuje es hacia abajo: sale negativo.
+    if (textZone.desdeArriba) {
+      const depthDown = (y - textZone.bottom) / Math.max(1 - textZone.bottom, 0.001);
+      const tiltedDown = 1 - Math.min(Math.hypot(gyro.x, gyro.y), 1) * 0.55;
+      return -across * depthDown * depthDown * textZone.strength * tiltedDown;
+    }
     const depth = (textZone.top - y) / Math.max(textZone.top, 0.001);
     // Con el móvil ladeado el empuje se afloja: si no, al inclinar hacia el
     // texto el agua se quedaría flotando encima sin poder bajar, y se vería
@@ -1027,9 +1063,9 @@ export async function createLiquidHero(
     // tope fijo, en un móvil el paseo se quedaba encerrado en una caja de
     // dos dedos y se leía como un temblor.
     wander.x = Math.min(Math.max(wander.x, aspect * 0.2), aspect * 0.82);
-    // El paseo se mantiene en los dos tercios altos: abajo a la izquierda
-    // está el bloque de texto y el líquido lo dejaría ilegible.
-    wander.y = Math.min(Math.max(wander.y, 0.42), 0.88);
+    // El paseo se mantiene lejos del bloque de texto (abajo en ancho, arriba
+    // en móvil): el líquido encima lo dejaría ilegible.
+    wander.y = Math.min(Math.max(wander.y, masa.min), masa.max);
 
     const blend = Math.min(Math.max((idle - 0.9) / 1.4, 0), 1);
 
@@ -1040,7 +1076,7 @@ export async function createLiquidHero(
     const restX = MASS_BIAS_X * aspect;
     const drift = gyro.live ? GYRO_DRIFT : 1;
     const idleX = restX + (wander.x - restX) * drift;
-    const idleY = 0.62 + (wander.y - 0.62) * drift;
+    const idleY = masa.reposo + (wander.y - masa.reposo) * drift;
 
     let rawX = pointer.x * aspect * (1 - blend) + idleX * blend;
     let rawY = pointer.y * (1 - blend) + idleY * blend;
@@ -1186,7 +1222,7 @@ export async function createLiquidHero(
           // Y el centro casi deja de tirar, o no llegarían a separarse.
           const hold = 1 - Math.min(Math.hypot(gyro.x, gyro.y), 1) * 0.85;
           blob.vx += (aspect * MASS_BIAS_X - blob.x) * 0.55 * hold * delta;
-          blob.vy += (0.62 - blob.y) * 0.75 * hold * delta;
+          blob.vy += (masa.reposo - blob.y) * 0.75 * hold * delta;
         } else {
           // Cada gota sigue el desplazamiento con su propia medida: las
           // pequeñas se adelantan y las grandes se quedan atrás, así que la
@@ -1198,7 +1234,7 @@ export async function createLiquidHero(
           // de cuentas se sentía y este no.
           const follow = 1.3 - blob.radius * 2.4;
           blob.vx += (centreRest + pool.x * follow - blob.x) * 0.55 * delta;
-          blob.vy += (0.62 + pool.y * follow - blob.y) * 0.75 * delta;
+          blob.vy += (masa.reposo + pool.y * follow - blob.y) * 0.75 * delta;
         }
 
 

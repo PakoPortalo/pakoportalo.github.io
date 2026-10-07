@@ -27,6 +27,8 @@ export interface MarkLayout {
   blockBottom: number;
   /** 0 en pantalla ancha, 1 en móvil estrecho. */
   compact: number;
+  /** El bloque de texto va arriba (móvil) en vez de abajo. */
+  textoArriba?: boolean;
 }
 
 const WHITE = (alpha: number) => `rgba(255, 255, 255, ${alpha})`;
@@ -568,9 +570,17 @@ export const MARK_PRESETS: MarkPreset[] = [
   },
   {
     name: '5 · Semitono',
-    draw({ ctx, width, height, margin, blockBottom, eyebrowBaseline, bigSize, compact }) {
+    draw({ ctx, width, height, margin, blockBottom, eyebrowBaseline, bigSize, compact, textoArriba }) {
       const cell = Math.max(width * 0.0075, 5.5);
       const rows = 8;
+      // Con el texto arriba (móvil), la rejilla baja a la esquina de abajo a
+      // la derecha, en espejo: densa en la esquina y apagándose hacia dentro.
+      // Por encima de la flecha de bajar.
+      if (textoArriba) {
+        const columns = Math.round(18 - compact * 7);
+        halftoneFade(ctx, width - margin - columns * cell, height - margin - rows * cell - 34, columns, rows, cell, Math.PI);
+        return;
+      }
       const top = topBand(
         { height, margin, eyebrowBaseline, bigSize } as MarkLayout,
         cell * rows,
