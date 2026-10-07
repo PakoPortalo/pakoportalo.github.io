@@ -62,6 +62,7 @@ const lineas = servicios.map((servicio) => {
         </div>
       )
     }
+    <div class="encargos__texto" data-texto>
     <h2 class="encargos__entradilla" id={`${id}-titulo`}>{entradilla}</h2>
     {
       lineas.map((linea) => (
@@ -84,6 +85,7 @@ const lineas = servicios.map((servicio) => {
         </p>
       ))
     }
+    </div>
   </div>
 </section>
 
@@ -126,7 +128,30 @@ const lineas = servicios.map((servicio) => {
     z-index: 0;
     opacity: var(--opacidad-fondo);
     pointer-events: none;
-    mask-image: linear-gradient(to bottom, transparent, #000 22%, #000 78%, transparent);
+    /* Su propia capa: el texto cambia en cada fotograma de scroll y no
+       tiene que arrastrar al vídeo en cada repintado. */
+    will-change: transform;
+    transform: translateZ(0);
+  }
+
+  /*
+    El fundido de arriba y abajo, como un degradado del color del fondo por
+    encima del vídeo. Antes era una máscara (mask-image) sobre el vídeo y,
+    en el móvil, recalcularla en cada fotograma de scroll hacía que el
+    vídeo fuera a tirones.
+  */
+  .encargos__fijo::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: linear-gradient(to bottom, #050505, transparent 22%, transparent 78%, #050505);
+  }
+
+  .encargos__texto {
+    display: grid;
+    gap: inherit;
   }
 
   .encargos__clip {
@@ -255,13 +280,18 @@ const lineas = servicios.map((servicio) => {
 
     /*
       La salida: cuando el módulo termina, en vez de irse hacia arriba se
-      queda en su sitio (--baja lo compensa), encoge y se apaga mientras el
-      siguiente le pasa por encima, como si llegara desde el frente.
+      queda en su sitio (--baja lo compensa) y el texto encoge y se apaga,
+      con el vídeo quieto detrás, mientras el siguiente le pasa por encima,
+      como si llegara desde el frente.
       --salida va de 0 a 1; lo pone el script.
     */
     .encargos__fijo {
-      transform: translateY(var(--baja, 0px)) scale(calc(1 - var(--salida, 0) * 0.16));
-      opacity: calc(1 - var(--salida, 0) * 0.7);
+      transform: translateY(var(--baja, 0px));
+    }
+
+    .encargos__texto {
+      scale: calc(1 - var(--salida, 0) * 0.22);
+      opacity: calc(1 - var(--salida, 0) * 0.85);
       transform-origin: 50% 50%;
     }
   }
