@@ -326,19 +326,34 @@ const posicion = (i: number) => (obras.length > 1 ? i / (obras.length - 1) : 0);
       muelle: es el propio scroll el que manda, y cualquier retraso añadido
       se notaría como que la pista no obedece a la rueda.
     */
+    /*
+      Las medidas que no cambian con el scroll se toman solo al cambiar de
+      tamaño: leer el ancho de la pista en cada fotograma obligaba a
+      recalcular la maqueta y en el móvil el scroll iba a tirones. El alto de
+      pantalla es el de la parte fija (100svh), que no baila al esconderse
+      la barra del navegador como el de la ventana.
+    */
+    const fijo = seccion.querySelector<HTMLElement>('.recorrido__fijo')!;
+    let sobrante = 0;
+    let alto = window.innerHeight;
+    const medir = () => {
+      // El ancho visible, sin la barra de desplazamiento (innerWidth la incluye).
+      sobrante = Math.max(0, pista.scrollWidth - document.documentElement.clientWidth);
+      alto = fijo.offsetHeight || window.innerHeight;
+    };
+    medir();
+
     const actualizar = () => {
       pendiente = 0;
       const caja = seccion.getBoundingClientRect();
-      const recorrible = caja.height - window.innerHeight;
+      const recorrible = caja.height - alto;
       const progreso = recorrible > 0 ? limitar(-caja.top / recorrible, 0, 1) : 0;
-      // El ancho visible, sin la barra de desplazamiento (innerWidth la incluye).
-      const sobrante = pista.scrollWidth - document.documentElement.clientWidth;
-      pista.style.transform = `translate3d(${-progreso * Math.max(0, sobrante)}px, 0, 0)`;
+      pista.style.transform = `translate3d(${-progreso * sobrante}px, 0, 0)`;
       seccion.style.setProperty('--progreso', progreso.toFixed(4));
 
       // La entrada: 0 con el canto del módulo en el borde de abajo, 1 al
       // llegar al de arriba. A partir de ahí se queda en 1 todo el recorrido.
-      const entrada = limitar((window.innerHeight - caja.top) / window.innerHeight, 0, 1);
+      const entrada = limitar((alto - caja.top) / alto, 0, 1);
       seccion.style.setProperty('--entrada', entrada.toFixed(4));
 
       // La obra que está delante es la más cercana a su sitio en el recorrido.
@@ -406,7 +421,18 @@ const posicion = (i: number) => (obras.length > 1 ? i / (obras.length - 1) : 0);
     }
 
     window.addEventListener('scroll', pedir, { passive: true });
-    window.addEventListener('resize', pedir);
+    new ResizeObserver(() => {
+      medir();
+      pedir();
+    }).observe(pista);
+    window.addEventListener('resize', () => {
+      medir();
+      pedir();
+    });
+    window.addEventListener('load', () => {
+      medir();
+      pedir();
+    });
     actualizar();
   });
 </script>

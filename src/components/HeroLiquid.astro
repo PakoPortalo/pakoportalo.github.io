@@ -77,9 +77,16 @@ const { copy } = Astro.props;
     --gutter: max(24px, 5.5vw);
   }
 
+  /*
+    Alto de la pantalla grande (lvh), no de la visible: en el móvil, al
+    bajar se esconde la barra del navegador y la pantalla visible crece.
+    Con inset: 0 la capa crecía con ella, el lienzo se redimensionaba, se
+    borraba un fotograma y el texto se recolocaba de golpe. Así no cambia.
+  */
   .hero__escena {
     position: fixed;
-    inset: 0;
+    inset: 0 0 auto;
+    height: 100lvh;
     z-index: 0;
     overflow: hidden;
   }
@@ -333,8 +340,10 @@ const { copy } = Astro.props;
 
     const actualizar = () => {
       pedido = false;
-      // El recorrido es una pantalla: bajada una, el alejamiento está al tope.
-      const recorrido = Math.max(window.innerHeight, 1);
+      // El recorrido es lo que mide el hero: bajado entero, el alejamiento
+      // está al tope. Su alto es fijo (svh); el de la ventana baila en el
+      // móvil al esconderse la barra del navegador.
+      const recorrido = Math.max(section?.offsetHeight ?? window.innerHeight, 1);
       const salida = Math.min(Math.max(window.scrollY / recorrido, 0), 1);
       hero.setZoom(1 - 0.24 * salida);
     };

@@ -734,7 +734,10 @@ export async function createLiquidHero(
     MARK_PRESETS[marksIndex]?.draw({
       ctx: textContext,
       width,
-      height,
+      // El lienzo mide la pantalla grande (sin barras del navegador): las
+      // marcas de abajo se colocan respecto a lo que se ve al cargar, o
+      // quedarían escondidas tras la barra del móvil.
+      height: Math.min(height, window.innerHeight || height),
       margin,
       blockWidth,
       bigSize,
@@ -939,7 +942,10 @@ export async function createLiquidHero(
 
   function resize() {
     const rect = canvas.getBoundingClientRect();
-    dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+    // En pantallas táctiles, menos resolución: en un móvil el humo y el
+    // líquido no ganan nitidez visible y cada fotograma cuesta casi el doble.
+    const tactil = window.matchMedia('(pointer: coarse)').matches;
+    dpr = Math.min(window.devicePixelRatio || 1, tactil ? 1.25 : MAX_DPR);
     width = Math.max(rect.width, 1);
     height = Math.max(rect.height, 1);
     aspect = width / height;
