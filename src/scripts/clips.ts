@@ -61,13 +61,48 @@ export const cargarClip = async (video: HTMLVideoElement) => {
   );
   video.querySelector('source[type^="video/webm"]')?.addEventListener('error', () => soloMp4(video), { once: true });
   video.load();
-  if (video.dataset.quiereSonar !== undefined && !quieto()) video.play().catch(() => {});
+  if (video.dataset.quiereSonar !== undefined) intentar(video);
+};
+
+/*
+  Bloqueados: el iPhone en modo de ahorro de batería no deja que ningún
+  vídeo arranque solo, aunque vaya mudo y en línea (play() responde
+  NotAllowedError y pinta un botón de play encima). Pero un toque del usuario
+  en la página sí cuenta como permiso: con el primero, arrancan los que
+  estén en pantalla.
+*/
+const bloqueados = new Set<HTMLVideoElement>();
+let esperandoToque = false;
+
+const reintentarConToque = () => {
+  bloqueados.forEach((video) => {
+    if (video.dataset.quiereSonar === undefined) return;
+    video
+      .play()
+      .then(() => bloqueados.delete(video))
+      .catch(() => {});
+  });
+  if (!bloqueados.size) {
+    ['touchend', 'click'].forEach((tipo) => document.removeEventListener(tipo, reintentarConToque));
+    esperandoToque = false;
+  }
+};
+
+const intentar = (video: HTMLVideoElement) => {
+  if (quieto()) return;
+  video.play().catch((error: DOMException) => {
+    if (error?.name !== 'NotAllowedError') return;
+    bloqueados.add(video);
+    if (esperandoToque) return;
+    esperandoToque = true;
+    ['touchend', 'click'].forEach((tipo) => document.addEventListener(tipo, reintentarConToque, { passive: true }));
+  });
 };
 
 export const reproducirClip = (video: HTMLVideoElement) => {
   video.dataset.quiereSonar = '';
   void cargarClip(video);
-  if (!quieto()) video.play().catch(() => {});
+  intentar(video);
 };
 
 let observando = false;

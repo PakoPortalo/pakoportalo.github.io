@@ -44,6 +44,15 @@ const ruta = `${base}proyectos/${carpeta}/${clip}`;
     height: 100%;
     object-fit: cover;
   }
+
+  /* El botón de play que pinta iOS encima cuando no deja arrancar el vídeo
+     solo (modo de ahorro de batería): fuera. Se ve el póster limpio y el
+     vídeo arranca con el primer toque en la página. */
+  video::-webkit-media-controls-start-playback-button,
+  video::-webkit-media-controls {
+    display: none !important;
+    -webkit-appearance: none;
+  }
 </style>
 
 <script>
