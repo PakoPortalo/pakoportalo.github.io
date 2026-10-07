@@ -50,7 +50,15 @@ const lineas = servicios.map((servicio) => {
     {
       fondo && (
         <div class="encargos__fondo" aria-hidden="true">
-          <ClipVideo clip={fondo} carpeta="fondos" />
+          {/* Apaisado en pantalla ancha y en vertical (9:16) en el móvil:
+              recortar el apaisado a lo alto lo ampliaba y se veía blando.
+              El que está oculto ni se carga. */}
+          <div class="encargos__clip encargos__clip--ancho">
+            <ClipVideo clip={fondo} carpeta="fondos" />
+          </div>
+          <div class="encargos__clip encargos__clip--movil">
+            <ClipVideo clip={`${fondo}-movil`} carpeta="fondos" />
+          </div>
         </div>
       )
     }
@@ -112,6 +120,15 @@ const lineas = servicios.map((servicio) => {
     opacity: var(--opacidad-fondo);
     pointer-events: none;
     mask-image: linear-gradient(to bottom, transparent, #000 22%, #000 78%, transparent);
+  }
+
+  .encargos__clip {
+    position: absolute;
+    inset: 0;
+  }
+
+  .encargos__clip--movil {
+    display: none;
   }
 
   .encargos__fijo > :not(.encargos__fondo) {
@@ -197,6 +214,36 @@ const lineas = servicios.map((servicio) => {
       opacity: 1;
     }
   }
+  /*
+    En el móvil el texto crece hasta llenar el ancho (antes se quedaba en
+    el mínimo y sobraba media pantalla de aire) y el fondo va en vertical.
+  */
+  @media (max-width: 600px) {
+    .encargos__clip--ancho {
+      display: none;
+    }
+
+    .encargos__clip--movil {
+      display: block;
+    }
+
+    .encargos__fijo {
+      gap: 34px;
+      padding-inline: 20px;
+    }
+
+    .encargos__linea {
+      grid-template-columns: 26px 1fr;
+      max-width: none;
+      font-size: 12.4vw;
+      line-height: 1.02;
+    }
+
+    .encargos__linea + .encargos__linea {
+      max-width: none;
+    }
+  }
+
 </style>
 
 <script>
