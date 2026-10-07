@@ -28,6 +28,7 @@ const ruta = `${base}proyectos/${carpeta}/${clip}`;
   disablepictureinpicture
   preload="none"
   poster={`${ruta}.webp`}
+  data-animado={`${base}proyectos/animados/${clip}.webp`}
   aria-hidden="true"
 >
   <source data-src={`${ruta}.webm`} type='video/webm; codecs="av01.0.05M.08"' />
@@ -35,6 +36,15 @@ const ruta = `${base}proyectos/${carpeta}/${clip}`;
 </video>
 
 <style>
+  /* La imagen animada que sustituye al vídeo cuando el navegador no le deja
+     arrancar solo (clips.ts): ocupa lo mismo y encuadra igual. */
+  :global(img[data-clip-animado]) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
   /* Rellena siempre su caja y reencuadra. Las clases que le pasa cada módulo
      no llevan el ámbito de ese módulo, así que lo común va aquí y lo
      particular lo apuntan ellos con :global(). */
@@ -46,8 +56,7 @@ const ruta = `${base}proyectos/${carpeta}/${clip}`;
   }
 
   /* El botón de play que pinta iOS encima cuando no deja arrancar el vídeo
-     solo (modo de ahorro de batería): fuera. Se ve el póster limpio y el
-     vídeo arranca con el primer toque en la página. */
+     solo: fuera. En ese caso el vídeo se cambia por su imagen animada. */
   video::-webkit-media-controls-start-playback-button,
   video::-webkit-media-controls {
     display: none !important;

@@ -65,37 +65,32 @@ export const cargarClip = async (video: HTMLVideoElement) => {
 };
 
 /*
-  Bloqueados: el iPhone en modo de ahorro de batería no deja que ningún
-  vídeo arranque solo, aunque vaya mudo y en línea (play() responde
-  NotAllowedError y pinta un botón de play encima). Pero un toque del usuario
-  en la página sí cuenta como permiso: con el primero, arrancan los que
-  estén en pantalla.
+  Hay iPhones que no dejan que ningún vídeo arranque solo, aunque vaya mudo y
+  en línea: play() responde NotAllowedError (pasa con el modo de ahorro de
+  batería y con algún ajuste de accesibilidad). Las imágenes animadas no
+  tienen esa traba, así que en ese caso el vídeo se cambia por su WebP
+  animado (data-animado), que ocupa lo mismo y se coloca en su sitio. Las
+  clases y estilos del vídeo pasan a la imagen.
 */
-const bloqueados = new Set<HTMLVideoElement>();
-let esperandoToque = false;
-
-const reintentarConToque = () => {
-  bloqueados.forEach((video) => {
-    if (video.dataset.quiereSonar === undefined) return;
-    video
-      .play()
-      .then(() => bloqueados.delete(video))
-      .catch(() => {});
-  });
-  if (!bloqueados.size) {
-    ['touchend', 'click'].forEach((tipo) => document.removeEventListener(tipo, reintentarConToque));
-    esperandoToque = false;
-  }
+const aImagen = (video: HTMLVideoElement) => {
+  const ruta = video.dataset.animado;
+  if (!ruta || video.dataset.sustituido !== undefined) return;
+  video.dataset.sustituido = '';
+  const imagen = document.createElement('img');
+  imagen.src = ruta;
+  imagen.alt = '';
+  imagen.setAttribute('aria-hidden', 'true');
+  imagen.setAttribute('data-clip-animado', '');
+  imagen.className = video.className;
+  imagen.decoding = 'async';
+  video.pause();
+  video.replaceWith(imagen);
 };
 
 const intentar = (video: HTMLVideoElement) => {
-  if (quieto()) return;
+  if (quieto() || video.dataset.sustituido !== undefined) return;
   video.play().catch((error: DOMException) => {
-    if (error?.name !== 'NotAllowedError') return;
-    bloqueados.add(video);
-    if (esperandoToque) return;
-    esperandoToque = true;
-    ['touchend', 'click'].forEach((tipo) => document.addEventListener(tipo, reintentarConToque, { passive: true }));
+    if (error?.name === 'NotAllowedError') aImagen(video);
   });
 };
 

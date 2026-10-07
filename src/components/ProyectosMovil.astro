@@ -297,7 +297,8 @@ const meta = (o: (typeof obras)[number]) => [o.titulo, o.agencia, o.ano, o.papel
     box-shadow: 0 -24px 60px rgb(0 0 0 / 0.7);
   }
 
-  .pm__reel :global(video) {
+  .pm__reel :global(video),
+  .pm__reel :global(img[data-clip-animado]) {
     position: absolute;
     inset: 0;
     filter: brightness(calc(1 - var(--tapada, 0) * 0.6));
