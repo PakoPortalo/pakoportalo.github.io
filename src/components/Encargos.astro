@@ -20,11 +20,9 @@ interface Props {
   /** Cuánto se ve el fondo, de 0 a 1. */
   opacidadFondo?: number;
   id?: string;
-  /** Maquetación en el móvil (pruebas en /ideas). */
-  movil?: 'medio' | 'bloques' | 'acento' | 'centrado';
 }
 
-const { fondo, opacidadFondo = 0.22, id = 'encargos', movil = 'medio' } = Astro.props;
+const { fondo, opacidadFondo = 0.22, id = 'encargos' } = Astro.props;
 
 /*
   Se numeran todas las palabras seguidas, de las dos frases, porque el
@@ -43,7 +41,7 @@ const lineas = servicios.map((servicio) => {
 ---
 
 <section
-  class={`encargos encargos--m-${movil}`}
+  class="encargos"
   aria-labelledby={`${id}-titulo`}
   data-encargos
   style={`--n: ${contador}; --opacidad-fondo: ${opacidadFondo}`}
@@ -226,7 +224,7 @@ const lineas = servicios.map((servicio) => {
   /*
     En el móvil el fondo va en vertical y el texto, con las líneas
     equilibradas (text-wrap: balance) para que no queden palabras sueltas
-    al final. Cuatro maquetaciones de prueba (movil).
+    al final.
   */
   @media (max-width: 600px) {
     .encargos__clip--ancho {
@@ -255,52 +253,16 @@ const lineas = servicios.map((servicio) => {
       text-wrap: balance;
     }
 
-    /* 2 · Bloques: cada servicio en su mitad de pantalla. */
-    .encargos--m-bloques .encargos__fijo {
-      align-content: space-between;
-      padding-block: 18svh 16svh;
-    }
-
-    /* 3 · Acento: lo de "para quién" grande; el resto, como entradilla. */
-    .encargos--m-acento .encargos__linea,
-    .encargos--m-acento .encargos__linea + .encargos__linea {
-      font-size: 11.5vw;
-      line-height: 1;
-    }
-
-    .encargos--m-acento .encargos__tramo {
-      display: block;
-    }
-
-    .encargos--m-acento .encargos__tramo:not(.encargos__tramo--acento) {
-      margin-bottom: 4px;
-      font-family: InstrumentSans, sans-serif;
-      font-size: 0.4em;
-      letter-spacing: 0;
-      line-height: 1.45;
-    }
-
-    .encargos--m-acento .encargos__punto {
-      margin-block-start: 0.2em;
-    }
-
-    /* 4 · Centrado: todo al eje, el punto encima de cada frase. */
-    .encargos--m-centrado .encargos__fijo {
-      justify-items: center;
-      text-align: center;
-    }
-
-    .encargos--m-centrado .encargos__linea,
-    .encargos--m-centrado .encargos__linea + .encargos__linea {
-      grid-template-columns: 1fr;
-      justify-items: center;
-      gap: 14px;
-      font-size: 8.6vw;
-    }
-
-    .encargos--m-centrado .encargos__punto {
-      margin: 0;
-      align-self: center;
+    /*
+      La salida: cuando el módulo termina, en vez de irse hacia arriba se
+      queda en su sitio (--baja lo compensa), encoge y se apaga mientras el
+      siguiente le pasa por encima, como si llegara desde el frente.
+      --salida va de 0 a 1; lo pone el script.
+    */
+    .encargos__fijo {
+      transform: translateY(var(--baja, 0px)) scale(calc(1 - var(--salida, 0) * 0.16));
+      opacity: calc(1 - var(--salida, 0) * 0.7);
+      transform-origin: 50% 50%;
     }
   }
 </style>
@@ -308,7 +270,10 @@ const lineas = servicios.map((servicio) => {
 <script>
   const limitar = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
+  const movil = window.matchMedia('(max-width: 600px)');
+
   document.querySelectorAll<HTMLElement>('[data-encargos]').forEach((seccion) => {
+    const fijo = seccion.querySelector<HTMLElement>('.encargos__fijo')!;
     let pendiente = 0;
     const actualizar = () => {
       pendiente = 0;
@@ -318,6 +283,13 @@ const lineas = servicios.map((servicio) => {
       // encendido un rato antes de irse.
       const p = recorrible > 0 ? limitar(-caja.top / (recorrible * 0.8), 0, 1) : 1;
       seccion.style.setProperty('--p', p.toFixed(4));
+
+      // La salida (solo en el móvil): lo que ha subido desde que se soltó.
+      if (movil.matches) {
+        const subido = Math.max(0, window.innerHeight - caja.bottom);
+        fijo.style.setProperty('--baja', `${subido.toFixed(1)}px`);
+        fijo.style.setProperty('--salida', limitar(subido / window.innerHeight, 0, 1).toFixed(4));
+      }
     };
     const pedir = () => {
       if (!pendiente) pendiente = requestAnimationFrame(actualizar);
