@@ -20,9 +20,11 @@ interface Props {
   /** Cuánto se ve el fondo, de 0 a 1. */
   opacidadFondo?: number;
   id?: string;
+  /** Maquetación en el móvil (pruebas en /ideas). */
+  movil?: 'medio' | 'bloques' | 'acento' | 'centrado';
 }
 
-const { fondo, opacidadFondo = 0.22, id = 'encargos' } = Astro.props;
+const { fondo, opacidadFondo = 0.22, id = 'encargos', movil = 'medio' } = Astro.props;
 
 /*
   Se numeran todas las palabras seguidas, de las dos frases, porque el
@@ -41,7 +43,7 @@ const lineas = servicios.map((servicio) => {
 ---
 
 <section
-  class="encargos"
+  class={`encargos encargos--m-${movil}`}
   aria-labelledby={`${id}-titulo`}
   data-encargos
   style={`--n: ${contador}; --opacidad-fondo: ${opacidadFondo}`}
@@ -68,9 +70,16 @@ const lineas = servicios.map((servicio) => {
         <p class={`encargos__linea encargos__linea--${linea.color}`} style={`--inicio: ${linea.inicio}`}>
           <span class="encargos__punto" aria-hidden="true" />
           <span>
-            {linea.palabras.map(({ palabra, acento, i }) => (
-              <span class:list={['encargos__palabra', acento && 'es-acento']} style={`--i: ${i}`}>
-                {palabra}{' '}
+            {/* La frase en dos tramos: lo que se hace y para quién. */}
+            {[false, true].map((tramo) => (
+              <span class:list={['encargos__tramo', tramo && 'encargos__tramo--acento']}>
+                {linea.palabras
+                  .filter(({ acento }) => acento === tramo)
+                  .map(({ palabra, acento, i }) => (
+                    <span class:list={['encargos__palabra', acento && 'es-acento']} style={`--i: ${i}`}>
+                      {palabra}{' '}
+                    </span>
+                  ))}
               </span>
             ))}
           </span>
@@ -215,8 +224,9 @@ const lineas = servicios.map((servicio) => {
     }
   }
   /*
-    En el móvil el texto crece hasta llenar el ancho (antes se quedaba en
-    el mínimo y sobraba media pantalla de aire) y el fondo va en vertical.
+    En el móvil el fondo va en vertical y el texto, con las líneas
+    equilibradas (text-wrap: balance) para que no queden palabras sueltas
+    al final. Cuatro maquetaciones de prueba (movil).
   */
   @media (max-width: 600px) {
     .encargos__clip--ancho {
@@ -228,22 +238,71 @@ const lineas = servicios.map((servicio) => {
     }
 
     .encargos__fijo {
-      gap: 34px;
+      gap: 30px;
       padding-inline: 20px;
     }
 
-    .encargos__linea {
-      grid-template-columns: 26px 1fr;
+    .encargos__linea,
+    .encargos__linea + .encargos__linea {
+      grid-template-columns: 24px 1fr;
       max-width: none;
-      font-size: 12.4vw;
-      line-height: 1.02;
+      font-size: 9.2vw;
+      line-height: 1.06;
+      text-wrap: balance;
     }
 
-    .encargos__linea + .encargos__linea {
-      max-width: none;
+    .encargos__linea > span:last-child {
+      text-wrap: balance;
+    }
+
+    /* 2 · Bloques: cada servicio en su mitad de pantalla. */
+    .encargos--m-bloques .encargos__fijo {
+      align-content: space-between;
+      padding-block: 18svh 16svh;
+    }
+
+    /* 3 · Acento: lo de "para quién" grande; el resto, como entradilla. */
+    .encargos--m-acento .encargos__linea,
+    .encargos--m-acento .encargos__linea + .encargos__linea {
+      font-size: 11.5vw;
+      line-height: 1;
+    }
+
+    .encargos--m-acento .encargos__tramo {
+      display: block;
+    }
+
+    .encargos--m-acento .encargos__tramo:not(.encargos__tramo--acento) {
+      margin-bottom: 4px;
+      font-family: InstrumentSans, sans-serif;
+      font-size: 0.4em;
+      letter-spacing: 0;
+      line-height: 1.45;
+    }
+
+    .encargos--m-acento .encargos__punto {
+      margin-block-start: 0.2em;
+    }
+
+    /* 4 · Centrado: todo al eje, el punto encima de cada frase. */
+    .encargos--m-centrado .encargos__fijo {
+      justify-items: center;
+      text-align: center;
+    }
+
+    .encargos--m-centrado .encargos__linea,
+    .encargos--m-centrado .encargos__linea + .encargos__linea {
+      grid-template-columns: 1fr;
+      justify-items: center;
+      gap: 14px;
+      font-size: 8.6vw;
+    }
+
+    .encargos--m-centrado .encargos__punto {
+      margin: 0;
+      align-self: center;
     }
   }
-
 </style>
 
 <script>
