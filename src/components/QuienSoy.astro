@@ -557,18 +557,88 @@ const temas = biografia.map((b, k) => ({
       grid-template-columns: 1fr;
     }
 
+    .sobre__foto {
+      max-width: 420px;
+    }
+  }
+
+  /*
+    En el móvil: la foto más pequeña y el índice en columna. El tema
+    elegido late (su neón crece y decrece, y él con un pelo de zoom); los
+    otros llevan una flechita a la izquierda que se mece, pidiendo que los
+    toques.
+  */
+  @media (max-width: 600px) {
+    .sobre__rejilla {
+      gap: 36px;
+    }
+
+    .sobre__foto {
+      width: 68vw;
+      justify-self: center;
+    }
+
     .sobre__indice {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px 20px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .sobre__tema {
+      display: inline-flex;
+      align-items: center;
+      font-size: 34px;
+      transform-origin: 0 50%;
+    }
+
+    .sobre__tema::before {
+      content: '→';
+      display: inline-block;
+      width: 1.6em;
+      font-family: InstrumentSans, sans-serif;
+      font-size: 0.5em;
+      color: rgb(255 255 255 / 0.5);
+      animation: sobre-meneo 1.8s ease-in-out infinite;
     }
 
     .sobre__tema[aria-selected='true'] {
       translate: 0 0;
+      animation: sobre-late 2.4s ease-in-out infinite;
     }
 
-    .sobre__foto {
-      max-width: 420px;
+    .sobre__tema[aria-selected='true']::before {
+      visibility: hidden;
+      animation: none;
+    }
+  }
+
+  @keyframes sobre-late {
+    0%,
+    100% {
+      scale: 1;
+      text-shadow: 0 0 10px color-mix(in oklab, var(--c) 30%, transparent);
+    }
+    50% {
+      scale: 1.05;
+      text-shadow:
+        0 0 4px color-mix(in oklab, var(--c) 60%, transparent),
+        0 0 26px color-mix(in oklab, var(--c) 55%, transparent);
+    }
+  }
+
+  @keyframes sobre-meneo {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    50% {
+      translate: 5px 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sobre__tema,
+    .sobre__tema::before {
+      animation: none !important;
     }
   }
 </style>
@@ -779,7 +849,34 @@ const temas = biografia.map((b, k) => ({
       bucle = visible ? requestAnimationFrame(paso) : 0;
     };
 
-    if (reducido || !conRaton) return;
+    if (reducido) return;
+
+    const arrancarSiVisible = () =>
+      new IntersectionObserver(([e]) => {
+        visible = Boolean(e?.isIntersecting);
+        if (visible && !bucle) {
+          anterior = 0;
+          bucle = requestAnimationFrame(paso);
+        }
+      }).observe(seccion);
+
+    /*
+      Sin ratón (el móvil), el scroll hace de ratón: según la foto cruza la
+      pantalla, la persona y el fondo se desplazan a distinto ritmo y la
+      tarjeta se inclina un poco. Encima sigue el vaivén lento.
+    */
+    if (!conRaton) {
+      const porScroll = () => {
+        const r = figura.getBoundingClientRect();
+        const centro = (r.top + r.height / 2 - window.innerHeight / 2) / (window.innerHeight / 2);
+        destinoY = limitar(centro, -1, 1) * 1.6;
+        destinoX = limitar(centro, -1, 1) * 0.5;
+      };
+      window.addEventListener('scroll', porScroll, { passive: true });
+      porScroll();
+      arrancarSiVisible();
+      return;
+    }
 
     // Solo responde al ratón dentro del módulo; al salir, vuelve al centro.
     seccion.addEventListener('pointerleave', () => {
@@ -801,12 +898,6 @@ const temas = biografia.map((b, k) => ({
       { passive: true },
     );
 
-    new IntersectionObserver(([e]) => {
-      visible = Boolean(e?.isIntersecting);
-      if (visible && !bucle) {
-        anterior = 0;
-        bucle = requestAnimationFrame(paso);
-      }
-    }).observe(seccion);
+    arrancarSiVisible();
   });
 </script>
