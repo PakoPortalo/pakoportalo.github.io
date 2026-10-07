@@ -528,9 +528,10 @@ const orbitas = conOrbitas
     En móvil no hay hover. La pregunta se queda (no rueda a la respuesta,
     que ni se ve) y de vez en cuando la recorre una ondulación suave: cada
     letra sube un poco y baja, en ola (lo dispara el script con
-    data-boing). Y la flecha se enciende en morado, con el halo que tiembla
-    y el latido del cierre, mientras la franja pasa entre el 40 % y el 70 %
-    de la pantalla (data-encendida).
+    data-boing). Y la flecha se enciende, con el halo que tiembla y el
+    latido del cierre, mientras la franja pasa entre el 40 % y el 70 % de la
+    pantalla (data-encendida): morada la primera vez, verde la siguiente, y
+    así.
   */
   @media (hover: none), (max-width: 600px) {
     .atajo__frases {
@@ -542,11 +543,7 @@ const orbitas = conOrbitas
     }
 
     .atajo[data-boing] .atajo__frase--pregunta .atajo__letra {
-      animation: ola 1600ms ease-in-out calc(var(--i) * 34ms) both;
-    }
-
-    .atajo[data-encendida] {
-      --acento: #b660ff;
+      animation: ola 1300ms ease-in-out calc(var(--i) * 22ms) both;
     }
 
     .atajo[data-encendida] .atajo__flecha {
@@ -666,16 +663,22 @@ const orbitas = conOrbitas
         banda entre el 40 % y el 70 % del alto de la pantalla, contando
         desde arriba.
       */
+      let encendidos = 0;
       new IntersectionObserver(
         ([e]) => {
-          if (e) franja.toggleAttribute('data-encendida', e.isIntersecting);
+          if (!e) return;
+          if (e.isIntersecting && !franja.hasAttribute('data-encendida')) {
+            franja.dataset.tono = encendidos % 2 === 0 ? 'morado' : 'verde';
+            encendidos += 1;
+          }
+          franja.toggleAttribute('data-encendida', e.isIntersecting);
         },
         { rootMargin: '-40% 0px -30% 0px' },
       ).observe(franja);
 
       /*
         La ondulación de la pregunta: al aparecer la franja y luego cada
-        seis segundos mientras se vea.
+        dos segundos mientras se vea.
       */
       if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         let repetir = 0;
@@ -689,7 +692,7 @@ const orbitas = conOrbitas
             clearInterval(repetir);
             if (!e?.isIntersecting) return;
             boing();
-            repetir = window.setInterval(boing, 6000);
+            repetir = window.setInterval(boing, 2000);
           },
           { threshold: 0.6 },
         ).observe(franja);
