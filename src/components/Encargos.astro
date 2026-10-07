@@ -275,11 +275,13 @@ const lineas = servicios.map((servicio) => {
     }
 
     /*
-      La salida: el texto se esfuma al acercarse al borde de arriba. La
-      opacidad la pone el script directamente en el bloque de texto.
+      La salida: el texto se esfuma por arriba según sube, línea a línea. Es
+      un degradado fijo a la pantalla (transparente pegado al borde de
+      arriba, opaco a un tercio): --m0 y --m1 son esas dos alturas medidas
+      desde el bloque de texto, y las pone el script.
     */
     .encargos__texto {
-      transition: opacity 120ms linear;
+      mask-image: linear-gradient(to bottom, transparent var(--m0, -200px), #000 var(--m1, -100px));
     }
   }
 </style>
@@ -301,12 +303,13 @@ const lineas = servicios.map((servicio) => {
       const p = recorrible > 0 ? limitar(-caja.top / (recorrible * 0.8), 0, 1) : 1;
       seccion.style.setProperty('--p', p.toFixed(4));
 
-      // La salida (solo en el móvil): al soltarse el módulo, el texto sube
-      // y se esfuma entre un tercio de pantalla y el borde de arriba.
+      // La salida (solo en el móvil): el degradado que lo esfuma por arriba,
+      // del borde de la pantalla (transparente) a un tercio (opaco).
       if (movil.matches && texto) {
         const alto = window.innerHeight;
         const arriba = texto.getBoundingClientRect().top;
-        texto.style.opacity = limitar((arriba - alto * 0.02) / (alto * 0.3), 0, 1).toFixed(3);
+        texto.style.setProperty('--m0', `${(alto * 0.03 - arriba).toFixed(1)}px`);
+        texto.style.setProperty('--m1', `${(alto * 0.3 - arriba).toFixed(1)}px`);
       }
     };
     const pedir = () => {
