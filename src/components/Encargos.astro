@@ -128,10 +128,6 @@ const lineas = servicios.map((servicio) => {
     z-index: 0;
     opacity: var(--opacidad-fondo);
     pointer-events: none;
-    /* Su propia capa: el texto cambia en cada fotograma de scroll y no
-       tiene que arrastrar al vídeo en cada repintado. */
-    will-change: transform;
-    transform: translateZ(0);
   }
 
   /*
@@ -279,20 +275,11 @@ const lineas = servicios.map((servicio) => {
     }
 
     /*
-      La salida: cuando el módulo termina, en vez de irse hacia arriba se
-      queda en su sitio (--baja lo compensa) y el texto encoge y se apaga,
-      con el vídeo quieto detrás, mientras el siguiente le pasa por encima,
-      como si llegara desde el frente.
-      --salida va de 0 a 1; lo pone el script.
+      La salida: el texto se esfuma al acercarse al borde de arriba. La
+      opacidad la pone el script directamente en el bloque de texto.
     */
-    .encargos__fijo {
-      transform: translateY(var(--baja, 0px));
-    }
-
     .encargos__texto {
-      scale: calc(1 - var(--salida, 0) * 0.22);
-      opacity: calc(1 - var(--salida, 0) * 0.85);
-      transform-origin: 50% 50%;
+      transition: opacity 120ms linear;
     }
   }
 </style>
@@ -303,7 +290,7 @@ const lineas = servicios.map((servicio) => {
   const movil = window.matchMedia('(max-width: 600px)');
 
   document.querySelectorAll<HTMLElement>('[data-encargos]').forEach((seccion) => {
-    const fijo = seccion.querySelector<HTMLElement>('.encargos__fijo')!;
+    const texto = seccion.querySelector<HTMLElement>('[data-texto]');
     let pendiente = 0;
     const actualizar = () => {
       pendiente = 0;
@@ -314,11 +301,12 @@ const lineas = servicios.map((servicio) => {
       const p = recorrible > 0 ? limitar(-caja.top / (recorrible * 0.8), 0, 1) : 1;
       seccion.style.setProperty('--p', p.toFixed(4));
 
-      // La salida (solo en el móvil): lo que ha subido desde que se soltó.
-      if (movil.matches) {
-        const subido = Math.max(0, window.innerHeight - caja.bottom);
-        fijo.style.setProperty('--baja', `${subido.toFixed(1)}px`);
-        fijo.style.setProperty('--salida', limitar(subido / window.innerHeight, 0, 1).toFixed(4));
+      // La salida (solo en el móvil): al soltarse el módulo, el texto sube
+      // y se esfuma entre un tercio de pantalla y el borde de arriba.
+      if (movil.matches && texto) {
+        const alto = window.innerHeight;
+        const arriba = texto.getBoundingClientRect().top;
+        texto.style.opacity = limitar((arriba - alto * 0.02) / (alto * 0.3), 0, 1).toFixed(3);
       }
     };
     const pedir = () => {
