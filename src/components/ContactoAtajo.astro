@@ -526,10 +526,11 @@ const orbitas = conOrbitas
 
   /*
     En móvil no hay hover. La pregunta se queda (no rueda a la respuesta,
-    que ni se ve) y da un "boing boing": las letras pegan dos saltitos en
-    ola, al aparecer la franja y de vez en cuando mientras se ve (lo dispara
-    el script con data-boing). Y la flecha se enciende en morado al pasar
-    la franja por el 45 % de la pantalla (data-encendida).
+    que ni se ve) y de vez en cuando la recorre una ondulación suave: cada
+    letra sube un pelo y baja, en ola (lo dispara el script con
+    data-boing). Y la flecha se enciende en morado, con el halo que tiembla
+    y el latido del cierre, mientras la franja pasa entre el 40 % y el 70 %
+    de la pantalla (data-encendida).
   */
   @media (hover: none), (max-width: 600px) {
     .atajo__frases {
@@ -541,30 +542,27 @@ const orbitas = conOrbitas
     }
 
     .atajo[data-boing] .atajo__frase--pregunta .atajo__letra {
-      animation: boing 1100ms ease-in-out calc(var(--i) * 28ms) both;
+      animation: ola 1600ms ease-in-out calc(var(--i) * 34ms) both;
     }
 
     .atajo[data-encendida] {
       --acento: #b660ff;
     }
+
+    .atajo[data-encendida] .atajo__flecha {
+      animation:
+        crepita 2.9s ease-in-out infinite,
+        palpita 2.4s ease-in-out infinite;
+    }
   }
 
-  @keyframes boing {
+  @keyframes ola {
     0%,
     100% {
       translate: 0 0;
     }
-    16% {
-      translate: 0 -0.16em;
-    }
-    32% {
-      translate: 0 0;
-    }
-    44% {
-      translate: 0 -0.07em;
-    }
-    56% {
-      translate: 0 0;
+    45% {
+      translate: 0 -0.05em;
     }
   }
 
@@ -664,19 +662,20 @@ const orbitas = conOrbitas
 
     if (window.matchMedia('(hover: none), (max-width: 600px)').matches) {
       /*
-        La flecha se enciende en morado mientras la franja cruza la línea
-        del 45 % del alto de la pantalla, contando desde arriba.
+        La flecha se enciende en morado mientras la franja pasa por la
+        banda entre el 40 % y el 70 % del alto de la pantalla, contando
+        desde arriba.
       */
       new IntersectionObserver(
         ([e]) => {
           if (e) franja.toggleAttribute('data-encendida', e.isIntersecting);
         },
-        { rootMargin: '-45% 0px -55% 0px' },
+        { rootMargin: '-40% 0px -30% 0px' },
       ).observe(franja);
 
       /*
-        El boing boing de la pregunta: al aparecer la franja y luego cada
-        cuatro segundos mientras se vea.
+        La ondulación de la pregunta: al aparecer la franja y luego cada
+        seis segundos mientras se vea.
       */
       if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         let repetir = 0;
@@ -690,7 +689,7 @@ const orbitas = conOrbitas
             clearInterval(repetir);
             if (!e?.isIntersecting) return;
             boing();
-            repetir = window.setInterval(boing, 4000);
+            repetir = window.setInterval(boing, 6000);
           },
           { threshold: 0.6 },
         ).observe(franja);
