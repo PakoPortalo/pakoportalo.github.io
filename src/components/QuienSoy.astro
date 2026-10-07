@@ -564,9 +564,9 @@ const temas = biografia.map((b, k) => ({
 
   /*
     En el móvil: la foto más pequeña y el índice en columna. El tema
-    elegido late (su neón crece y decrece, y él con un pelo de zoom); los
-    otros llevan una flechita a la izquierda que se mece, pidiendo que los
-    toques.
+    elegido se queda quieto con su brillo; los otros dos palpitan (un pelo
+    de zoom y un neón de su color que crece y decrece), desfasados, pidiendo
+    que los toques.
   */
   @media (max-width: 600px) {
     .sobre__rejilla {
@@ -584,29 +584,21 @@ const temas = biografia.map((b, k) => ({
     }
 
     .sobre__tema {
-      display: inline-flex;
-      align-items: center;
       font-size: 34px;
       transform-origin: 0 50%;
+      animation: sobre-late 2.4s ease-in-out infinite;
     }
 
-    .sobre__tema::before {
-      content: '→';
-      display: inline-block;
-      width: 1.6em;
-      font-family: InstrumentSans, sans-serif;
-      font-size: 0.5em;
-      color: rgb(255 255 255 / 0.5);
-      animation: sobre-meneo 1.8s ease-in-out infinite;
+    .sobre__tema:nth-child(2) {
+      animation-delay: -0.8s;
+    }
+
+    .sobre__tema:nth-child(3) {
+      animation-delay: -1.6s;
     }
 
     .sobre__tema[aria-selected='true'] {
       translate: 0 0;
-      animation: sobre-late 2.4s ease-in-out infinite;
-    }
-
-    .sobre__tema[aria-selected='true']::before {
-      visibility: hidden;
       animation: none;
     }
   }
@@ -615,29 +607,18 @@ const temas = biografia.map((b, k) => ({
     0%,
     100% {
       scale: 1;
-      text-shadow: 0 0 10px color-mix(in oklab, var(--c) 30%, transparent);
+      color: rgb(255 255 255 / 0.18);
+      text-shadow: none;
     }
     50% {
       scale: 1.05;
-      text-shadow:
-        0 0 4px color-mix(in oklab, var(--c) 60%, transparent),
-        0 0 26px color-mix(in oklab, var(--c) 55%, transparent);
-    }
-  }
-
-  @keyframes sobre-meneo {
-    0%,
-    100% {
-      translate: 0 0;
-    }
-    50% {
-      translate: 5px 0;
+      color: color-mix(in oklab, var(--c) 35%, rgb(255 255 255 / 0.25));
+      text-shadow: 0 0 22px color-mix(in oklab, var(--c) 35%, transparent);
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .sobre__tema,
-    .sobre__tema::before {
+    .sobre__tema {
       animation: none !important;
     }
   }
