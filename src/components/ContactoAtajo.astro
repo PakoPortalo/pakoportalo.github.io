@@ -176,8 +176,7 @@ const orbitas = conOrbitas
   }
 
   .atajo:has(.atajo__enlace:hover)::before,
-  .atajo:has(.atajo__enlace:focus-visible)::before,
-  .atajo[data-activo]::before {
+  .atajo:has(.atajo__enlace:focus-visible)::before {
     scale: 1.03 1.1;
   }
 
@@ -190,8 +189,7 @@ const orbitas = conOrbitas
   }
 
   .atajo--cierre:has(.atajo__enlace:hover)::before,
-  .atajo--cierre:has(.atajo__enlace:focus-visible)::before,
-  .atajo--cierre[data-activo]::before {
+  .atajo--cierre:has(.atajo__enlace:focus-visible)::before {
     scale: 1.01 1.03;
   }
 
@@ -243,14 +241,12 @@ const orbitas = conOrbitas
   }
 
   .atajo--cierre:has(.atajo__enlace:hover) .atajo__orbitas,
-  .atajo--cierre:has(.atajo__enlace:focus-visible) .atajo__orbitas,
-  .atajo--cierre[data-activo] .atajo__orbitas {
+  .atajo--cierre:has(.atajo__enlace:focus-visible) .atajo__orbitas {
     scale: 1.01 1.03;
   }
 
   .atajo--cierre:has(.atajo__enlace:hover) .atajo__sistema,
-  .atajo--cierre:has(.atajo__enlace:focus-visible) .atajo__sistema,
-  .atajo--cierre[data-activo] .atajo__sistema {
+  .atajo--cierre:has(.atajo__enlace:focus-visible) .atajo__sistema {
     scale: calc(1 / 1.01) calc(1 / 1.03);
   }
 
@@ -311,7 +307,7 @@ const orbitas = conOrbitas
   */
   .atajo--orbitas .atajo__enlace:hover .atajo__flecha,
   .atajo--orbitas .atajo__enlace:focus-visible .atajo__flecha,
-  .atajo--orbitas[data-activo] .atajo__flecha {
+  .atajo--orbitas[data-encendida] .atajo__flecha {
     /* Dos ritmos a la vez: el halo chisporrotea a saltos y el círculo
        late suave, creciendo y decreciendo. */
     animation:
@@ -472,20 +468,17 @@ const orbitas = conOrbitas
   }
 
   .atajo__enlace:hover .atajo__frases,
-  .atajo__enlace:focus-visible .atajo__frases,
-  .atajo[data-activo] .atajo__frases {
+  .atajo__enlace:focus-visible .atajo__frases {
     scale: 1.14;
   }
 
   .atajo__enlace:hover .atajo__frase--pregunta .atajo__letra,
-  .atajo__enlace:focus-visible .atajo__frase--pregunta .atajo__letra,
-  .atajo[data-activo] .atajo__frase--pregunta .atajo__letra {
+  .atajo__enlace:focus-visible .atajo__frase--pregunta .atajo__letra {
     translate: 0 -110%;
   }
 
   .atajo__enlace:hover .atajo__frase--respuesta .atajo__letra,
-  .atajo__enlace:focus-visible .atajo__frase--respuesta .atajo__letra,
-  .atajo[data-activo] .atajo__frase--respuesta .atajo__letra {
+  .atajo__enlace:focus-visible .atajo__frase--respuesta .atajo__letra {
     translate: 0 0;
   }
 
@@ -511,7 +504,7 @@ const orbitas = conOrbitas
 
   .atajo__enlace:hover .atajo__flecha,
   .atajo__enlace:focus-visible .atajo__flecha,
-  .atajo[data-activo] .atajo__flecha {
+  .atajo[data-encendida] .atajo__flecha {
     background: var(--acento);
     border-color: var(--acento);
     color: #050505;
@@ -532,52 +525,52 @@ const orbitas = conOrbitas
   }
 
   /*
-    En móvil no hay hover: la franja se enciende sola al pasar por el
-    centro de la pantalla (data-activo, lo pone el script). La frase va en
-    dos líneas, así que el recorte del rodar es de cada palabra y no de la
-    frase entera: si no, las letras de la segunda línea subían hasta verse
-    en la primera. Y ruedan con un pelo de rebote.
+    En móvil no hay hover. La pregunta se queda (no rueda a la respuesta,
+    que ni se ve) y da un "boing boing": las letras pegan dos saltitos en
+    ola, al aparecer la franja y de vez en cuando mientras se ve (lo dispara
+    el script con data-boing). Y la flecha se enciende en morado al pasar
+    la franja por el 45 % de la pantalla (data-encendida).
   */
   @media (hover: none), (max-width: 600px) {
     .atajo__frases {
       overflow-y: visible;
     }
 
-    .atajo__palabra {
-      overflow: clip;
-      overflow-clip-margin: 0.08em;
-      padding-block: 0.06em;
-      margin-block: -0.06em;
-      vertical-align: top;
-    }
-
-    .atajo__letra {
-      transition: translate 760ms cubic-bezier(0.34, 1.45, 0.64, 1) calc(var(--i) * 22ms);
-    }
-
-    /* Al irse, sin rebote: el rebote es para lo que llega. */
-    .atajo:not([data-activo]) .atajo__frase--respuesta .atajo__letra,
-    .atajo[data-activo] .atajo__frase--pregunta .atajo__letra {
-      transition-timing-function: cubic-bezier(0.7, 0, 0.2, 1);
-      transition-duration: 520ms;
-    }
-
-    /* La respuesta, alineada a la izquierda como la pregunta y centrada en
-       el alto de sus dos líneas. */
     .atajo__frase--respuesta {
-      justify-self: start;
-      align-self: center;
-      text-align: start;
+      display: none;
     }
 
-    /* Crece desde su arranque y menos: desde el centro, la respuesta se
-       pegaba al borde de la pantalla. */
-    .atajo__frases {
-      transform-origin: 0 50%;
+    .atajo[data-boing] .atajo__frase--pregunta .atajo__letra {
+      animation: boing 1100ms ease-in-out calc(var(--i) * 28ms) both;
     }
 
-    .atajo[data-activo] .atajo__frases {
-      scale: 1.05;
+    .atajo[data-encendida] {
+      --acento: #b660ff;
+    }
+  }
+
+  @keyframes boing {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    16% {
+      translate: 0 -0.16em;
+    }
+    32% {
+      translate: 0 0;
+    }
+    44% {
+      translate: 0 -0.07em;
+    }
+    56% {
+      translate: 0 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .atajo[data-boing] .atajo__frase--pregunta .atajo__letra {
+      animation: none;
     }
   }
 </style>
@@ -669,25 +662,39 @@ const orbitas = conOrbitas
     enlace.addEventListener('pointerenter', alternar);
     enlace.addEventListener('focus', alternar);
 
-    /*
-      En móvil, sin hover, la franja se enciende al entrar en la banda
-      central de la pantalla (entre el 30 % y el 70 % del alto) y se apaga
-      al salir de ella: la flecha se ilumina y la pregunta rueda a la
-      respuesta, como al pasar el ratón en el ordenador.
-    */
     if (window.matchMedia('(hover: none), (max-width: 600px)').matches) {
+      /*
+        La flecha se enciende en morado mientras la franja cruza la línea
+        del 45 % del alto de la pantalla, contando desde arriba.
+      */
       new IntersectionObserver(
         ([e]) => {
-          if (!e) return;
-          if (e.isIntersecting && !franja.hasAttribute('data-activo')) {
-            alternar();
-            franja.setAttribute('data-activo', '');
-          } else if (!e.isIntersecting) {
-            franja.removeAttribute('data-activo');
-          }
+          if (e) franja.toggleAttribute('data-encendida', e.isIntersecting);
         },
-        { rootMargin: '-30% 0px -30% 0px' },
+        { rootMargin: '-45% 0px -55% 0px' },
       ).observe(franja);
+
+      /*
+        El boing boing de la pregunta: al aparecer la franja y luego cada
+        cuatro segundos mientras se vea.
+      */
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        let repetir = 0;
+        const boing = () => {
+          franja.removeAttribute('data-boing');
+          void franja.offsetWidth; // para que la animación vuelva a empezar
+          franja.setAttribute('data-boing', '');
+        };
+        new IntersectionObserver(
+          ([e]) => {
+            clearInterval(repetir);
+            if (!e?.isIntersecting) return;
+            boing();
+            repetir = window.setInterval(boing, 4000);
+          },
+          { threshold: 0.6 },
+        ).observe(franja);
+      }
     }
   });
 
