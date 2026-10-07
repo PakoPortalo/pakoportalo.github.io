@@ -1,23 +1,23 @@
 ---
 /**
- * Prueba: cuatro maneras de enseñar los proyectos en el móvil, para
- * sustituir allí el recorrido horizontal.
+ * Prueba: la lista de proyectos para el móvil, una obra debajo de otra,
+ * con cuatro maneras de entrar al bajar.
  *
- * - lista:    una obra debajo de otra, scroll normal; cada una entra al
- *             aparecer.
- * - carrusel: se desliza con el dedo en horizontal (el gesto nativo), con
- *             la siguiente asomando y una línea de progreso debajo.
- * - reels:    cada obra a pantalla completa, el vídeo a sangre; al bajar,
- *             la siguiente se monta sobre la anterior como una pila.
- * - indice:   una ventana de vídeo arriba y los nombres en grande debajo;
- *             al bajar se enciende cada nombre y la ventana cambia de vídeo.
+ * - lados:      una desde la izquierda y la siguiente desde la derecha,
+ *               con un giro leve que se endereza al llegar.
+ * - cortinilla: el vídeo se destapa con un barrido lateral, alternando el
+ *               sentido, mientras se aleja un poco por dentro.
+ * - zoom:       ligado al scroll: cada vídeo se abre de estrecho a todo el
+ *               ancho, y su zoom se suelta, según sube hacia el centro.
+ * - montaje:    una línea vertical con el cabezal morado que avanza al
+ *               bajar; cada obra es un clip enganchado a ella.
  *
  * Todas abren la ventana del proyecto al tocar (data-proyecto).
  */
 import { obras, enlaceYouTube } from '../data/obras';
 import ClipVideo from './ClipVideo.astro';
 
-type Variante = 'lista' | 'carrusel' | 'reels' | 'indice';
+type Variante = 'lados' | 'cortinilla' | 'zoom' | 'montaje';
 
 interface Props {
   variante: Variante;
@@ -29,108 +29,49 @@ const num = (i: number) => `${String(i + 1).padStart(2, '0')} / ${total}`;
 const meta = (o: (typeof obras)[number]) => [o.titulo, o.agencia, o.ano, o.papel].filter(Boolean).join(' · ');
 ---
 
-<section class={`pm pm--${variante}`} data-pm={variante} style={`--n: ${obras.length}`}>
-  {
-    variante === 'lista' && (
-      <div class="pm__dentro">
-        <h2 class="pm__rotulo">Proyectos destacados</h2>
-        <div class="pm__lista">
-          {obras.map((obra, i) => (
-            <a class="pm__pieza" href={enlaceYouTube(obra)} target="_blank" rel="noreferrer" data-proyecto={obra.slug} data-entra>
-              <div class="pm__marco">
-                <ClipVideo clip={obra.slug} />
-              </div>
-              <div class="pm__ficha">
-                <span class="pm__num">{num(i)}</span>
-                <h3 class="pm__titulo">{obra.marca}</h3>
-                <p class="pm__meta">{meta(obra)}</p>
-              </div>
-            </a>
-          ))}
-        </div>
-      </div>
-    )
-  }
-
-  {
-    variante === 'carrusel' && (
-      <div class="pm__dentro">
-        <h2 class="pm__rotulo">Proyectos destacados</h2>
-        <div class="pm__carril" data-carril>
-          {obras.map((obra) => (
-            <a class="pm__tarjeta" href={enlaceYouTube(obra)} target="_blank" rel="noreferrer" data-proyecto={obra.slug}>
-              <ClipVideo clip={obra.slug} />
-              <div class="pm__sobre">
-                <h3 class="pm__titulo">{obra.marca}</h3>
-                <p class="pm__meta">{meta(obra)}</p>
-              </div>
-            </a>
-          ))}
-        </div>
-        <div class="pm__progreso">
-          <span class="pm__contador" data-contador>{num(0)}</span>
-          <span class="pm__linea">
-            <span class="pm__relleno" data-relleno />
-          </span>
-        </div>
-      </div>
-    )
-  }
-
-  {
-    variante === 'reels' &&
+<section class={`pm pm--${variante}`} data-pm={variante}>
+  <h2 class="pm__rotulo">Proyectos destacados</h2>
+  <div class="pm__lista" data-lista>
+    {
+      variante === 'montaje' && (
+        <span class="pm__via" aria-hidden="true">
+          <span class="pm__cabezal" data-cabezal />
+        </span>
+      )
+    }
+    {
       obras.map((obra, i) => (
-        <a class="pm__reel" href={enlaceYouTube(obra)} target="_blank" rel="noreferrer" data-proyecto={obra.slug} style={`--i: ${i}`}>
-          <ClipVideo clip={obra.slug} />
-          {i === 0 && <span class="pm__etiqueta">Proyectos destacados</span>}
-          <div class="pm__sobre">
+        <a
+          class:list={['pm__pieza', i % 2 ? 'pm__pieza--dcha' : 'pm__pieza--izq']}
+          href={enlaceYouTube(obra)}
+          target="_blank"
+          rel="noreferrer"
+          data-proyecto={obra.slug}
+          data-pieza
+        >
+          {variante === 'montaje' && <span class="pm__marca" aria-hidden="true" />}
+          <div class="pm__marco">
+            <ClipVideo clip={obra.slug} />
+          </div>
+          <div class="pm__ficha">
             <span class="pm__num">{num(i)}</span>
             <h3 class="pm__titulo">{obra.marca}</h3>
             <p class="pm__meta">{meta(obra)}</p>
-            <span class="pm__ver">Ver ↗</span>
           </div>
         </a>
       ))
-  }
-
-  {
-    variante === 'indice' && (
-      <div class="pm__fijo">
-        <h2 class="pm__rotulo">Proyectos destacados</h2>
-        <div class="pm__ventana">
-          {obras.map((obra, i) => (
-            <a
-              class:list={['pm__capa', i === 0 && 'activa']}
-              href={enlaceYouTube(obra)}
-              target="_blank"
-              rel="noreferrer"
-              data-proyecto={obra.slug}
-              data-capa={i}
-            >
-              <ClipVideo clip={obra.slug} />
-            </a>
-          ))}
-        </div>
-        <ol class="pm__nombres">
-          {obras.map((obra, i) => (
-            <li class:list={['pm__nombre', i === 0 && 'activa']} data-nombre={i}>
-              <span class="pm__titulo">{obra.marca}</span>
-              <span class="pm__meta">{meta(obra)}</span>
-            </li>
-          ))}
-        </ol>
-      </div>
-    )
-  }
+    }
+  </div>
 </section>
 
 <style>
   .pm {
     position: relative;
+    overflow: clip;
+    padding: 56px 20px 80px;
     background: #050505;
     color: #f4f1ec;
     font-family: InstrumentSans, ui-sans-serif, system-ui, sans-serif;
-    --gutter: 20px;
     --morado: #b660ff;
     --suave: cubic-bezier(0.16, 1, 0.3, 1);
   }
@@ -140,9 +81,8 @@ const meta = (o: (typeof obras)[number]) => [o.titulo, o.agencia, o.ano, o.papel
     text-decoration: none;
   }
 
-  .pm__rotulo,
-  .pm__etiqueta {
-    margin: 0;
+  .pm__rotulo {
+    margin: 0 0 28px;
     font-size: 11px;
     font-weight: 500;
     letter-spacing: 0.2em;
@@ -150,37 +90,15 @@ const meta = (o: (typeof obras)[number]) => [o.titulo, o.agencia, o.ano, o.papel
     color: rgb(255 255 255 / 0.45);
   }
 
-  .pm__titulo {
-    margin: 0;
-    font-family: ClashDisplay, InstrumentSans, sans-serif;
-    font-size: 30px;
-    font-weight: 500;
-    letter-spacing: -0.03em;
-    line-height: 1.05;
-  }
-
-  .pm__meta {
-    margin: 6px 0 0;
-    font-size: 13px;
-    line-height: 1.45;
-    color: rgb(255 255 255 / 0.55);
-  }
-
-  .pm__num {
-    font-size: 11px;
-    letter-spacing: 0.12em;
-    color: rgb(255 255 255 / 0.4);
-  }
-
-  /* ── 1 · Lista ─────────────────────────────────────────────── */
-  .pm--lista .pm__dentro {
-    padding: 56px var(--gutter) 72px;
-  }
-
   .pm__lista {
+    position: relative;
     display: grid;
-    gap: 44px;
-    margin-top: 28px;
+    gap: 52px;
+  }
+
+  .pm__pieza {
+    position: relative;
+    display: block;
   }
 
   .pm__marco {
@@ -196,228 +114,224 @@ const meta = (o: (typeof obras)[number]) => [o.titulo, o.agencia, o.ano, o.papel
     margin-top: 14px;
   }
 
-  /* Cada obra entra al aparecer: sube un poco y se enfoca. */
-  .pm [data-entra] {
-    opacity: 0;
-    translate: 0 40px;
-    transition:
-      opacity 700ms ease,
-      translate 900ms var(--suave);
+  .pm__num {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: rgb(255 255 255 / 0.4);
   }
 
-  .pm [data-entra].dentro {
+  .pm__titulo {
+    margin: 0;
+    font-family: ClashDisplay, InstrumentSans, sans-serif;
+    font-size: 30px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+  }
+
+  .pm__meta {
+    margin: 4px 0 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: rgb(255 255 255 / 0.55);
+  }
+
+  /* ── 1 · Lados ─────────────────────────────────────────────── */
+  .pm--lados .pm__marco,
+  .pm--lados .pm__ficha {
+    opacity: 0;
+    transition:
+      opacity 700ms ease,
+      translate 1100ms var(--suave),
+      rotate 1100ms var(--suave);
+  }
+
+  .pm--lados .pm__pieza--izq .pm__marco {
+    translate: -70px 0;
+    rotate: -3deg;
+  }
+
+  .pm--lados .pm__pieza--dcha .pm__marco {
+    translate: 70px 0;
+    rotate: 3deg;
+  }
+
+  .pm--lados .pm__pieza--izq .pm__ficha {
+    translate: -30px 0;
+  }
+
+  .pm--lados .pm__pieza--dcha .pm__ficha {
+    translate: 30px 0;
+  }
+
+  .pm--lados .dentro :is(.pm__marco, .pm__ficha) {
+    opacity: 1;
+    translate: 0 0;
+    rotate: 0deg;
+  }
+
+  .pm--lados .dentro .pm__ficha {
+    transition-delay: 160ms;
+  }
+
+  /* ── 2 · Cortinilla ────────────────────────────────────────── */
+  .pm--cortinilla .pm__marco {
+    clip-path: inset(0 100% 0 0);
+    transition: clip-path 1100ms cubic-bezier(0.77, 0, 0.18, 1);
+  }
+
+  .pm--cortinilla .pm__pieza--dcha .pm__marco {
+    clip-path: inset(0 0 0 100%);
+  }
+
+  .pm--cortinilla .pm__marco :global(video),
+  .pm--cortinilla .pm__marco :global(img[data-clip-animado]) {
+    scale: 1.3;
+    transition: scale 1600ms var(--suave);
+  }
+
+  .pm--cortinilla .dentro .pm__marco {
+    clip-path: inset(0 0 0 0);
+  }
+
+  .pm--cortinilla .dentro .pm__marco :global(video),
+  .pm--cortinilla .dentro .pm__marco :global(img[data-clip-animado]) {
+    scale: 1;
+  }
+
+  .pm--cortinilla .pm__ficha > * {
+    opacity: 0;
+    translate: 0 18px;
+    transition:
+      opacity 500ms ease,
+      translate 800ms var(--suave);
+  }
+
+  .pm--cortinilla .dentro .pm__ficha > * {
     opacity: 1;
     translate: 0 0;
   }
 
-  /* ── 2 · Carrusel ──────────────────────────────────────────── */
-  .pm--carrusel .pm__dentro {
-    padding: 56px 0 64px;
+  .pm--cortinilla .dentro .pm__ficha > :nth-child(1) {
+    transition-delay: 650ms;
   }
 
-  .pm--carrusel .pm__rotulo {
-    padding-inline: var(--gutter);
+  .pm--cortinilla .dentro .pm__ficha > :nth-child(2) {
+    transition-delay: 730ms;
   }
 
-  .pm__carril {
-    display: flex;
-    gap: 12px;
-    margin-top: 24px;
-    padding-inline: var(--gutter);
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    scroll-padding-inline: var(--gutter);
-    scrollbar-width: none;
-    overscroll-behavior-x: contain;
+  .pm--cortinilla .dentro .pm__ficha > :nth-child(3) {
+    transition-delay: 810ms;
   }
 
-  .pm__carril::-webkit-scrollbar {
-    display: none;
+  /* ── 3 · Zoom con el scroll ────────────────────────────────── */
+  /* --a va de 0 (abajo del todo) a 1 (cerca del centro); lo pone el script. */
+  .pm--zoom .pm__marco {
+    margin-inline: calc((1 - var(--a, 0)) * 9%);
+    border-radius: calc(4px + (1 - var(--a, 0)) * 14px);
+    opacity: calc(0.35 + var(--a, 0) * 0.65);
   }
 
-  .pm__tarjeta {
-    position: relative;
-    flex: 0 0 80%;
-    aspect-ratio: 4 / 5;
-    overflow: hidden;
-    border-radius: 6px;
-    scroll-snap-align: start;
-    background: #111;
+  .pm--zoom .pm__marco :global(video),
+  .pm--zoom .pm__marco :global(img[data-clip-animado]) {
+    scale: calc(1 + (1 - var(--a, 0)) * 0.35);
   }
 
-  .pm__sobre {
+  .pm--zoom .pm__ficha {
+    translate: calc((1 - var(--a, 0)) * 40px) 0;
+    opacity: var(--a, 0);
+  }
+
+  /* ── 4 · Línea de montaje ──────────────────────────────────── */
+  .pm--montaje .pm__lista {
+    padding-left: 22px;
+  }
+
+  .pm__via {
     position: absolute;
-    inset: auto 0 0;
-    padding: 64px 18px 18px;
-    background: linear-gradient(to top, rgb(5 5 5 / 0.92), rgb(5 5 5 / 0));
-  }
-
-  .pm__progreso {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-top: 20px;
-    padding-inline: var(--gutter);
-  }
-
-  .pm__contador {
-    font-size: 12px;
-    letter-spacing: 0.12em;
-    color: rgb(255 255 255 / 0.6);
-    font-variant-numeric: tabular-nums;
-  }
-
-  .pm__linea {
-    flex: 1;
-    height: 1px;
+    top: 0;
+    bottom: 0;
+    left: 4px;
+    width: 1px;
     background: rgb(255 255 255 / 0.15);
   }
 
-  .pm__relleno {
-    display: block;
-    height: 100%;
-    width: calc(var(--avance, 0.25) * 100%);
+  /* El cabezal: lo recorrido en morado y su punta, como en la línea de
+     tiempo del ordenador. --c va de 0 a 1, lo pone el script. */
+  .pm__cabezal {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1px;
+    height: calc(var(--c, 0) * 100%);
     background: var(--morado);
     box-shadow: 0 0 8px var(--morado);
   }
 
-  /* ── 3 · Reels: pila de pantallas ──────────────────────────── */
-  /*
-    Cada obra se queda clavada arriba y la siguiente sube por encima, como
-    una carta que tapa a la anterior. La de debajo se oscurece un poco
-    mientras la tapan (lo pone el script en --tapada).
-  */
-  .pm__reel {
-    position: sticky;
+  .pm__cabezal::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: -4px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--morado);
+    box-shadow: 0 0 12px var(--morado);
+  }
+
+  /* La marca de cada obra en la línea: se enciende al pasar el cabezal. */
+  .pm__marca {
+    position: absolute;
     top: 0;
-    display: block;
-    height: 100svh;
-    overflow: hidden;
+    left: -22px;
+    width: 9px;
+    height: 9px;
+    border: 1px solid rgb(255 255 255 / 0.35);
+    border-radius: 50%;
     background: #050505;
-    box-shadow: 0 -24px 60px rgb(0 0 0 / 0.7);
+    translate: 0 -4px;
+    transition:
+      background-color 400ms ease,
+      border-color 400ms ease,
+      box-shadow 400ms ease;
   }
 
-  .pm__reel :global(video),
-  .pm__reel :global(img[data-clip-animado]) {
-    position: absolute;
-    inset: 0;
-    filter: brightness(calc(1 - var(--tapada, 0) * 0.6));
-    scale: calc(1 - var(--tapada, 0) * 0.06);
+  .pm--montaje .pasado .pm__marca {
+    background: var(--morado);
+    border-color: var(--morado);
+    box-shadow: 0 0 10px var(--morado);
   }
 
-  .pm__reel .pm__sobre {
-    display: grid;
-    gap: 6px;
-    padding: 120px var(--gutter) 40px;
-  }
-
-  .pm__reel .pm__titulo {
-    font-size: 42px;
-  }
-
-  .pm__reel .pm__etiqueta {
-    position: absolute;
-    top: 56px;
-    left: var(--gutter);
-  }
-
-  .pm__ver {
-    justify-self: start;
-    margin-top: 12px;
-    padding: 9px 16px;
-    border: 1px solid rgb(255 255 255 / 0.5);
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-  }
-
-  /* ── 4 · Índice ────────────────────────────────────────────── */
-  .pm--indice {
-    height: calc(var(--n) * 70svh + 30svh);
-  }
-
-  .pm__fijo {
-    position: sticky;
-    top: 0;
-    display: grid;
-    align-content: center;
-    gap: 22px;
-    height: 100svh;
-    padding: 0 var(--gutter);
-    box-sizing: border-box;
-  }
-
-  .pm__ventana {
-    position: relative;
-    aspect-ratio: 16 / 10;
-    overflow: hidden;
-    border-radius: 4px;
-    background: #111;
-  }
-
-  .pm__capa {
-    position: absolute;
-    inset: 0;
+  .pm--montaje .pm__marco,
+  .pm--montaje .pm__ficha {
     opacity: 0;
-    scale: 1.06;
+    translate: 60px 0;
     transition:
       opacity 600ms ease,
-      scale 900ms var(--suave);
-    pointer-events: none;
+      translate 1000ms var(--suave);
   }
 
-  .pm__capa.activa {
+  .pm--montaje .dentro :is(.pm__marco, .pm__ficha) {
     opacity: 1;
-    scale: 1;
-    pointer-events: auto;
+    translate: 0 0;
   }
 
-  .pm__nombres {
-    display: grid;
-    gap: 6px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
+  .pm--montaje .dentro .pm__ficha {
+    transition-delay: 140ms;
   }
 
-  .pm__nombre .pm__titulo {
-    display: block;
-    font-size: 34px;
-    color: rgb(255 255 255 / 0.2);
-    transition:
-      color 400ms ease,
-      translate 600ms var(--suave);
-  }
-
-  .pm__nombre .pm__meta {
-    display: grid;
-    grid-template-rows: 0fr;
-    overflow: hidden;
-    margin: 0;
-    opacity: 0;
-    transition:
-      grid-template-rows 500ms var(--suave),
-      opacity 400ms ease;
-  }
-
-  .pm__nombre.activa .pm__titulo {
-    color: #f4f1ec;
-    translate: 8px 0;
-  }
-
-  .pm__nombre.activa .pm__meta {
-    grid-template-rows: 1fr;
-    opacity: 1;
-    margin-top: 4px;
-    padding-left: 8px;
+  @media (prefers-reduced-motion: reduce) {
+    .pm * {
+      transition: none !important;
+    }
   }
 </style>
 
 <script>
   const limitar = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
-  // 1 · Lista: cada obra entra al aparecer.
+  // Lados, cortinilla y montaje: cada obra entra al asomar.
   const entra = new IntersectionObserver(
     (entradas) => {
       for (const e of entradas) {
@@ -427,63 +341,39 @@ const meta = (o: (typeof obras)[number]) => [o.titulo, o.agencia, o.ano, o.papel
         }
       }
     },
-    { threshold: 0.2 },
+    { threshold: 0.25 },
   );
-  document.querySelectorAll('[data-entra]').forEach((el) => entra.observe(el));
+  document.querySelectorAll('.pm:not(.pm--zoom) [data-pieza]').forEach((el) => entra.observe(el));
 
-  // 2 · Carrusel: contador y línea de progreso.
-  document.querySelectorAll<HTMLElement>('[data-pm="carrusel"]').forEach((seccion) => {
-    const carril = seccion.querySelector<HTMLElement>('[data-carril]')!;
-    const contador = seccion.querySelector<HTMLElement>('[data-contador]')!;
-    const relleno = seccion.querySelector<HTMLElement>('[data-relleno]')!;
-    const n = carril.children.length;
-    const actualizar = () => {
-      const max = carril.scrollWidth - carril.clientWidth;
-      const p = max > 0 ? carril.scrollLeft / max : 0;
-      const i = Math.round(p * (n - 1));
-      contador.textContent = `${String(i + 1).padStart(2, '0')} / ${String(n).padStart(2, '0')}`;
-      relleno.style.setProperty('--avance', String((i + 1) / n));
-    };
-    carril.addEventListener('scroll', actualizar, { passive: true });
-    actualizar();
-  });
-
-  // 3 · Reels: la pantalla de debajo se oscurece mientras la siguiente la tapa.
-  const reels = Array.from(document.querySelectorAll<HTMLElement>('.pm__reel'));
-  if (reels.length) {
-    let pedido = 0;
-    const actualizar = () => {
-      pedido = 0;
-      const alto = window.innerHeight;
-      reels.forEach((reel, i) => {
-        const siguiente = reels[i + 1];
-        if (!siguiente) return;
-        const top = siguiente.getBoundingClientRect().top;
-        reel.style.setProperty('--tapada', limitar(1 - top / alto, 0, 1).toFixed(3));
+  // Zoom y montaje: ligados al scroll.
+  const zoom = Array.from(document.querySelectorAll<HTMLElement>('.pm--zoom [data-pieza]'));
+  const montajes = Array.from(document.querySelectorAll<HTMLElement>('.pm--montaje'));
+  let pedido = 0;
+  const actualizar = () => {
+    pedido = 0;
+    const alto = window.innerHeight;
+    // Cada vídeo, de 0 con su parte alta en el borde de abajo a 1 en el centro.
+    zoom.forEach((pieza) => {
+      const r = pieza.getBoundingClientRect();
+      const centro = r.top + r.height * 0.35;
+      const a = limitar((alto - centro) / (alto * 0.5), 0, 1);
+      pieza.style.setProperty('--a', (1 - Math.pow(1 - a, 2)).toFixed(3));
+    });
+    // El cabezal llega hasta algo más abajo del centro de la pantalla.
+    montajes.forEach((seccion) => {
+      const lista = seccion.querySelector<HTMLElement>('[data-lista]')!;
+      const r = lista.getBoundingClientRect();
+      const c = limitar((alto * 0.55 - r.top) / r.height, 0, 1);
+      seccion.querySelector<HTMLElement>('[data-cabezal]')!.style.setProperty('--c', c.toFixed(4));
+      const linea = r.top + c * r.height;
+      seccion.querySelectorAll<HTMLElement>('[data-pieza]').forEach((pieza) => {
+        pieza.classList.toggle('pasado', pieza.getBoundingClientRect().top <= linea + 2);
       });
-    };
+    });
+  };
+  if (zoom.length || montajes.length) {
     window.addEventListener('scroll', () => (pedido ||= requestAnimationFrame(actualizar)), { passive: true });
+    window.addEventListener('resize', actualizar);
     actualizar();
   }
-
-  // 4 · Índice: el scroll elige la obra activa.
-  document.querySelectorAll<HTMLElement>('[data-pm="indice"]').forEach((seccion) => {
-    const capas = Array.from(seccion.querySelectorAll<HTMLElement>('[data-capa]'));
-    const nombres = Array.from(seccion.querySelectorAll<HTMLElement>('[data-nombre]'));
-    let activa = 0;
-    let pedido = 0;
-    const actualizar = () => {
-      pedido = 0;
-      const caja = seccion.getBoundingClientRect();
-      const recorrible = caja.height - window.innerHeight;
-      const p = recorrible > 0 ? limitar(-caja.top / recorrible, 0, 0.999) : 0;
-      const i = Math.floor(p * capas.length);
-      if (i === activa) return;
-      activa = i;
-      capas.forEach((c, j) => c.classList.toggle('activa', j === i));
-      nombres.forEach((c, j) => c.classList.toggle('activa', j === i));
-    };
-    window.addEventListener('scroll', () => (pedido ||= requestAnimationFrame(actualizar)), { passive: true });
-    actualizar();
-  });
 </script>

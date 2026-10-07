@@ -1,6 +1,7 @@
 ---
 /**
- * Página de trabajo: cuatro maneras de enseñar los proyectos en el móvil.
+ * Página de trabajo: la lista de proyectos para el móvil, con cuatro
+ * maneras de entrar al bajar.
  * Pensada para verla en el teléfono. No está enlazada; cuando elijamos, se
  * borra.
  */
@@ -9,10 +10,10 @@ import VentanaProyecto from '../components/VentanaProyecto.astro';
 import '../styles/global.css';
 
 const ideas = [
-  { variante: 'lista', nombre: 'Lista', nota: 'Una obra debajo de otra, con scroll normal. Cada una entra al aparecer.' },
-  { variante: 'carrusel', nombre: 'Carrusel', nota: 'Desliza con el dedo en horizontal. La siguiente asoma; abajo, contador y línea de progreso.' },
-  { variante: 'reels', nombre: 'Reels', nota: 'Cada obra a pantalla completa. Al bajar, la siguiente se monta sobre la anterior.' },
-  { variante: 'indice', nombre: 'Índice', nota: 'Ventana de vídeo arriba y los nombres debajo: al bajar se enciende cada uno y cambia el vídeo.' },
+  { variante: 'lados', nombre: 'Lados', nota: 'Una entra desde la izquierda y la siguiente desde la derecha, con un giro leve que se endereza al llegar.' },
+  { variante: 'cortinilla', nombre: 'Cortinilla', nota: 'El vídeo se destapa con un barrido lateral, alternando el sentido, mientras se aleja por dentro. Después sube el título.' },
+  { variante: 'zoom', nombre: 'Zoom con el scroll', nota: 'Ligado al dedo: cada vídeo se abre de estrecho a todo el ancho, y suelta el zoom, según sube hacia el centro. Si vuelves arriba, se cierra.' },
+  { variante: 'montaje', nombre: 'Línea de montaje', nota: 'Una línea con el cabezal morado que avanza al bajar. Cada obra es un clip: su marca se enciende al pasar el cabezal y entra desde la derecha.' },
 ] as const;
 ---
 
@@ -22,7 +23,7 @@ const ideas = [
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
-    <title>Proyectos en móvil — cuatro ideas</title>
+    <title>Lista de proyectos — cuatro entradas</title>
     <style is:global>
       body {
         margin: 0;
