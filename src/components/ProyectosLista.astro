@@ -1,0 +1,213 @@
+---
+/**
+ * Proyectos · la lista, para el móvil.
+ *
+ * En pantallas estrechas el recorrido horizontal no funciona: la tarjeta se
+ * queda pequeña en mitad de mucho negro. Aquí va una obra debajo de otra, y
+ * cada una entra como una cortinilla de montaje: el vídeo se destapa con un
+ * barrido lateral (una hacia un lado y la siguiente hacia el otro) mientras
+ * se aleja un poco por dentro, y después suben el número, el título y la
+ * ficha. Por encima de 600 px se oculta y se ve el recorrido.
+ */
+import { obras, enlaceYouTube } from '../data/obras';
+import ClipVideo from './ClipVideo.astro';
+import BarraColor from './BarraColor.astro';
+
+const total = String(obras.length).padStart(2, '0');
+---
+
+<section class="lista" aria-labelledby="proyectos-lista-titulo">
+  <BarraColor />
+  <h2 class="lista__rotulo" id="proyectos-lista-titulo">Proyectos destacados</h2>
+  <div class="lista__obras">
+    {
+      obras.map((obra, i) => (
+        <a
+          class:list={['lista__obra', i % 2 && 'lista__obra--dcha']}
+          href={enlaceYouTube(obra)}
+          target="_blank"
+          rel="noreferrer"
+          data-proyecto={obra.slug}
+          data-cortinilla
+        >
+          <div class="lista__marco">
+            <ClipVideo clip={obra.slug} />
+          </div>
+          <div class="lista__ficha">
+            <span class="lista__num">
+              {String(i + 1).padStart(2, '0')} / {total}
+            </span>
+            <h3 class="lista__titulo">{obra.marca}</h3>
+            <p class="lista__meta">{[obra.titulo, obra.agencia, obra.ano, obra.papel].filter(Boolean).join(' · ')}</p>
+          </div>
+        </a>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  /*
+    Como el recorrido: una lámina que pasa por encima del hero (que es una
+    capa fija), con la sombra cayendo hacia arriba.
+  */
+  .lista {
+    position: relative;
+    z-index: 1;
+    display: none;
+    padding: 56px 20px 80px;
+    background: #050505;
+    color: #f4f1ec;
+    font-family: InstrumentSans, ui-sans-serif, system-ui, sans-serif;
+    box-shadow: 0 -34px 80px -12px rgb(0 0 0 / 0.92);
+    --suave: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @media (max-width: 600px) {
+    .lista {
+      display: block;
+    }
+  }
+
+  .lista a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .lista__rotulo {
+    margin: 0 0 28px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.45);
+  }
+
+  .lista__obras {
+    display: grid;
+    gap: 52px;
+  }
+
+  .lista__obra {
+    display: block;
+  }
+
+  .lista__ficha {
+    display: grid;
+    gap: 2px;
+    margin-top: 14px;
+  }
+
+  .lista__num {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: rgb(255 255 255 / 0.4);
+  }
+
+  .lista__titulo {
+    margin: 0;
+    font-family: ClashDisplay, InstrumentSans, sans-serif;
+    font-size: 30px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+  }
+
+  .lista__meta {
+    margin: 4px 0 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: rgb(255 255 255 / 0.55);
+  }
+
+  /* ── La cortinilla ─────────────────────────────────────────── */
+  /* El vídeo, tapado; se destapa de izquierda a derecha, o al revés en las
+     obras pares. */
+  .lista__marco {
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    border-radius: 4px;
+    background: #111;
+    clip-path: inset(0 100% 0 0);
+    transition: clip-path 1100ms cubic-bezier(0.77, 0, 0.18, 1);
+  }
+
+  .lista__obra--dcha .lista__marco {
+    clip-path: inset(0 0 0 100%);
+  }
+
+  /* Por dentro, el vídeo llega ampliado y se aleja mientras se destapa. */
+  .lista__marco :global(video),
+  .lista__marco :global(img[data-clip-animado]) {
+    scale: 1.3;
+    transition: scale 1600ms var(--suave);
+  }
+
+  .lista__obra.dentro .lista__marco {
+    clip-path: inset(0 0 0 0);
+  }
+
+  .lista__obra.dentro .lista__marco :global(video),
+  .lista__obra.dentro .lista__marco :global(img[data-clip-animado]) {
+    scale: 1;
+  }
+
+  /* La ficha sube después, una línea detrás de otra. */
+  .lista__ficha > * {
+    opacity: 0;
+    translate: 0 18px;
+    transition:
+      opacity 500ms ease,
+      translate 800ms var(--suave);
+  }
+
+  .lista__obra.dentro .lista__ficha > * {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  .lista__obra.dentro .lista__ficha > :nth-child(1) {
+    transition-delay: 650ms;
+  }
+
+  .lista__obra.dentro .lista__ficha > :nth-child(2) {
+    transition-delay: 730ms;
+  }
+
+  .lista__obra.dentro .lista__ficha > :nth-child(3) {
+    transition-delay: 810ms;
+  }
+
+  /* Sin movimiento: todo a la vista desde el principio. */
+  @media (prefers-reduced-motion: reduce) {
+    .lista__marco,
+    .lista__obra--dcha .lista__marco {
+      clip-path: none;
+      transition: none;
+    }
+
+    .lista__marco :global(video),
+    .lista__marco :global(img[data-clip-animado]),
+    .lista__ficha > * {
+      scale: 1;
+      opacity: 1;
+      translate: 0 0;
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  // Cada obra entra al asomar una cuarta parte; una vez dentro, se queda.
+  const entra = new IntersectionObserver(
+    (entradas) => {
+      for (const e of entradas) {
+        if (!e.isIntersecting) continue;
+        e.target.classList.add('dentro');
+        entra.unobserve(e.target);
+      }
+    },
+    { threshold: 0.25 },
+  );
+  document.querySelectorAll('[data-cortinilla]').forEach((obra) => entra.observe(obra));
+</script>
