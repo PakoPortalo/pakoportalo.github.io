@@ -340,7 +340,9 @@ export async function createLiquidHero(
    * tropezones.
    */
   function fitBlobs() {
-    const fit = Math.min(1, 0.52 + aspect * 0.42);
+    // En móvil (menos de 600 px, el texto va arriba) la masa comparte la
+    // pantalla con el bloque de texto y tiene que caber en la mitad de abajo.
+    const fit = Math.min(1, 0.52 + aspect * 0.42) * (width < 600 ? 0.86 : 1);
     blobs.forEach((blob, index) => {
       blob.radius = baseRadii[index]! * fit;
     });
@@ -416,6 +418,8 @@ export async function createLiquidHero(
    * abajo y el líquido arriba; en móvil, al revés. Lo fija drawText().
    */
   const masa = { reposo: 0.62, min: 0.42, max: 0.88 };
+  /** Separación de canales fija del texto (uAberration). La fija drawText(). */
+  let aberracion = 0.0034;
   /** Alejamiento del texto y el líquido. Lo mueve el scroll de la página. */
   let zoom = 1;
   /**
@@ -629,25 +633,27 @@ export async function createLiquidHero(
     textContext.font = `${paraWeight} ${paraSize}px ${bodyStack}`;
     textContext.letterSpacing = '0px';
     const paraLines = wrap(copy.paragraph, blockWidth);
-    const paraLeading = paraSize * 1.5;
+    // En móvil el bloque va arriba (ver más abajo) y con más aire.
+    const arriba = compact > 0.5;
+    const paraLeading = paraSize * (arriba ? 1.62 : 1.5);
 
     /*
-      En pantalla ancha el bloque se apoya abajo y el líquido flota arriba.
-      En móvil, al revés: el texto arriba, donde se lee nada más entrar, y
-      el líquido abajo. Mismas distancias entre líneas, contadas desde el
-      otro extremo.
+      En pantalla ancha el bloque se apoya abajo y el líquido flota arriba,
+      con la fila de etiquetas encima del título. En móvil, al revés: el
+      texto arriba, donde se lee nada más entrar, y el líquido abajo. Y en
+      otro orden: primero el título, luego la fila de etiquetas, que hace de
+      separador, y al final el párrafo, todo con más aire entre líneas.
     */
-    const arriba = compact > 0.5;
     let blockBottom: number;
     let paraTop: number;
     let subtitleBaseline: number;
     let titleBaseline: number;
     let eyebrowBaseline: number;
     if (arriba) {
-      eyebrowBaseline = Math.max(margin * 2, height * 0.09) + eyebrowSize;
-      titleBaseline = eyebrowBaseline + bigSize * 1.06;
-      subtitleBaseline = titleBaseline + bigSize;
-      paraTop = subtitleBaseline + bigSize * 0.34;
+      titleBaseline = Math.max(margin * 2, height * 0.09) + bigSize * 0.8;
+      subtitleBaseline = titleBaseline + bigSize * 1.14;
+      eyebrowBaseline = subtitleBaseline + bigSize * 0.62 + eyebrowSize;
+      paraTop = eyebrowBaseline + eyebrowSize * 2.6;
       blockBottom = paraTop + paraLeading * paraLines.length;
     } else {
       blockBottom = height - margin - 18;
@@ -656,7 +662,10 @@ export async function createLiquidHero(
       titleBaseline = subtitleBaseline - bigSize;
       eyebrowBaseline = titleBaseline - bigSize * 1.06;
     }
-    Object.assign(masa, arriba ? { reposo: 0.3, min: 0.1, max: 0.4 } : { reposo: 0.62, min: 0.42, max: 0.88 });
+    // El filo de color fijo de las letras crece con la distancia al centro
+    // de la pantalla: con el texto arriba se pasaba y costaba leer.
+    aberracion = arriba ? 0.0013 : 0.0034;
+    Object.assign(masa, arriba ? { reposo: 0.26, min: 0.08, max: 0.34 } : { reposo: 0.62, min: 0.42, max: 0.88 });
 
     // --- Fila superior: punto de neón, etiqueta, filete, etiqueta ---
     // Todo lo de esta fila es proporcional a su cuerpo, así que se mide una
@@ -819,7 +828,7 @@ export async function createLiquidHero(
     textZone.top = 1 - (eyebrowBaseline - bigSize * 0.9) / height;
     // Con el texto arriba, lo que cuenta es dónde acaba: por debajo de eso
     // el líquido es libre, y por encima se le empuja hacia abajo.
-    textZone.bottom = 1 - (blockBottom + bigSize * 1.4) / height;
+    textZone.bottom = 1 - (blockBottom + bigSize * 1.9) / height;
     textZone.desdeArriba = arriba;
     // En móvil el texto ocupa todo el ancho de abajo y no hay hueco al que
     // apartarse de lado, así que el empuje hacia arriba tiene que ser mayor.
@@ -840,7 +849,8 @@ export async function createLiquidHero(
     // --- Párrafo ---
     textContext.font = `${paraWeight} ${paraSize}px ${bodyStack}`;
     textContext.letterSpacing = '0px';
-    textContext.fillStyle = 'rgba(255, 255, 255, 0.66)';
+    // En móvil, más blanco: arriba, sobre el humo, se leía flojo.
+    textContext.fillStyle = `rgba(255, 255, 255, ${arriba ? 0.88 : 0.66})`;
     paraLines.forEach((line, index) => {
       const y = paraTop + paraLeading * (index + 0.8);
       if (index === paraLines.length - 1) textContext.fillText(line, margin, y);
@@ -1384,7 +1394,7 @@ export async function createLiquidHero(
     // de colores sobre cada letra. A 0.32 el abanico sigue siendo continuo.
     gl!.uniform1f(liquidUniforms.get('uDispersion')!, 0.32);
     gl!.uniform2f(liquidUniforms.get('uTilt')!, tilt.x, tilt.y);
-    gl!.uniform1f(liquidUniforms.get('uAberration')!, 0.0034);
+    gl!.uniform1f(liquidUniforms.get('uAberration')!, aberracion);
     gl!.uniform1f(liquidUniforms.get('uIridescence')!, 0.16);
     gl!.uniform1f(liquidUniforms.get('uFlowStrength')!, 0.85);
     gl!.uniform1f(liquidUniforms.get('uZoom')!, zoom);
