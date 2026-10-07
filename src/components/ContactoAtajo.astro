@@ -72,8 +72,22 @@ const orbitas = conOrbitas
       </svg>
       <div class="atajo__orbitas" aria-hidden="true">
         <svg class="atajo__sistema" viewBox="-260 -260 520 520">
+          {/* El brillo de los planetas, como filtro SVG: Safari no aplica
+              filtros CSS a lo que va dentro de un SVG y se quedaban planos. */}
+          <defs>
+            <filter id="atajo-brillo" x="-300%" y="-300%" width="700%" height="700%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="halo" />
+              <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="nucleo" />
+              <feMerge>
+                <feMergeNode in="halo" />
+                <feMergeNode in="halo" />
+                <feMergeNode in="nucleo" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
           {Array.from({ length: 7 }, (_, k) => (
-            <circle class="atajo__anillo" r={70 + k * 28} />
+            <circle class:list={['atajo__anillo', [0, 2, 5].includes(k) && 'atajo__anillo--base']} r={70 + k * 28} />
           ))}
           {orbitas.map((o) => (
             <g
@@ -83,7 +97,7 @@ const orbitas = conOrbitas
               data-segundos={o.segundos}
               data-sentido={o.sentido}
             >
-              <circle class="atajo__satelite" cx={o.r} cy="0" r={o.punto} />
+              <circle class="atajo__satelite" cx={o.r} cy="0" r={o.punto} filter="url(#atajo-brillo)" />
             </g>
           ))}
         </svg>
@@ -286,7 +300,6 @@ const orbitas = conOrbitas
      mismo color alrededor. */
   .atajo__satelite {
     fill: var(--c);
-    filter: drop-shadow(0 0 6px var(--halo)) drop-shadow(0 0 2px var(--halo));
   }
 
   .atajo__orbita--verde {
@@ -544,6 +557,17 @@ const orbitas = conOrbitas
 
     .atajo[data-boing] .atajo__frase--pregunta .atajo__letra {
       animation: ola 1300ms ease-in-out calc(var(--i) * 22ms) both;
+    }
+
+    /* El sistema de órbitas, más pequeño y con solo tres anillos: el de
+       dentro y los dos por los que pasan los planetas. */
+    .atajo__sistema {
+      width: 340px;
+      height: 340px;
+    }
+
+    .atajo__anillo:not(.atajo__anillo--base) {
+      display: none;
     }
 
     .atajo[data-encendida] .atajo__flecha {
