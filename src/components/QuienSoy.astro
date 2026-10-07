@@ -564,9 +564,9 @@ const temas = biografia.map((b, k) => ({
 
   /*
     En el móvil: la foto más pequeña y el índice en columna. El tema
-    elegido se queda quieto con su brillo; los otros dos palpitan (un pelo
-    de zoom y un neón de su color que crece y decrece), desfasados, pidiendo
-    que los toques.
+    elegido se queda quieto con su brillo; los otros dos palpitan en gris
+    (un pelo de zoom y algo más de luz), desfasados, pidiendo que los
+    toques.
   */
   @media (max-width: 600px) {
     .sobre__rejilla {
@@ -611,9 +611,9 @@ const temas = biografia.map((b, k) => ({
       text-shadow: none;
     }
     50% {
-      scale: 1.05;
-      color: color-mix(in oklab, var(--c) 35%, rgb(255 255 255 / 0.25));
-      text-shadow: 0 0 22px color-mix(in oklab, var(--c) 35%, transparent);
+      scale: 1.02;
+      color: rgb(255 255 255 / 0.3);
+      text-shadow: none;
     }
   }
 
