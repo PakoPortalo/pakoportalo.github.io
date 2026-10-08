@@ -68,23 +68,13 @@ const lang = idioma(Astro.currentLocale);
   }
 
   /* En el móvil y en la tablet en vertical. */
-  @media (max-width: 600px), (max-width: 1100px) and (orientation: portrait) {
+  @media (max-width: 600px), (max-width: 1100px) and (orientation: portrait), (min-width: 601px) and (orientation: landscape) and (pointer: coarse) {
     .lista {
       display: block;
     }
   }
 
-  /* En la tablet, a dos columnas: la cortinilla alterna de lado como ellas. */
-  @media (min-width: 601px) and (max-width: 1100px) and (orientation: portrait) {
-    .lista {
-      padding: 72px max(24px, 5.5vw) 96px;
-    }
 
-    .lista__obras {
-      grid-template-columns: 1fr 1fr;
-      gap: 56px 24px;
-    }
-  }
 
   .lista a {
     color: inherit;
@@ -210,6 +200,52 @@ const lang = idioma(Astro.currentLocale);
       opacity: 1;
       translate: 0 0;
       transition: none;
+    }
+  }
+
+  /* En la tablet, a dos columnas: la cortinilla alterna de lado como ellas. */
+  @media (min-width: 601px) and (max-width: 1100px) and (orientation: portrait) {
+    .lista {
+      padding: 72px max(24px, 5.5vw) 96px;
+    }
+
+    .lista__obras {
+      grid-template-columns: 1fr 1fr;
+      gap: 56px 24px;
+    }
+  }
+
+  /*
+    En la tablet en horizontal, un carrusel que se desliza con el dedo, con
+    la siguiente obra asomando. Cada una entra con su cortinilla al llegar.
+  */
+  @media (min-width: 601px) and (orientation: landscape) and (pointer: coarse) {
+    .lista {
+      padding: 64px 0 72px;
+    }
+
+    .lista__rotulo {
+      padding-inline: max(24px, 5.5vw);
+    }
+
+    .lista__obras {
+      display: flex;
+      gap: 28px;
+      overflow-x: auto;
+      padding-inline: max(24px, 5.5vw);
+      scroll-padding-inline: max(24px, 5.5vw);
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      overscroll-behavior-x: contain;
+    }
+
+    .lista__obras::-webkit-scrollbar {
+      display: none;
+    }
+
+    .lista__obra {
+      flex: 0 0 min(560px, 44vw);
+      scroll-snap-align: start;
     }
   }
 </style>

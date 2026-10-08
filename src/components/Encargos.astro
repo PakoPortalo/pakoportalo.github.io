@@ -286,6 +286,24 @@ const lineas = servicios(idioma(Astro.currentLocale)).map((servicio) => {
       mask-image: linear-gradient(to bottom, transparent var(--m0, -200px), #000 var(--m1, -100px));
     }
   }
+
+  /*
+    En la tablet en horizontal, el texto más grande y repartido: líneas
+    equilibradas (text-wrap: balance) a todo el ancho.
+  */
+  @media (min-width: 601px) and (orientation: landscape) and (pointer: coarse) {
+    .encargos__linea,
+    .encargos__linea + .encargos__linea {
+      max-width: none;
+      font-size: 6.6vw;
+      line-height: 1.03;
+      text-wrap: balance;
+    }
+
+    .encargos__linea > span:last-child {
+      text-wrap: balance;
+    }
+  }
 </style>
 
 <script>

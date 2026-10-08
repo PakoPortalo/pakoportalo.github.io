@@ -1,0 +1,106 @@
+---
+/**
+ * El cambio de idioma: dos banderitas redondas, apagadas; la del idioma
+ * actual, con su color y un aro fino. Va en el hero y en el pie. Al elegir,
+ * se recuerda (lo guarda el script de abajo) y la portada ya no redirige por
+ * la zona horaria.
+ */
+import { idioma } from '../i18n/textos';
+
+interface Props {
+  class?: string;
+}
+
+const { class: clase } = Astro.props;
+const lang = idioma(Astro.currentLocale);
+const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
+---
+
+<nav class:list={['banderas', clase]} aria-label="Idioma / Language">
+  <a
+    class="banderas__una"
+    href={base}
+    hreflang="es"
+    lang="es"
+    aria-label="Español"
+    aria-current={lang === 'es' ? 'page' : undefined}
+    data-idioma="es"
+  >
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect width="24" height="24" fill="#c60b1e" />
+      <rect y="6" width="24" height="12" fill="#ffc400" />
+    </svg>
+  </a>
+  <a
+    class="banderas__una"
+    href={`${base}en/`}
+    hreflang="en"
+    lang="en"
+    aria-label="English"
+    aria-current={lang === 'en' ? 'page' : undefined}
+    data-idioma="en"
+  >
+    <svg viewBox="0 0 60 60" aria-hidden="true">
+      <rect width="60" height="60" fill="#012169" />
+      <path d="M0 0l60 60M60 0L0 60" stroke="#fff" stroke-width="12" />
+      <path d="M0 0l60 60M60 0L0 60" stroke="#c8102e" stroke-width="4" />
+      <path d="M30 0v60M0 30h60" stroke="#fff" stroke-width="20" />
+      <path d="M30 0v60M0 30h60" stroke="#c8102e" stroke-width="12" />
+    </svg>
+  </a>
+</nav>
+
+<style>
+  .banderas {
+    display: flex;
+    gap: 10px;
+  }
+
+  .banderas__una {
+    display: block;
+    width: 18px;
+    height: 18px;
+    overflow: hidden;
+    border-radius: 50%;
+    opacity: 0.35;
+    filter: grayscale(0.7);
+    transition:
+      opacity 250ms ease,
+      filter 250ms ease;
+  }
+
+  .banderas__una svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .banderas__una[aria-current='page'] {
+    opacity: 0.9;
+    filter: none;
+    box-shadow:
+      0 0 0 1.5px #050505,
+      0 0 0 2.5px rgb(255 255 255 / 0.45);
+  }
+
+  .banderas__una:hover,
+  .banderas__una:focus-visible {
+    opacity: 1;
+    filter: none;
+    outline: none;
+  }
+</style>
+
+<script>
+  // Quien elige idioma a mano lo conserva: la portada ya no le redirige por
+  // la zona horaria (ver Portada.astro).
+  document.querySelectorAll<HTMLAnchorElement>('[data-idioma]').forEach((enlace) =>
+    enlace.addEventListener('click', () => {
+      try {
+        localStorage.setItem('idioma', enlace.dataset.idioma!);
+      } catch {
+        /* sin almacenamiento, sigue mandando la zona horaria */
+      }
+    }),
+  );
+</script>

@@ -632,6 +632,20 @@ const temas = biografia(idioma(Astro.currentLocale)).map((b, k) => ({
     }
   }
 
+  /* En la tablet en horizontal: la foto arriba, centrada, y el texto debajo. */
+  @media (min-width: 601px) and (orientation: landscape) and (pointer: coarse) {
+    .sobre__rejilla {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 40px;
+    }
+
+    .sobre__foto {
+      justify-self: center;
+      width: min(48vw, 52svh);
+      max-width: none;
+    }
+  }
+
   @keyframes sobre-late {
     0%,
     100% {

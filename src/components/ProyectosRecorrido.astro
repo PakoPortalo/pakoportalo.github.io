@@ -316,7 +316,7 @@ const lang = idioma(Astro.currentLocale);
   /* En el móvil y la tablet en vertical, en su lugar va la lista
      (ProyectosLista). Oculto, sus
      vídeos ni se cargan: el observador de clips no los ve. */
-  @media (max-width: 600px), (max-width: 1100px) and (orientation: portrait) {
+  @media (max-width: 600px), (max-width: 1100px) and (orientation: portrait), (min-width: 601px) and (orientation: landscape) and (pointer: coarse) {
     .recorrido {
       display: none;
     }

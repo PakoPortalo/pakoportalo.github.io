@@ -5,22 +5,18 @@
  */
 
 import { textos } from '../i18n/textos';
+import Banderas from './Banderas.astro';
 
 const correo = 'pakoportalo@gmail.com';
 const instagram = 'https://www.instagram.com/pakoportalo/';
 const ano = 2026;
 const t = textos(Astro.currentLocale);
-const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
 ---
 
 <footer class="pie">
   <div class="pie__fila">
     <div class="pie__izq">
       <p class="pie__copy">© {ano} Pako Portalo</p>
-      {/* El otro idioma: English en la española, Español en la inglesa. */}
-      <a class="pie__idioma" href={`${base}${t.pie.otroIdiomaRuta}`} hreflang={t.pie.otroIdiomaLang} lang={t.pie.otroIdiomaLang} data-idioma={t.pie.otroIdiomaLang}>
-        {t.pie.otroIdioma}
-      </a>
     </div>
 
     <nav class="pie__redes" aria-label={t.pie.redes}>
@@ -37,23 +33,10 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
           <path d="M4 7l8 6 8-6" />
         </svg>
       </a>
+      <Banderas class="pie__banderas" />
     </nav>
   </div>
 </footer>
-
-<script>
-  // Quien elige idioma a mano lo conserva: ya no se le redirige por la
-  // zona horaria (ver Portada.astro).
-  document.querySelectorAll<HTMLAnchorElement>('[data-idioma]').forEach((enlace) =>
-    enlace.addEventListener('click', () => {
-      try {
-        localStorage.setItem('idioma', enlace.dataset.idioma!);
-      } catch {
-        /* sin almacenamiento, sigue mandando la zona horaria */
-      }
-    }),
-  );
-</script>
 
 <style>
   .pie {
@@ -90,21 +73,9 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     color: rgb(255 255 255 / 0.45);
   }
 
-  .pie__idioma {
-    font-size: 12px;
-    letter-spacing: 0.02em;
-    color: rgb(255 255 255 / 0.45);
-    text-decoration: none;
-    transition: color 250ms ease;
-  }
-
-  .pie__idioma:hover,
-  .pie__idioma:focus-visible {
-    color: #5ff7c6;
-  }
-
   .pie__redes {
     display: flex;
+    align-items: center;
     gap: 8px;
   }
 
@@ -139,5 +110,10 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
   .pie__icono + .pie__icono:hover,
   .pie__icono + .pie__icono:focus-visible {
     color: #b660ff;
+  }
+
+  /* Las banderas, al final del todo, con un poco de aire tras los iconos. */
+  .pie__redes :global(.pie__banderas) {
+    margin-inline-start: 10px;
   }
 </style>

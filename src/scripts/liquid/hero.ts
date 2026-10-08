@@ -638,7 +638,11 @@ export async function createLiquidHero(
     textContext.letterSpacing = '0px';
     const paraLines = wrap(copy.paragraph, blockWidth);
     // En móvil el bloque va arriba (ver más abajo) y con más aire.
-    const arriba = compact > 0.5;
+    // También en la tablet en horizontal: con el lienzo a pantalla grande,
+    // las barras de Safari tapaban el texto abajo.
+    const tabletApaisada =
+      width > 600 && width > height && window.matchMedia('(pointer: coarse)').matches;
+    const arriba = compact > 0.5 || tabletApaisada;
     const paraLeading = paraSize * (arriba ? 1.62 : 1.5);
 
     /*

@@ -499,9 +499,9 @@ const t = textos(Astro.currentLocale);
 
     // ── 1 · La entrada ────────────────────────────────────────
     let pedido = false;
-    // En el móvil llega ya a su tamaño, sin zoom: recalcularlo en cada
+    // En el móvil y la tablet llega ya a su tamaño, sin zoom: recalcularlo en cada
     // fotograma de scroll hacía que el paso a este módulo fuera a tirones.
-    const sinEntrada = window.matchMedia('(max-width: 600px)').matches;
+    const sinEntrada = window.matchMedia('(max-width: 600px), (pointer: coarse)').matches;
     const entrar = () => {
       pedido = false;
       if (sinEntrada) {
