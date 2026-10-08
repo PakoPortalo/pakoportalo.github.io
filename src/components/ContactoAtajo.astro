@@ -606,8 +606,8 @@ const orbitas = conOrbitas
     }
   }
 
-  /* En la tablet en horizontal, la franja de en medio algo más alta. */
-  @media (min-width: 601px) and (orientation: landscape) and (pointer: coarse) {
+  /* En la tablet en vertical, la franja de en medio algo más alta. */
+  @media (min-width: 601px) and (max-width: 1100px) and (orientation: portrait) {
     .atajo:not(.atajo--cierre) {
       padding-block: clamp(48px, 7svh, 72px);
     }

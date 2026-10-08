@@ -606,34 +606,9 @@ const temas = biografia(idioma(Astro.currentLocale)).map((b, k) => ({
     }
   }
 
-  /*
-    En la tablet en vertical: foto y texto lado a lado. En una sola columna,
-    como en el móvil, la foto quedaba a la izquierda con media pantalla
-    vacía al lado.
-  */
+
+  /* En la tablet en vertical: la foto arriba, centrada, y el texto debajo. */
   @media (min-width: 601px) and (max-width: 1100px) and (orientation: portrait) {
-    .sobre__rejilla {
-      grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-      gap: clamp(28px, 4vw, 48px);
-      align-items: center;
-    }
-
-    .sobre__bio {
-      grid-template-columns: 1fr;
-      gap: 24px;
-    }
-
-    .sobre__foto {
-      max-width: none;
-    }
-
-    .sobre__nombre {
-      font-size: clamp(40px, 6.4vw, 64px);
-    }
-  }
-
-  /* En la tablet en horizontal: la foto arriba, centrada, y el texto debajo. */
-  @media (min-width: 601px) and (orientation: landscape) and (pointer: coarse) {
     .sobre__rejilla {
       grid-template-columns: minmax(0, 1fr);
       gap: 40px;
@@ -641,7 +616,7 @@ const temas = biografia(idioma(Astro.currentLocale)).map((b, k) => ({
 
     .sobre__foto {
       justify-self: center;
-      width: min(48vw, 52svh);
+      width: min(62vw, 46svh);
       max-width: none;
     }
   }

@@ -288,15 +288,24 @@ const lineas = servicios(idioma(Astro.currentLocale)).map((servicio) => {
   }
 
   /*
-    En la tablet en horizontal, el texto más grande y repartido: líneas
-    equilibradas (text-wrap: balance) a todo el ancho.
+    En la tablet en vertical: el fondo en vertical, como en el móvil (el
+    apaisado, ampliado a lo alto, se veía blando), y el texto más grande y
+    repartido, con las líneas equilibradas.
   */
-  @media (min-width: 601px) and (orientation: landscape) and (pointer: coarse) {
+  @media (min-width: 601px) and (max-width: 1100px) and (orientation: portrait) {
+    .encargos__clip--ancho {
+      display: none;
+    }
+
+    .encargos__clip--movil {
+      display: block;
+    }
+
     .encargos__linea,
     .encargos__linea + .encargos__linea {
       max-width: none;
-      font-size: 6.6vw;
-      line-height: 1.03;
+      font-size: 8.4vw;
+      line-height: 1.04;
       text-wrap: balance;
     }
 
