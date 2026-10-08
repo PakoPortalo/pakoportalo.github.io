@@ -422,6 +422,11 @@ export async function createLiquidHero(
   const masa = { reposo: 0.62, min: 0.42, max: 0.88 };
   /** Separación de canales fija del texto (uAberration). La fija drawText(). */
   let aberracion = 0.0034;
+  /**
+   * En la tablet en vertical, la masa no responde al dedo y se pasea sola,
+   * muy despacio. Se comprueba en cada evento: la tablet se puede girar.
+   */
+  const calmaQuery = window.matchMedia('(min-width: 601px) and (max-width: 1100px) and (orientation: portrait)');
   /** Alejamiento del texto y el líquido. Lo mueve el scroll de la página. */
   let zoom = 1;
   /**
@@ -1078,8 +1083,9 @@ export async function createLiquidHero(
     // escena se congela y parece rota.
     const idle = time - pointer.lastMove;
     const [wx, wy] = curl(wander.x * 1.3, wander.y * 1.3 + 40, time * 0.6);
-    wander.x += wx * delta * 0.42;
-    wander.y += wy * delta * 0.42;
+    const paseo = calmaQuery.matches ? 0.14 : 0.42;
+    wander.x += wx * delta * paseo;
+    wander.y += wy * delta * paseo;
     // Tirón flojo hacia el punto de reposo: sin él, el campo turbulento
     // acaba llevándose el paseo a una esquina y se queda ahí.
     wander.x += (MASS_BIAS_X * aspect - wander.x) * 0.5 * delta;
@@ -1454,7 +1460,7 @@ export async function createLiquidHero(
     // Con el hero tapado por los módulos de abajo, el ratón es de ellos: si
     // no, cada movimiento ahí abajo empujaba el líquido sin que se viera, y
     // al volver arriba la masa estaba deshecha o fuera de cuadro.
-    if (!heroVisible || !heroActive) return;
+    if (!heroVisible || !heroActive || calmaQuery.matches) return;
     const rect = canvas.getBoundingClientRect();
     const nx = (event.clientX - rect.left) / rect.width;
     const ny = 1 - (event.clientY - rect.top) / rect.height;
