@@ -316,9 +316,32 @@ const lang = idioma(Astro.currentLocale);
   /* En el móvil y la tablet en vertical, en su lugar va la lista
      (ProyectosLista). Oculto, sus
      vídeos ni se cargan: el observador de clips no los ve. */
-  @media (max-width: 600px), (max-width: 1100px) and (orientation: portrait) {
+  @media (max-width: 600px) {
     .recorrido {
       display: none;
+    }
+  }
+
+  /*
+    En la tablet en vertical, el recorrido con las obras más grandes y en
+    4:3: a 16:9 se quedaban como una tira en mitad de mucho negro.
+  */
+  @media (min-width: 601px) and (max-width: 1100px) and (orientation: portrait) {
+    .recorrido__pieza {
+      width: 82vw;
+    }
+
+    .recorrido__marco {
+      aspect-ratio: 4 / 3;
+      max-height: none;
+    }
+
+    .recorrido__titulo {
+      font-size: 5vw;
+    }
+
+    .recorrido__meta {
+      font-size: 13px;
     }
   }
 </style>

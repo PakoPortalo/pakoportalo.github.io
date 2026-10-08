@@ -640,6 +640,29 @@ const temas = biografia(idioma(Astro.currentLocale)).map((b, k) => ({
       animation: none !important;
     }
   }
+
+  /*
+    En la tablet en vertical: el texto centrado y los tres temas en línea.
+  */
+  @media (min-width: 601px) and (max-width: 1100px) and (orientation: portrait) {
+    .sobre__texto {
+      text-align: center;
+    }
+
+    .sobre__indice {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+    }
+
+    .sobre__tema[aria-selected='true'] {
+      translate: 0 0;
+    }
+
+    .sobre__panel {
+      margin-inline: auto;
+    }
+  }
 </style>
 
 <script>
@@ -738,15 +761,32 @@ const temas = biografia(idioma(Astro.currentLocale)).map((b, k) => ({
       capas.style.webkitMaskImage = valor;
     };
 
+    /*
+      En la tablet en vertical, sin onda: la foto aparece con un fundido.
+    */
+    const conFundido = window.matchMedia('(min-width: 601px) and (max-width: 1100px) and (orientation: portrait)').matches;
+
     const reiniciarOnda = () => {
       cancelAnimationFrame(ondaBucle);
       capas.style.filter = '';
       nitida.style.opacity = '0';
+      if (conFundido) {
+        enmascarar(null);
+        capas.style.transition = 'none';
+        capas.style.opacity = '0';
+        return;
+      }
       enmascarar(-40);
     };
 
     const lanzarOnda = (retraso: number) => {
       cancelAnimationFrame(ondaBucle);
+      if (conFundido) {
+        enmascarar(null);
+        capas.style.transition = `opacity 1200ms ease ${retraso}ms`;
+        capas.style.opacity = '1';
+        return;
+      }
       const inicio = performance.now() + retraso;
       capas.style.filter = 'var(--onda)';
       const pasoOnda = (ahora: number) => {

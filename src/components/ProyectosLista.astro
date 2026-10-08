@@ -7,8 +7,7 @@
  * cada una entra como una cortinilla de montaje: el vídeo se destapa con un
  * barrido lateral (una hacia un lado y la siguiente hacia el otro) mientras
  * se aleja un poco por dentro, y después suben el número, el título y la
- * ficha. En la tablet en vertical, en carrusel horizontal. En el resto se
- * oculta y se ve el recorrido.
+ * ficha. Por encima de 600 px se oculta y se ve el recorrido.
  */
 import { obras, enlaceYouTube, ficha } from '../data/obras';
 import { idioma, textos } from '../i18n/textos';
@@ -68,7 +67,7 @@ const lang = idioma(Astro.currentLocale);
   }
 
   /* En el móvil y en la tablet en vertical. */
-  @media (max-width: 600px), (max-width: 1100px) and (orientation: portrait) {
+  @media (max-width: 600px) {
     .lista {
       display: block;
     }
@@ -204,39 +203,6 @@ const lang = idioma(Astro.currentLocale);
   }
 
 
-  /*
-    En la tablet en vertical, un carrusel que se desliza con el dedo, con
-    la siguiente obra asomando. Cada una entra con su cortinilla al llegar.
-  */
-  @media (min-width: 601px) and (max-width: 1100px) and (orientation: portrait) {
-    .lista {
-      padding: 64px 0 72px;
-    }
-
-    .lista__rotulo {
-      padding-inline: max(24px, 5.5vw);
-    }
-
-    .lista__obras {
-      display: flex;
-      gap: 28px;
-      overflow-x: auto;
-      padding-inline: max(24px, 5.5vw);
-      scroll-padding-inline: max(24px, 5.5vw);
-      scroll-snap-type: x mandatory;
-      scrollbar-width: none;
-      overscroll-behavior-x: contain;
-    }
-
-    .lista__obras::-webkit-scrollbar {
-      display: none;
-    }
-
-    .lista__obra {
-      flex: 0 0 72vw;
-      scroll-snap-align: start;
-    }
-  }
 </style>
 
 <script>

@@ -466,6 +466,13 @@ const t = textos(Astro.currentLocale);
       grid-template-columns: 1fr;
     }
   }
+
+  /* En la tablet en vertical, algo más de aire arriba y abajo. */
+  @media (min-width: 601px) and (max-width: 1100px) and (orientation: portrait) {
+    .creds {
+      padding-block: 120px 150px;
+    }
+  }
 </style>
 
 <script>
@@ -524,6 +531,31 @@ const t = textos(Astro.currentLocale);
       window.addEventListener('resize', alHacerScroll, { passive: true });
     }
     entrar();
+
+    /*
+      Paralaje en la tablet en vertical: el contenido va algo más lento que
+      el scroll, así se desliza a otra velocidad que los módulos de al lado.
+      Se mueve con --my, el mismo desplazamiento que usa el ratón.
+    */
+    if (window.matchMedia('(min-width: 601px) and (max-width: 1100px) and (orientation: portrait)').matches && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      let pedidoParalaje = false;
+      const paralaje = () => {
+        pedidoParalaje = false;
+        const caja = seccion.getBoundingClientRect();
+        const desvio = caja.top + caja.height / 2 - window.innerHeight / 2;
+        seccion.style.setProperty('--my', (desvio * -0.22).toFixed(1));
+      };
+      window.addEventListener(
+        'scroll',
+        () => {
+          if (pedidoParalaje) return;
+          pedidoParalaje = true;
+          requestAnimationFrame(paralaje);
+        },
+        { passive: true },
+      );
+      paralaje();
+    }
 
     if (!conRaton) return;
 

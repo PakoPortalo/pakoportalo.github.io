@@ -342,7 +342,9 @@ export async function createLiquidHero(
   function fitBlobs() {
     // En móvil (menos de 600 px, el texto va arriba) la masa comparte la
     // pantalla con el bloque de texto y tiene que caber en la mitad de abajo.
-    const fit = Math.min(1, 0.52 + aspect * 0.42) * (width < 600 ? 0.86 : 1);
+    // En la tablet en vertical, más pequeña todavía: llenaba media pantalla.
+    const tabletVertical = width > 600 && width <= 1100 && height > width;
+    const fit = Math.min(1, 0.52 + aspect * 0.42) * (width < 600 ? 0.86 : tabletVertical ? 0.74 : 1);
     blobs.forEach((blob, index) => {
       blob.radius = baseRadii[index]! * fit;
     });
