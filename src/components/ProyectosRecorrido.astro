@@ -276,6 +276,21 @@ const lang = idioma(Astro.currentLocale);
     color: #f4f1ec;
   }
 
+  /*
+    Cada obra lleva su raya larga justo debajo, como una marca de montaje.
+    Las rayas largas de la regla van cada 80 px y las obras caen donde
+    caen, así que solo la primera coincidía con una.
+  */
+  .tl__clip::after {
+    content: '';
+    position: absolute;
+    inset-block-start: 32px;
+    inset-inline-start: 50%;
+    width: 1px;
+    height: 14px;
+    background: rgb(255 255 255 / 0.4);
+  }
+
   .tl__cabezal {
     position: absolute;
     inset-block: 0;
