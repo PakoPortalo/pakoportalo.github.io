@@ -543,7 +543,7 @@ const t = textos(Astro.currentLocale);
         pedidoParalaje = false;
         const caja = seccion.getBoundingClientRect();
         const desvio = caja.top + caja.height / 2 - window.innerHeight / 2;
-        seccion.style.setProperty('--my', (desvio * -0.22).toFixed(1));
+        seccion.style.setProperty('--my', (desvio * -0.09).toFixed(1));
       };
       window.addEventListener(
         'scroll',
