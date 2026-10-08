@@ -15,7 +15,7 @@ const es = {
   meta: {
     locale: 'es_ES',
     imagen: 'og-es.jpg',
-    imagenAlt: 'Pako Portalo. Sound & Music.',
+    imagenAlt: 'PAKO PORTALO. Música & Diseño sonoro.',
     rol: 'Compositor y diseñador de sonido',
     titulo: 'Pako Portalo — Composición musical y diseño sonoro',
     descripcion:
@@ -84,7 +84,7 @@ const en: typeof es = {
   meta: {
     locale: 'en_GB',
     imagen: 'og-en.jpg',
-    imagenAlt: 'Pako Portalo. Sound & Music.',
+    imagenAlt: 'PAKO PORTALO. Music & Sound design.',
     rol: 'Composer and sound designer',
     titulo: 'Pako Portalo — Music composition and sound design',
     descripcion:
