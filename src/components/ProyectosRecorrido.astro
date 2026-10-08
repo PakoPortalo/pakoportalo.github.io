@@ -110,6 +110,7 @@ const lang = idioma(Astro.currentLocale);
     /* El morado neón de los puntos del hero. */
     --morado: #b660ff;
     --gutter: max(16px, 5.5vw);
+    --pieza: min(64vw, 1100px);
   }
 
   .recorrido__fijo {
@@ -158,18 +159,22 @@ const lang = idioma(Astro.currentLocale);
     color: rgb(255 255 255 / 0.4);
   }
 
+  /*
+    El margen de los lados es lo que sobra de una obra: así cada una, la
+    primera y la última también, queda centrada en la pantalla al llegar.
+  */
   .recorrido__pista {
     display: flex;
     align-items: center;
     gap: 5vw;
-    padding-inline: var(--gutter);
+    padding-inline: calc((100% - var(--pieza)) / 2);
     width: max-content;
     will-change: transform;
   }
 
   .recorrido__pieza {
     display: block;
-    width: min(64vw, 1100px);
+    width: var(--pieza);
     color: inherit;
     text-decoration: none;
   }
@@ -261,6 +266,18 @@ const lang = idioma(Astro.currentLocale);
       repeating-linear-gradient(90deg, rgb(255 255 255 / 0.18) 0 1px, transparent 1px var(--menor, 16px)) 0 100% / 100% 7px no-repeat;
   }
 
+  /* La raya larga del final: el patrón acaba justo antes del borde y la
+     última obra, que cae en el borde, se quedaba sin ella. */
+  .tl__regla::after {
+    content: '';
+    position: absolute;
+    inset-block-end: 0;
+    inset-inline-start: 100%;
+    width: 1px;
+    height: 14px;
+    background: rgb(255 255 255 / 0.4);
+  }
+
   .tl__clip {
     position: absolute;
     inset-block-start: 6px;
@@ -308,13 +325,12 @@ const lang = idioma(Astro.currentLocale);
   }
 
   @media (max-width: 760px) {
-    .recorrido__pieza {
-      width: 82vw;
+    .recorrido {
+      --pieza: 82vw;
     }
   }
 
-  /* En el móvil y la tablet en vertical, en su lugar va la lista
-     (ProyectosLista). Oculto, sus
+  /* En el móvil, en su lugar va la lista (ProyectosLista). Oculto, sus
      vídeos ni se cargan: el observador de clips no los ve. */
   @media (max-width: 600px) {
     .recorrido {
@@ -327,14 +343,8 @@ const lang = idioma(Astro.currentLocale);
     4:3: a 16:9 se quedaban como una tira en mitad de mucho negro.
   */
   @media (min-width: 601px) and (max-width: 1100px) and (orientation: portrait) {
-    /* Cada obra centrada: el margen de los lados es lo que sobra de ella,
-       así la primera y la última quedan en el medio, como las demás. */
-    .recorrido__pista {
-      padding-inline: 15vw;
-    }
-
-    .recorrido__pieza {
-      width: 70vw;
+    .recorrido {
+      --pieza: 70vw;
     }
 
     .recorrido__marco {
@@ -392,7 +402,6 @@ const lang = idioma(Astro.currentLocale);
       la barra del navegador como el de la ventana.
     */
     const fijo = seccion.querySelector<HTMLElement>('.recorrido__fijo')!;
-    const tabletVertical = window.matchMedia('(min-width: 601px) and (max-width: 1100px) and (orientation: portrait)');
     let sobrante = 0;
     let alto = window.innerHeight;
     /*
@@ -422,9 +431,9 @@ const lang = idioma(Astro.currentLocale);
       pendiente = 0;
       const caja = seccion.getBoundingClientRect();
       const recorrible = caja.height - alto;
-      // En la tablet en vertical, el recorrido acaba antes del final: la
-      // última obra se queda centrada un rato antes de que el módulo se vaya.
-      const tramo = tabletVertical.matches ? 0.82 : 1;
+      // El recorrido acaba antes del final: la última obra se queda
+      // centrada un rato antes de que el módulo se vaya.
+      const tramo = 0.82;
       const progreso = recorrible > 0 ? limitar(-caja.top / (recorrible * tramo), 0, 1) : 0;
       pista.style.transform = `translate3d(${-progreso * sobrante}px, 0, 0)`;
       seccion.style.setProperty('--progreso', progreso.toFixed(4));
