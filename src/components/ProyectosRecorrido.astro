@@ -110,7 +110,10 @@ const lang = idioma(Astro.currentLocale);
     /* El morado neón de los puntos del hero. */
     --morado: #b660ff;
     --gutter: max(16px, 5.5vw);
-    --pieza: min(64vw, 1100px);
+    /* El ancho de una obra. Tope también por el alto: el vídeo no pasa de
+       52svh, y si la obra era más ancha que él, el vídeo quedaba pegado a
+       su izquierda y descentrado. */
+    --pieza: min(64vw, 1100px, calc(52svh * 16 / 9));
   }
 
   .recorrido__fijo {
