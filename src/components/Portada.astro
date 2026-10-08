@@ -33,6 +33,26 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     <link rel="alternate" hreflang="en" href={new URL(`${base}en/`, Astro.site)} />
     <link rel="alternate" hreflang="x-default" href={new URL(base, Astro.site)} />
     <meta name="theme-color" content="#050505" />
+    {/*
+      El idioma según dónde estás: en España, español; fuera, inglés. La
+      web es estática, sin servidor que vea el país, así que se usa la zona
+      horaria del aparato (Madrid, Canarias o Ceuta). Va lo primero, antes
+      de pintar nada, para que el salto no se vea. Si alguien elige idioma
+      en el pie, eso manda siempre. A los buscadores no se les redirige: así
+      indexan las dos versiones.
+    */}
+    <script is:inline define:vars={{ lang: t.html, base }}>
+      (() => {
+        try {
+          if (/bot|crawl|spider|slurp|lighthouse|headless/i.test(navigator.userAgent)) return;
+          const elegido = localStorage.getItem('idioma');
+          const zona = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+          const espana = ['Europe/Madrid', 'Atlantic/Canary', 'Africa/Ceuta'].includes(zona);
+          const quiere = elegido === 'es' || elegido === 'en' ? elegido : espana ? 'es' : 'en';
+          if (quiere !== lang) location.replace(base + (quiere === 'en' ? 'en/' : '') + location.search + location.hash);
+        } catch {}
+      })();
+    </script>
     <style>
       body { margin: 0; background: #050505; }
     </style>

@@ -1,6 +1,11 @@
 ---
 /**
  * Página no encontrada. En negro como la portada, con un solo camino: volver.
+ *
+ * GitHub Pages solo admite una página de error para todo el sitio, así que
+ * lleva los dos idiomas y enseña uno: inglés si la dirección empezaba por
+ * /en, si se eligió inglés en el pie o si se entra desde fuera de España
+ * (por la zona horaria, como la portada). Si no, español.
  */
 import '../styles/global.css';
 
@@ -15,6 +20,24 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     <meta name="robots" content="noindex" />
     <title>Página no encontrada — Pako Portalo</title>
     <meta name="theme-color" content="#050505" />
+    <script is:inline define:vars={{ base }}>
+      (() => {
+        try {
+          const elegido = localStorage.getItem('idioma');
+          const zona = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+          const espana = ['Europe/Madrid', 'Atlantic/Canary', 'Africa/Ceuta'].includes(zona);
+          const enIngles = location.pathname.startsWith(base + 'en/') || location.pathname === base + 'en'
+            ? true
+            : elegido === 'en' || elegido === 'es'
+              ? elegido === 'en'
+              : !espana;
+          if (enIngles) {
+            document.documentElement.lang = 'en';
+            document.title = 'Page not found — Pako Portalo';
+          }
+        } catch {}
+      })();
+    </script>
     <style is:global>
       body {
         margin: 0;
@@ -28,9 +51,16 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
   <body>
     <main class="perdida">
       <p class="perdida__codigo" aria-hidden="true">404</p>
-      <h1 class="perdida__titulo">Aquí no suena nada.</h1>
-      <p class="perdida__texto">La página que buscas no existe o ha cambiado de sitio.</p>
-      <a class="perdida__volver" href={base}>Volver al inicio <span aria-hidden="true">→</span></a>
+      <div class="perdida__bloque" lang="es">
+        <h1 class="perdida__titulo">Aquí no suena nada.</h1>
+        <p class="perdida__texto">La página que buscas no existe o ha cambiado de sitio.</p>
+        <a class="perdida__volver" href={base}>Volver al inicio <span aria-hidden="true">→</span></a>
+      </div>
+      <div class="perdida__bloque" lang="en">
+        <p class="perdida__titulo" role="heading" aria-level="1">Nothing playing here.</p>
+        <p class="perdida__texto">The page you are looking for does not exist or has moved.</p>
+        <a class="perdida__volver" href={`${base}en/`}>Back to home <span aria-hidden="true">→</span></a>
+      </div>
     </main>
   </body>
 </html>
@@ -43,6 +73,18 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     justify-items: start;
     gap: 18px;
     padding: 0 max(24px, 5.5vw);
+  }
+
+  .perdida__bloque {
+    display: grid;
+    justify-items: start;
+    gap: 18px;
+  }
+
+  /* Solo el del idioma de la página. */
+  :global(html:not([lang='en'])) .perdida__bloque[lang='en'],
+  :global(html[lang='en']) .perdida__bloque[lang='es'] {
+    display: none;
   }
 
   .perdida__codigo {

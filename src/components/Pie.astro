@@ -18,7 +18,7 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     <div class="pie__izq">
       <p class="pie__copy">© {ano} Pako Portalo</p>
       {/* El otro idioma: English en la española, Español en la inglesa. */}
-      <a class="pie__idioma" href={`${base}${t.pie.otroIdiomaRuta}`} hreflang={t.pie.otroIdiomaLang} lang={t.pie.otroIdiomaLang}>
+      <a class="pie__idioma" href={`${base}${t.pie.otroIdiomaRuta}`} hreflang={t.pie.otroIdiomaLang} lang={t.pie.otroIdiomaLang} data-idioma={t.pie.otroIdiomaLang}>
         {t.pie.otroIdioma}
       </a>
     </div>
@@ -40,6 +40,20 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
     </nav>
   </div>
 </footer>
+
+<script>
+  // Quien elige idioma a mano lo conserva: ya no se le redirige por la
+  // zona horaria (ver Portada.astro).
+  document.querySelectorAll<HTMLAnchorElement>('[data-idioma]').forEach((enlace) =>
+    enlace.addEventListener('click', () => {
+      try {
+        localStorage.setItem('idioma', enlace.dataset.idioma!);
+      } catch {
+        /* sin almacenamiento, sigue mandando la zona horaria */
+      }
+    }),
+  );
+</script>
 
 <style>
   .pie {
