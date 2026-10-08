@@ -1612,9 +1612,11 @@ export async function createLiquidHero(
       }
     }
 
-    if (apis.some((api) => typeof api?.requestPermission === 'function')) {
-      gestures.forEach((name) => window.addEventListener(name, unlock));
-    }
+    // El permiso ya no se pide: en iOS sacaba un aviso del navegador al
+    // primer toque. Donde no hace falta permiso (Android), la inclinación
+    // sigue funcionando; en iOS el líquido se mueve solo. unlock() queda
+    // para la pantalla de diagnóstico (?gyro).
+    void unlock;
 
     stopOrientation = () => {
       window.removeEventListener('deviceorientation', onOrientation);
