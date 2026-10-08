@@ -13,6 +13,10 @@ export const idioma = (locale: string | undefined): Idioma => (locale === 'en' ?
 const es = {
   html: 'es',
   meta: {
+    locale: 'es_ES',
+    imagen: 'og-es.jpg',
+    imagenAlt: 'Pako Portalo. Sound & Music. Composición musical y diseño sonoro.',
+    rol: 'Compositor y diseñador de sonido',
     titulo: 'Pako Portalo — Composición musical y diseño sonoro',
     descripcion:
       'Composiciones originales para videojuegos y spots publicitarios, y diseño sonoro para piezas audiovisuales: del cine al teatro.',
@@ -78,6 +82,10 @@ const es = {
 const en: typeof es = {
   html: 'en',
   meta: {
+    locale: 'en_GB',
+    imagen: 'og-en.jpg',
+    imagenAlt: 'Pako Portalo. Sound & Music. Music composition and sound design.',
+    rol: 'Composer and sound designer',
     titulo: 'Pako Portalo — Music composition and sound design',
     descripcion:
       'Original music for video games and commercials, and sound design for audiovisual work: from film to theatre.',

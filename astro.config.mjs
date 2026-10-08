@@ -15,7 +15,7 @@ import sitemap from '@astrojs/sitemap';
  *    "/PakoPortaloWeb", y cambia `site` a "https://pakoportalo.github.io".
  */
 export default defineConfig({
-  site: 'https://pakoportalo.github.io',
+  site: 'https://pakoportalo.com',
   // base: '/PakoPortaloWeb',
 
   // La barra flotante de Astro estorbaba al valorar el diseño. Solo aparece

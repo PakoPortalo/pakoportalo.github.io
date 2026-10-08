@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://pakoportalo.com/sitemap-index.xml
