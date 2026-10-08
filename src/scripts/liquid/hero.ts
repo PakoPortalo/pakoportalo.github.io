@@ -593,8 +593,12 @@ export async function createLiquidHero(
     // pegue un salto de tamaño al redimensionar.
     const compact = Math.min(Math.max((820 - width) / (820 - 380), 0), 1);
 
-    const margin = Math.max(20, width * (0.055 + compact * 0.018));
-    const available = width - margin * 2;
+    let margin = Math.max(20, width * (0.055 + compact * 0.018));
+    let available = width - margin * 2;
+    // Solo el nombre y "Sound & Music." (la imagen de compartir): el bloque
+    // va centrado en la imagen, para que no se corte cuando WhatsApp y
+    // compañía la recortan por los lados.
+    const soloTitulo = !copy.paragraph && !copy.eyebrowLeft && !copy.eyebrowRight;
 
     const titleStack = `${titleFont.family}, ui-sans-serif, system-ui, sans-serif`;
     const subtitleStack = `${subtitleFont.family}, ui-sans-serif, system-ui, sans-serif`;
@@ -626,6 +630,25 @@ export async function createLiquidHero(
     const naturalTitle = textContext.measureText(copy.title).width;
     if (naturalTitle > available) {
       bigSize *= available / naturalTitle;
+      textContext.font = `${titleFont.titleWeight} ${bigSize}px ${titleStack}`;
+      textContext.letterSpacing = `${bigSize * titleFont.tracking}px`;
+    }
+    if (soloTitulo) {
+      // El bloque, a lo ancho de la mitad central de la imagen.
+      const subStack = `${subtitleFont.family}, ui-sans-serif, system-ui, sans-serif`;
+      const medir = (size: number) => {
+        textContext.font = `${titleFont.titleWeight} ${size}px ${titleStack}`;
+        textContext.letterSpacing = `${size * titleFont.tracking}px`;
+        const a = textContext.measureText(copy.title).width;
+        const sub = size * (subtitleFont.sizeScale / titleFont.sizeScale);
+        textContext.font = `${subtitleFont.subtitleWeight} ${sub}px ${subStack}`;
+        textContext.letterSpacing = `${sub * subtitleFont.tracking}px`;
+        return Math.max(a, textContext.measureText(copy.subtitle).width);
+      };
+      bigSize *= (width * 0.56) / medir(bigSize);
+      const ancho = medir(bigSize);
+      margin = (width - ancho) / 2;
+      available = ancho + 2;
       textContext.font = `${titleFont.titleWeight} ${bigSize}px ${titleStack}`;
       textContext.letterSpacing = `${bigSize * titleFont.tracking}px`;
     }
@@ -662,7 +685,14 @@ export async function createLiquidHero(
     let subtitleBaseline: number;
     let titleBaseline: number;
     let eyebrowBaseline: number;
-    if (arriba) {
+    if (soloTitulo) {
+      // Centrado también en vertical.
+      titleBaseline = height / 2 - bigSize * 0.12;
+      subtitleBaseline = titleBaseline + bigSize * 1.0;
+      eyebrowBaseline = titleBaseline - bigSize;
+      paraTop = subtitleBaseline + bigSize * 0.3;
+      blockBottom = paraTop;
+    } else if (arriba) {
       titleBaseline = Math.max(margin * 2, height * 0.09) + bigSize * 0.8;
       subtitleBaseline = titleBaseline + bigSize * 1.14;
       eyebrowBaseline = subtitleBaseline + bigSize * 0.62 + eyebrowSize;
