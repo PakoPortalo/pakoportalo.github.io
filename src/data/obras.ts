@@ -14,6 +14,8 @@ export interface Obra {
   agencia?: string;
   ano: string;
   papel: string;
+  /** El papel, en inglés. */
+  papelEn: string;
   /** Id del vídeo de YouTube: el que se abre en la ventana al hacer clic. */
   youtube: string;
 }
@@ -27,6 +29,7 @@ export const obras: Obra[] = [
     titulo: 'Porque sí',
     ano: '2025',
     papel: 'Música original',
+    papelEn: 'Original music',
     youtube: 'J1EePtijHD0',
   },
   {
@@ -36,6 +39,7 @@ export const obras: Obra[] = [
     agencia: 'Casanova',
     ano: '2026',
     papel: 'Diseño sonoro',
+    papelEn: 'Sound design',
     youtube: 'PxR6Bte4JLs',
   },
   {
@@ -44,6 +48,7 @@ export const obras: Obra[] = [
     titulo: 'I love my culo',
     ano: '2024',
     papel: 'Dirección de sonido y producción musical',
+    papelEn: 'Sound direction and music production',
     youtube: 'a-K3QIMliwk',
   },
   {
@@ -52,6 +57,11 @@ export const obras: Obra[] = [
     titulo: 'Data Garden',
     ano: '2023',
     papel: 'Diseño sonoro',
+    papelEn: 'Sound design',
     youtube: 'L1nHJ-0tZtQ',
   },
 ];
+
+/** La ficha de una obra en una línea: pieza · agencia · año · papel. */
+export const ficha = (obra: Obra, lang: 'es' | 'en') =>
+  [obra.titulo, obra.agencia, obra.ano, lang === 'en' ? obra.papelEn : obra.papel].filter(Boolean).join(' · ');

@@ -20,6 +20,9 @@
  */
 import BarraColor from './BarraColor.astro';
 import { biografia, palabras } from '../data/sobre';
+import { idioma, textos } from '../i18n/textos';
+
+const t = textos(Astro.currentLocale);
 
 interface Props {
   id?: string;
@@ -31,7 +34,7 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
 const foto = {
   fondo: `${base}sobre/pako-1-fondo.webp`,
   persona: `${base}sobre/pako-1-persona.webp`,
-  alt: 'Pako Portalo tocando la guitarra en un concierto',
+  alt: t.sobre.alt,
   ancho: 950,
   alto: 1003,
   // Dónde está la cara dentro de la foto: ahí la onda de entrada se
@@ -42,7 +45,7 @@ const foto = {
 /** El color con el que se enciende cada tema del índice. */
 const colores = ['verde', 'morado', 'verde'] as const;
 
-const temas = biografia.map((b, k) => ({
+const temas = biografia(idioma(Astro.currentLocale)).map((b, k) => ({
   tema: b.tema,
   color: colores[k] ?? 'verde',
   palabras: palabras(b.texto).map((piezas, i) => ({ piezas, i })),
@@ -112,13 +115,13 @@ const temas = biografia.map((b, k) => ({
 
     <div class="sobre__texto">
       <div class="sobre__cabecera">
-        <p class="sobre__etiqueta">Quién soy</p>
+        <p class="sobre__etiqueta">{t.sobre.etiqueta}</p>
         <h2 class="sobre__nombre" id={`${id}-titulo`} data-texto="Pako Portalo" data-nombre>Pako Portalo</h2>
-        <p class="sobre__rol">Interpretación y composición musical</p>
+        <p class="sobre__rol">{t.sobre.rol}</p>
       </div>
 
       <div class="sobre__bio">
-        <div class="sobre__indice" role="tablist" aria-label="Trayectoria">
+        <div class="sobre__indice" role="tablist" aria-label={t.sobre.trayectoria}>
           {
             temas.map((t, k) => (
               <button

@@ -12,10 +12,13 @@
  * flotando por encima del correo, Instagram y el teléfono. Cada dato se
  * copia al portapapeles al pulsarlo.
  */
+import { textos } from '../i18n/textos';
+
 const correo = 'pakoportalo@gmail.com';
 const instagram = 'pakoportalo';
 const telefono = '+34 636 25 06 34';
 const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
+const t = textos(Astro.currentLocale);
 ---
 
 <dialog class="tarjeta" data-tarjeta-dialogo aria-labelledby="tarjeta-nombre">
@@ -26,16 +29,16 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
           <span data-texto="Pako">Pako</span>
           <span data-texto="Portalo">Portalo</span>
         </h2>
-        <p class="tarjeta__lema">Música &amp; Diseño sonoro.</p>
+        <p class="tarjeta__lema">{t.tarjeta.lema}</p>
 
         <div class="tarjeta__pie">
-          <button class="tarjeta__boton" type="button" data-voltear>Contacto ↻</button>
+          <button class="tarjeta__boton" type="button" data-voltear>{t.tarjeta.contacto} ↻</button>
         </div>
         <span class="tarjeta__punto" aria-hidden="true"></span>
         <span class="tarjeta__brillo" aria-hidden="true"></span>
       </section>
 
-      <section class="tarjeta__cara tarjeta__cara--dorso" aria-label="Contacto">
+      <section class="tarjeta__cara tarjeta__cara--dorso" aria-label={t.tarjeta.contacto}>
         <canvas class="tarjeta__liquido" data-liquido-fondo aria-hidden="true"></canvas>
 
         <ul class="tarjeta__datos">
@@ -45,7 +48,7 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
               { valor: telefono, icono: 'telefono' },
             ].map((dato) => (
               <li>
-                <button class="tarjeta__dato" type="button" data-copiar={dato.valor} aria-label={`Copiar ${dato.valor}`}>
+                <button class="tarjeta__dato" type="button" data-copiar={dato.valor} aria-label={`${t.tarjeta.copiar} ${dato.valor}`}>
                   {dato.icono === 'correo' && (
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <rect x="3" y="5" width="18" height="14" rx="2.5" />
@@ -59,7 +62,7 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
                   )}
                   <span class="tarjeta__valor">{dato.valor}</span>
                   <span class="tarjeta__copiado" aria-hidden="true">
-                    {[...'¡Copiado!'].map((letra, i) => (
+                    {[...t.tarjeta.copiado].map((letra, i) => (
                       <span style={`--i: ${i}`}>{letra}</span>
                     ))}
                   </span>
@@ -83,14 +86,14 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
         <canvas class="tarjeta__liquido tarjeta__liquido--brillo" data-liquido-brillo aria-hidden="true"></canvas>
 
         <div class="tarjeta__acciones">
-          <button class="tarjeta__boton" type="button" data-voltear>↺ Atrás</button>
+          <button class="tarjeta__boton" type="button" data-voltear>↺ {t.tarjeta.atras}</button>
         </div>
         <span class="tarjeta__brillo" aria-hidden="true"></span>
       </section>
     </div>
   </div>
 
-  <button class="tarjeta__cerrar" type="button" data-cerrar-tarjeta>Cerrar</button>
+  <button class="tarjeta__cerrar" type="button" data-cerrar-tarjeta>{t.tarjeta.cerrar}</button>
 </dialog>
 
 <style>

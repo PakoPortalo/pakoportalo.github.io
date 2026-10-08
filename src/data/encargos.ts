@@ -3,7 +3,6 @@
  * contacto. Dos servicios; en cada uno, el tramo final (para quién) se
  * enciende en uno de los dos colores de los puntos del hero.
  */
-export const entradilla = 'Especializado en';
 
 export interface Servicio {
   /** La frase completa, tal cual se lee. */
@@ -13,7 +12,7 @@ export interface Servicio {
   color: 'verde' | 'morado';
 }
 
-export const servicios: Servicio[] = [
+const serviciosEs: Servicio[] = [
   {
     texto: 'Música original para spots publicitarios',
     acento: 'spots publicitarios',
@@ -25,3 +24,19 @@ export const servicios: Servicio[] = [
     color: 'verde',
   },
 ];
+
+const serviciosEn: Servicio[] = [
+  {
+    texto: 'Original music for commercials',
+    acento: 'commercials',
+    color: 'morado',
+  },
+  {
+    texto: 'Scores, sound design and sound FX for video games and film',
+    acento: 'video games and film',
+    color: 'verde',
+  },
+];
+
+/** Los servicios en el idioma de la página. */
+export const servicios = (lang: 'es' | 'en') => (lang === 'en' ? serviciosEn : serviciosEs);

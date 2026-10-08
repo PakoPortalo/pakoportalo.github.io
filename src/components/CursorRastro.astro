@@ -12,9 +12,11 @@
  * grosor y opacidad decrecientes, y con elementos del DOM serían decenas de
  * nodos moviéndose a cada fotograma. Solo con ratón; en táctil no existe.
  */
+import { textos } from '../i18n/textos';
+const t = textos(Astro.currentLocale);
 ---
 
-<canvas class="cursor-rastro" data-cursor-rastro aria-hidden="true"></canvas>
+<canvas class="cursor-rastro" data-cursor-rastro data-palabra={t.proyectos.cursor} aria-hidden="true"></canvas>
 
 <style>
   .cursor-rastro {
@@ -131,7 +133,7 @@
         ctx.font = '600 9px InstrumentSans, ui-sans-serif, system-ui, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('VER', x, y + 0.5);
+        ctx.fillText(lienzo.dataset.palabra ?? 'VER', x, y + 0.5);
         ctx.globalAlpha = 1;
       }
     };

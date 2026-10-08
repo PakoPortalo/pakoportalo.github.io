@@ -7,7 +7,8 @@
  * eso: una regla de editor de vídeo que se desliza bajo un cabezal fijo, con
  * la marca de cada obra pasando por debajo.
  */
-import { obras, enlaceYouTube } from '../data/obras';
+import { obras, enlaceYouTube, ficha } from '../data/obras';
+import { idioma, textos } from '../i18n/textos';
 import ClipVideo from './ClipVideo.astro';
 import BarraColor from './BarraColor.astro';
 
@@ -22,6 +23,8 @@ const { barra = true, id = 'proyectos' } = Astro.props;
 const total = String(obras.length).padStart(2, '0');
 /** Dónde cae cada obra en el recorrido, de 0 a 1: la primera al principio, la última al final. */
 const posicion = (i: number) => (obras.length > 1 ? i / (obras.length - 1) : 0);
+const t = textos(Astro.currentLocale);
+const lang = idioma(Astro.currentLocale);
 ---
 
 <section
@@ -33,7 +36,7 @@ const posicion = (i: number) => (obras.length > 1 ? i / (obras.length - 1) : 0);
 >
   {barra && <BarraColor />}
   <div class="recorrido__fijo">
-    <h2 class="recorrido__rotulo" id={`${id}-titulo`}>Proyectos destacados</h2>
+    <h2 class="recorrido__rotulo" id={`${id}-titulo`}>{t.proyectos.rotulo}</h2>
     <div class="recorrido__escena">
       <div class="recorrido__pista" data-pista>
         {
@@ -54,7 +57,7 @@ const posicion = (i: number) => (obras.length > 1 ? i / (obras.length - 1) : 0);
                 </span>
                 <h3 class="recorrido__titulo">{obra.marca}</h3>
                 <p class="recorrido__meta">
-                  {[obra.titulo, obra.agencia, obra.ano, obra.papel].filter(Boolean).join(' · ')}
+                  {ficha(obra, lang)}
                 </p>
               </div>
             </a>

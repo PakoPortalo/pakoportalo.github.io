@@ -11,7 +11,10 @@
  * Los enlaces siguen apuntando a YouTube: sin JavaScript, o con Cmd/Ctrl+clic
  * para abrir en otra pestaña, funcionan como enlaces normales.
  */
-import { obras } from '../data/obras';
+import { obras, ficha } from '../data/obras';
+import { idioma, textos } from '../i18n/textos';
+
+const t = textos(Astro.currentLocale);
 
 const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
 const datos = Object.fromEntries(
@@ -19,7 +22,7 @@ const datos = Object.fromEntries(
     obra.slug,
     {
       marca: obra.marca,
-      detalle: [obra.titulo, obra.agencia, obra.ano, obra.papel].filter(Boolean).join(' · '),
+      detalle: ficha(obra, idioma(Astro.currentLocale)),
       youtube: obra.youtube,
       poster: `${base}proyectos/clips/${obra.slug}.webp`,
     },
@@ -34,7 +37,7 @@ const datos = Object.fromEntries(
       <iframe
         class="ventana__video"
         data-video
-        title="Vídeo del proyecto"
+        title={t.proyectos.video}
         allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
         allowfullscreen></iframe>
     </div>
@@ -45,7 +48,7 @@ const datos = Object.fromEntries(
   </div>
   <!-- autofocus: si no, showModal() da el foco al iframe y YouTube se queda
        con el Esc. -->
-  <button class="ventana__cerrar" type="button" data-cerrar autofocus>Cerrar</button>
+  <button class="ventana__cerrar" type="button" data-cerrar autofocus>{t.proyectos.cerrar}</button>
 </dialog>
 
 <style>

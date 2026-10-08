@@ -4,18 +4,26 @@
  * la izquierda, Instagram y correo a la derecha. Sin adornos.
  */
 
+import { textos } from '../i18n/textos';
+
 const correo = 'pakoportalo@gmail.com';
 const instagram = 'https://www.instagram.com/pakoportalo/';
 const ano = 2026;
+const t = textos(Astro.currentLocale);
+const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
 ---
 
 <footer class="pie">
   <div class="pie__fila">
     <div class="pie__izq">
       <p class="pie__copy">© {ano} Pako Portalo</p>
+      {/* El otro idioma: English en la española, Español en la inglesa. */}
+      <a class="pie__idioma" href={`${base}${t.pie.otroIdiomaRuta}`} hreflang={t.pie.otroIdiomaLang} lang={t.pie.otroIdiomaLang}>
+        {t.pie.otroIdioma}
+      </a>
     </div>
 
-    <nav class="pie__redes" aria-label="Redes y contacto">
+    <nav class="pie__redes" aria-label={t.pie.redes}>
       <a class="pie__icono" href={instagram} target="_blank" rel="noreferrer" aria-label="Instagram: @pakoportalo">
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
           <rect x="3" y="3" width="18" height="18" rx="5" />
@@ -23,7 +31,7 @@ const ano = 2026;
           <circle cx="17.4" cy="6.6" r="1.1" class="pie__lleno" />
         </svg>
       </a>
-      <a class="pie__icono" href={`mailto:${correo}`} aria-label={`Correo: ${correo}`}>
+      <a class="pie__icono" href={`mailto:${correo}`} aria-label={`${t.pie.correo}: ${correo}`}>
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
           <rect x="3" y="5" width="18" height="14" rx="2.5" />
           <path d="M4 7l8 6 8-6" />
@@ -66,6 +74,19 @@ const ano = 2026;
     font-size: 12px;
     letter-spacing: 0.02em;
     color: rgb(255 255 255 / 0.45);
+  }
+
+  .pie__idioma {
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    color: rgb(255 255 255 / 0.45);
+    text-decoration: none;
+    transition: color 250ms ease;
+  }
+
+  .pie__idioma:hover,
+  .pie__idioma:focus-visible {
+    color: #5ff7c6;
   }
 
   .pie__redes {

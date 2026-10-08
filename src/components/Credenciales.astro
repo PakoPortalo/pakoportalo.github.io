@@ -8,6 +8,7 @@
  * hacerla más alta.
  */
 import HumoFondo from './HumoFondo.astro';
+import { textos } from '../i18n/textos';
 
 interface Props {
   id?: string;
@@ -96,19 +97,20 @@ const reconocimientos: Reconocimiento[] = [
 ];
 
 const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
+const t = textos(Astro.currentLocale);
 ---
 
 <section class="creds" aria-labelledby={`${id}-titulo`}>
   <HumoFondo />
 
   <div class="creds__contenido">
-    <h2 class="creds__titulo" id={`${id}-titulo`}>Reconocimientos</h2>
+    <h2 class="creds__titulo" id={`${id}-titulo`}>{t.creds.reconocimientos}</h2>
 
     <ul class="creds__premios">
       {
         reconocimientos.map((premio) => (
           <li class={`creds__premio creds__premio--${premio.color}`}>
-            <p class="creds__estado">{premio.estado}</p>
+            <p class="creds__estado">{premio.estado === 'Finalista' ? t.creds.finalista : t.creds.nominado}</p>
             <p class="creds__que">{premio.que}</p>
             <p class="creds__pieza">
               <span class="creds__certamen">{premio.donde}</span> · {premio.pieza}
@@ -118,7 +120,7 @@ const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
       }
     </ul>
 
-    <h2 class="creds__titulo creds__titulo--clientes">Clientes</h2>
+    <h2 class="creds__titulo creds__titulo--clientes">{t.creds.clientes}</h2>
 
     <ul class="creds__clientes">
       {

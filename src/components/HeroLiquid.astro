@@ -6,6 +6,8 @@ interface Props {
 }
 
 const { copy } = Astro.props;
+import { textos } from '../i18n/textos';
+const t = textos(Astro.currentLocale);
 ---
 
 {/*
@@ -24,7 +26,7 @@ const { copy } = Astro.props;
   informe sea lo que manda el aparato y no lo que el hero haya entendido.
 */}
 <div class="probe" data-gyro-probe hidden>
-  <button type="button" data-gyro-ask>Activar sensores</button>
+  <button type="button" data-gyro-ask>{t.hero.sensores}</button>
   <pre data-gyro-out>…</pre>
 </div>
 

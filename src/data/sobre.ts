@@ -3,7 +3,7 @@
  * y {verde:así} o {morado:así} en el color del punto de ese premio en
  * Reconocimientos. El resto, en gris.
  */
-export const biografia: { tema: string; texto: string }[] = [
+const biografiaEs: { tema: string; texto: string }[] = [
   {
     tema: 'Publicidad',
     texto:
@@ -20,6 +20,27 @@ export const biografia: { tema: string; texto: string }[] = [
       'Formado en **música clásica** con el violín y en **jazz** con la guitarra, ha pasado por multitud de estilos e instrumentos y ha dado conciertos por toda **España**, **Francia**, **Inglaterra**, **Italia** o **Israel**, entre otros países.',
   },
 ];
+
+const biografiaEn: { tema: string; texto: string }[] = [
+  {
+    tema: 'Advertising',
+    texto:
+      'In advertising he has created the sound for spots for **Xiaomi** and **Red Bull**. His sound design for **The Revelation of the Andalusian Crush** made the {verde:shortlist at Festival El Sol 2026}, in the Sound Design category.',
+  },
+  {
+    tema: 'Video games',
+    texto:
+      'Sound director at **Shaman Garage** (Netherlands), he has composed soundtracks for several projects, including **Data Garden**, nominated for {morado:Best Debut Game at the Dutch Game Awards 2024}, and has taken his work to festivals such as **A MAZE** (Germany), **Overkill** (Netherlands), **Playtopia** (South Africa) and **Now Play This** (England).',
+  },
+  {
+    tema: 'Stage',
+    texto:
+      'Trained in **classical music** on the violin and in **jazz** on the guitar, he has played across many styles and instruments and given concerts in **Spain**, **France**, **England**, **Italy** and **Israel**, among other countries.',
+  },
+];
+
+/** La biografía en el idioma de la página. */
+export const biografia = (lang: 'es' | 'en') => (lang === 'en' ? biografiaEn : biografiaEs);
 
 export type Tono = 'blanco' | 'verde' | 'morado' | undefined;
 

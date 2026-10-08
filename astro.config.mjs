@@ -6,8 +6,8 @@ import sitemap from '@astrojs/sitemap';
  * `site` debe apuntar a la URL final publicada: de ahí salen las URLs
  * canónicas y el sitemap.
  *
- * Solo en español por ahora. La versión en inglés vendrá más adelante; para
- * entonces se vuelve a añadir aquí el bloque `i18n`.
+ * Dos idiomas: español en la raíz (/) e inglés en /en. Los componentes
+ * eligen sus textos con Astro.currentLocale (ver src/i18n/textos.ts).
  *
  * GitHub Pages:
  *  - repo llamado "pakoportalo.github.io" o dominio propio -> deja `base` comentado.
@@ -22,5 +22,15 @@ export default defineConfig({
   // en `astro dev`, nunca en el sitio publicado, pero mejor quitarla.
   devToolbar: { enabled: false },
 
-  integrations: [sitemap()],
+  i18n: {
+    defaultLocale: 'es',
+    locales: ['es', 'en'],
+    routing: { prefixDefaultLocale: false },
+  },
+
+  integrations: [
+    sitemap({
+      i18n: { defaultLocale: 'es', locales: { es: 'es-ES', en: 'en-GB' } },
+    }),
+  ],
 });

@@ -11,7 +11,8 @@
  * Opcionalmente, un clip de fondo detrás del texto: en blanco y negro, muy
  * transparente y fundido por los bordes, para dar textura sin competir.
  */
-import { entradilla, servicios } from '../data/encargos';
+import { servicios } from '../data/encargos';
+import { idioma, textos } from '../i18n/textos';
 import ClipVideo from './ClipVideo.astro';
 
 interface Props {
@@ -30,7 +31,8 @@ const { fondo, opacidadFondo = 0.22, id = 'encargos' } = Astro.props;
   llevan su color; el resto, el blanco.
 */
 let contador = 0;
-const lineas = servicios.map((servicio) => {
+const t = textos(Astro.currentLocale);
+const lineas = servicios(idioma(Astro.currentLocale)).map((servicio) => {
   const corte = servicio.texto.length - servicio.acento.length;
   const palabras = [
     ...servicio.texto.slice(0, corte).trim().split(' ').map((palabra) => ({ palabra, acento: false })),
@@ -63,7 +65,7 @@ const lineas = servicios.map((servicio) => {
       )
     }
     <div class="encargos__texto" data-texto>
-    <h2 class="encargos__entradilla" id={`${id}-titulo`}>{entradilla}</h2>
+    <h2 class="encargos__entradilla" id={`${id}-titulo`}>{t.encargos.entradilla}</h2>
     {
       lineas.map((linea) => (
         <p class={`encargos__linea encargos__linea--${linea.color}`} style={`--inicio: ${linea.inicio}`}>
