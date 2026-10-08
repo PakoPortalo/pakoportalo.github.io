@@ -257,8 +257,8 @@ const lang = idioma(Astro.currentLocale);
     width: 200vw;
     translate: calc(var(--progreso) * -100%) 0;
     background:
-      repeating-linear-gradient(90deg, rgb(255 255 255 / 0.4) 0 1px, transparent 1px 80px) 0 100% / 100% 14px no-repeat,
-      repeating-linear-gradient(90deg, rgb(255 255 255 / 0.18) 0 1px, transparent 1px 16px) 0 100% / 100% 7px no-repeat;
+      repeating-linear-gradient(90deg, rgb(255 255 255 / 0.4) 0 1px, transparent 1px var(--mayor, 80px)) 0 100% / 100% 14px no-repeat,
+      repeating-linear-gradient(90deg, rgb(255 255 255 / 0.18) 0 1px, transparent 1px var(--menor, 16px)) 0 100% / 100% 7px no-repeat;
   }
 
   .tl__clip {
@@ -274,21 +274,6 @@ const lang = idioma(Astro.currentLocale);
 
   .tl__clip[data-activo] {
     color: #f4f1ec;
-  }
-
-  /*
-    Cada obra lleva su raya larga justo debajo, como una marca de montaje.
-    Las rayas largas de la regla van cada 80 px y las obras caen donde
-    caen, así que solo la primera coincidía con una.
-  */
-  .tl__clip::after {
-    content: '';
-    position: absolute;
-    inset-block-start: 32px;
-    inset-inline-start: 50%;
-    width: 1px;
-    height: 14px;
-    background: rgb(255 255 255 / 0.4);
   }
 
   .tl__cabezal {
@@ -410,7 +395,23 @@ const lang = idioma(Astro.currentLocale);
     const tabletVertical = window.matchMedia('(min-width: 601px) and (max-width: 1100px) and (orientation: portrait)');
     let sobrante = 0;
     let alto = window.innerHeight;
+    /*
+      Las rayas de la regla, a la medida de las obras: la distancia entre
+      dos obras se parte en un número entero de rayas largas (de unos
+      80 px), y cada una en cinco cortas. Así cada obra cae sobre una raya
+      larga y todas guardan la misma distancia.
+    */
+    const regla = seccion.querySelector<HTMLElement>('.tl__regla');
+    const medirRegla = () => {
+      if (!regla || total < 2) return;
+      const tramo = regla.offsetWidth / (total - 1);
+      const mayor = tramo / Math.max(1, Math.round(tramo / 80));
+      regla.style.setProperty('--mayor', `${mayor.toFixed(3)}px`);
+      regla.style.setProperty('--menor', `${(mayor / 5).toFixed(3)}px`);
+    };
+
     const medir = () => {
+      medirRegla();
       // El ancho visible, sin la barra de desplazamiento (innerWidth la incluye).
       sobrante = Math.max(0, pista.scrollWidth - document.documentElement.clientWidth);
       alto = fijo.offsetHeight || window.innerHeight;
