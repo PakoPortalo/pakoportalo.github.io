@@ -603,8 +603,12 @@ export async function createLiquidHero(
     // --- El ancho del título manda sobre todo lo demás ---
     // En pantalla estrecha el título tiene que ocupar mucha más proporción
     // del ancho o se queda en una nota a pie de página.
+    // En una tablet en vertical (sin llegar a móvil) la pantalla es alta y
+    // el título a tamaño de ordenador se quedaba pequeño abajo, con media
+    // pantalla vacía encima: crece hasta casi el ancho.
+    const retrato = compact <= 0.5 && height > width * 1.15;
     let bigSize =
-      Math.min(Math.max(width * (0.082 + compact * 0.06), 30), 132) * titleFont.sizeScale;
+      Math.min(Math.max(width * (0.082 + compact * 0.06) * (retrato ? 1.45 : 1), 30), 132) * titleFont.sizeScale;
 
     // Y se encaja: se mide a ese cuerpo y se reduce hasta que cabe justo
     // entre los márgenes. Recortarlo con un tope de ancho, como antes,

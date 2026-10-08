@@ -313,9 +313,10 @@ const lang = idioma(Astro.currentLocale);
     }
   }
 
-  /* En el móvil, en su lugar va la lista (ProyectosLista). Oculto, sus
+  /* En el móvil y la tablet en vertical, en su lugar va la lista
+     (ProyectosLista). Oculto, sus
      vídeos ni se cargan: el observador de clips no los ve. */
-  @media (max-width: 600px) {
+  @media (max-width: 600px), (max-width: 1100px) and (orientation: portrait) {
     .recorrido {
       display: none;
     }
