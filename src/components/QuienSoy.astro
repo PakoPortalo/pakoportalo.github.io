@@ -616,7 +616,7 @@ const temas = biografia(idioma(Astro.currentLocale)).map((b, k) => ({
 
     .sobre__foto {
       justify-self: center;
-      width: min(62vw, 46svh);
+      width: min(50vw, 36svh);
       max-width: none;
     }
   }
@@ -661,6 +661,19 @@ const temas = biografia(idioma(Astro.currentLocale)).map((b, k) => ({
 
     .sobre__panel {
       margin-inline: auto;
+      font-size: 19px;
+    }
+
+    .sobre__nombre {
+      font-size: 64px;
+    }
+
+    .sobre__rol {
+      font-size: 20px;
+    }
+
+    .sobre__tema {
+      font-size: 40px;
     }
   }
 </style>

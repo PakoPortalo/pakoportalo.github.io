@@ -348,6 +348,8 @@ const t = textos(Astro.currentLocale);
    */
   function montarSalida(hero: LiquidHandle) {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    // En la tablet en vertical, sin alejamiento: se veía a tirones.
+    if (window.matchMedia('(min-width: 601px) and (max-width: 1100px) and (orientation: portrait)').matches) return;
 
     let pedido = false;
 
