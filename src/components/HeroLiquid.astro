@@ -386,12 +386,18 @@ const t = textos(Astro.currentLocale);
     // ?water=cuentas suelta cada gota por su cuenta al inclinar el móvil.
     const water = params.get('water') === 'cuentas' ? 'cuentas' : 'masa';
 
+    // ?solo-titulo deja solo el nombre y "Sound & Music." (sin etiquetas ni
+    // párrafo ni marcas). Es para sacar la imagen de compartir.
+    const soloTitulo = params.has('solo-titulo');
+    const copia = readCopy();
+    if (soloTitulo) Object.assign(copia, { eyebrowLeft: '', eyebrowRight: '', paragraph: '' });
+
     createLiquidHero(canvas, {
-      copy: readCopy(),
+      copy: copia,
       fonts: HERO_FONTS,
       reducedMotion,
       plain,
-      marks,
+      marks: soloTitulo ? 0 : marks,
       water,
     })
       .then((hero) => {

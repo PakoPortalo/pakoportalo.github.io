@@ -724,6 +724,9 @@ export async function createLiquidHero(
 
     let cursorX = margin;
 
+    // Sin etiquetas (la imagen de compartir), sin fila.
+    const conFila = Boolean(copy.eyebrowLeft || copy.eyebrowRight);
+    if (conFila) {
     neonDot(cursorX + dotRadius, rowY, dotRadius, NEON_GREEN);
     cursorX += dotSpan;
 
@@ -740,6 +743,7 @@ export async function createLiquidHero(
 
     textContext.fillStyle = 'rgba(255, 255, 255, 0.6)';
     textContext.fillText(copy.eyebrowRight, cursorX, eyebrowBaseline);
+    }
 
     // --- Marcas gráficas, en el aire que deja libre el texto ---
     // Van en el canvas y no en HTML porque son decoración: si el agua no las
