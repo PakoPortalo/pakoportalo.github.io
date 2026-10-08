@@ -6,8 +6,10 @@ interface Props {
 }
 
 const { copy } = Astro.props;
-import { textos } from '../i18n/textos';
+import { idioma, textos } from '../i18n/textos';
 const t = textos(Astro.currentLocale);
+const lang = idioma(Astro.currentLocale);
+const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
 ---
 
 {/*
@@ -52,6 +54,45 @@ const t = textos(Astro.currentLocale);
     se va con el scroll y la tapa el módulo siguiente, en vez de quedarse
     flotando encima de todo.
   */}
+  {/*
+    El cambio de idioma: dos banderitas arriba a la derecha, apagadas; la
+    del idioma actual, con su color y un aro fino. Al elegir, se recuerda
+    (lo guarda el script del pie, que atiende a todos los [data-idioma]).
+  */}
+  <nav class="hero__idiomas" aria-label="Idioma / Language">
+    <a
+      class="hero__bandera"
+      href={base}
+      hreflang="es"
+      lang="es"
+      aria-label="Español"
+      aria-current={lang === 'es' ? 'page' : undefined}
+      data-idioma="es"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect width="24" height="24" fill="#c60b1e" />
+        <rect y="6" width="24" height="12" fill="#ffc400" />
+      </svg>
+    </a>
+    <a
+      class="hero__bandera"
+      href={`${base}en/`}
+      hreflang="en"
+      lang="en"
+      aria-label="English"
+      aria-current={lang === 'en' ? 'page' : undefined}
+      data-idioma="en"
+    >
+      <svg viewBox="0 0 60 60" aria-hidden="true">
+        <rect width="60" height="60" fill="#012169" />
+        <path d="M0 0l60 60M60 0L0 60" stroke="#fff" stroke-width="12" />
+        <path d="M0 0l60 60M60 0L0 60" stroke="#c8102e" stroke-width="4" />
+        <path d="M30 0v60M0 30h60" stroke="#fff" stroke-width="20" />
+        <path d="M30 0v60M0 30h60" stroke="#c8102e" stroke-width="12" />
+      </svg>
+    </a>
+  </nav>
+
   <span class="hero__bajar" aria-hidden="true">
     <svg viewBox="0 0 24 24" width="22" height="22">
       <path d="M5 9l7 7 7-7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
@@ -188,6 +229,48 @@ const t = textos(Astro.currentLocale);
     color: rgb(255 255 255 / 0.85);
   }
 
+
+  .hero__idiomas {
+    position: absolute;
+    z-index: 1;
+    inset-block-start: clamp(18px, 3.4svh, 36px);
+    inset-inline-end: var(--gutter);
+    display: flex;
+    gap: 10px;
+  }
+
+  .hero__bandera {
+    display: block;
+    width: 18px;
+    height: 18px;
+    overflow: hidden;
+    border-radius: 50%;
+    opacity: 0.35;
+    filter: grayscale(0.7);
+    transition:
+      opacity 250ms ease,
+      filter 250ms ease,
+      box-shadow 250ms ease;
+  }
+
+  .hero__bandera svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .hero__bandera[aria-current='page'] {
+    opacity: 0.9;
+    filter: none;
+    box-shadow: 0 0 0 1.5px #050505, 0 0 0 2.5px rgb(255 255 255 / 0.45);
+  }
+
+  .hero__bandera:hover,
+  .hero__bandera:focus-visible {
+    opacity: 1;
+    filter: none;
+    outline: none;
+  }
 
   .hero__bajar {
     position: absolute;
