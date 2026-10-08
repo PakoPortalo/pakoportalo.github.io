@@ -388,9 +388,12 @@ const t = textos(Astro.currentLocale);
 
     // ?solo-titulo deja solo el nombre y "Sound & Music." (sin etiquetas ni
     // párrafo ni marcas). Es para sacar la imagen de compartir.
-    const soloTitulo = params.has('solo-titulo');
+    const soloTitulo = params.has('solo-titulo') || params.has('sin-texto');
     const copia = readCopy();
     if (soloTitulo) Object.assign(copia, { eyebrowLeft: '', eyebrowRight: '', paragraph: '' });
+    // ?sin-texto: solo el humo y el líquido, sin nada escrito (para componer
+    // encima la imagen de compartir).
+    if (params.has('sin-texto')) Object.assign(copia, { eyebrowLeft: '', eyebrowRight: '', paragraph: '', title: '', subtitle: '' });
 
     createLiquidHero(canvas, {
       copy: copia,

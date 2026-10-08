@@ -633,7 +633,7 @@ export async function createLiquidHero(
       textContext.font = `${titleFont.titleWeight} ${bigSize}px ${titleStack}`;
       textContext.letterSpacing = `${bigSize * titleFont.tracking}px`;
     }
-    if (soloTitulo) {
+    if (soloTitulo && copy.title) {
       // El bloque, a lo ancho de la mitad central de la imagen.
       const subStack = `${subtitleFont.family}, ui-sans-serif, system-ui, sans-serif`;
       const medir = (size: number) => {
