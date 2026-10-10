@@ -645,7 +645,7 @@ export async function createLiquidHero(
         textContext.letterSpacing = `${sub * subtitleFont.tracking}px`;
         return Math.max(a, textContext.measureText(copy.subtitle).width);
       };
-      bigSize *= (width * 0.56) / medir(bigSize);
+      bigSize *= (width * (width > height * 1.2 ? 0.56 : 0.78)) / medir(bigSize);
       const ancho = medir(bigSize);
       margin = (width - ancho) / 2;
       available = ancho + 2;
