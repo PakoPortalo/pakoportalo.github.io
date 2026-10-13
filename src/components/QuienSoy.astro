@@ -757,7 +757,11 @@ const temas = biografia(idioma(Astro.currentLocale)).map((b, k) => ({
     const desenfoque = seccion.querySelector<SVGElement>('[data-desenfoque]')!;
     /** Cuánto se ondula al principio, en píxeles, y cuánto tarda en calmarse. */
     const MAXIMO = 160;
-    const DURA = 3000;
+    // En la tablet en horizontal la onda va mucho más rápida.
+    const tabletHorizontal = window.matchMedia(
+      '(min-width: 900px) and (max-width: 1400px) and (orientation: landscape) and (pointer: coarse)',
+    ).matches;
+    const DURA = tabletHorizontal ? 900 : 3000;
     let ondaBucle = 0;
     let listo = 0;
 

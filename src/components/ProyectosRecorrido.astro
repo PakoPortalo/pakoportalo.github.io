@@ -380,6 +380,21 @@ const lang = idioma(Astro.currentLocale);
       inset-inline: 0;
     }
   }
+
+  /* En la tablet en horizontal, la escena centrada en la pantalla: el
+     rótulo flota arriba y no empuja nada. */
+  @media (min-width: 900px) and (max-width: 1400px) and (orientation: landscape) and (pointer: coarse) {
+    .recorrido__fijo {
+      grid-template-rows: minmax(0, 1fr);
+      padding-block-end: 0;
+    }
+
+    .recorrido__rotulo {
+      position: absolute;
+      inset-block-start: 0;
+      inset-inline: 0;
+    }
+  }
 </style>
 
 <script>

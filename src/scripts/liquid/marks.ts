@@ -29,6 +29,8 @@ export interface MarkLayout {
   compact: number;
   /** El bloque de texto va arriba (móvil) en vez de abajo. */
   textoArriba?: boolean;
+  /** Tablet en horizontal: el texto arriba, con sitio a su derecha. */
+  tabletHorizontal?: boolean;
 }
 
 const WHITE = (alpha: number) => `rgba(255, 255, 255, ${alpha})`;
@@ -570,9 +572,16 @@ export const MARK_PRESETS: MarkPreset[] = [
   },
   {
     name: '5 · Semitono',
-    draw({ ctx, width, height, margin, blockBottom, eyebrowBaseline, bigSize, compact, textoArriba }) {
+    draw({ ctx, width, height, margin, blockBottom, eyebrowBaseline, bigSize, compact, textoArriba, tabletHorizontal }) {
       const cell = Math.max(width * 0.0075, 5.5);
       const rows = 8;
+      // En la tablet en horizontal, sin rejilla: solo el disco, abajo a la
+      // derecha, donde va en el ordenador.
+      if (textoArriba && tabletHorizontal) {
+        const rings = Math.min(Math.max(width * 0.032, 26), 52);
+        concentricRings(ctx, width - margin - rings, height - margin - 18 - rings, rings, 11);
+        return;
+      }
       // Con el texto arriba (móvil), la rejilla baja a la esquina de abajo a
       // la derecha, en espejo: densa en la esquina y apagándose hacia dentro.
       // Por encima de la flecha de bajar.

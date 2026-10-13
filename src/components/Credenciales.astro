@@ -473,6 +473,13 @@ const t = textos(Astro.currentLocale);
       padding-block: 120px 150px;
     }
   }
+
+  /* En la tablet en horizontal, más alto: se quedaba en una tira. */
+  @media (min-width: 900px) and (max-width: 1400px) and (orientation: landscape) and (pointer: coarse) {
+    .creds {
+      padding-block: 150px 180px;
+    }
+  }
 </style>
 
 <script>

@@ -670,7 +670,10 @@ export async function createLiquidHero(
     // En móvil el bloque va arriba (ver más abajo) y con más aire.
     // También en la tablet en vertical: el texto arriba, como en el móvil.
     const tabletVertical = width > 600 && width <= 1100 && height > width;
-    const arriba = compact > 0.5 || tabletVertical;
+    // Y en la tablet en horizontal: abajo lo tapaba la barra del navegador.
+    const tabletHorizontal =
+      width >= 900 && width <= 1400 && width > height && window.matchMedia('(pointer: coarse)').matches;
+    const arriba = compact > 0.5 || tabletVertical || tabletHorizontal;
     const paraLeading = paraSize * (arriba ? 1.62 : 1.5);
 
     /*
@@ -693,7 +696,8 @@ export async function createLiquidHero(
       paraTop = subtitleBaseline + bigSize * 0.3;
       blockBottom = paraTop;
     } else if (arriba) {
-      titleBaseline = Math.max(margin * 2, height * 0.09) + bigSize * 0.8;
+      // En la tablet en horizontal, un poco más pegado arriba.
+      titleBaseline = (tabletHorizontal ? Math.max(margin * 1.1, height * 0.06) : Math.max(margin * 2, height * 0.09)) + bigSize * 0.8;
       subtitleBaseline = titleBaseline + bigSize * 1.14;
       eyebrowBaseline = subtitleBaseline + bigSize * 0.62 + eyebrowSize;
       paraTop = eyebrowBaseline + eyebrowSize * 2.6;
@@ -794,6 +798,7 @@ export async function createLiquidHero(
       blockBottom,
       compact,
       textoArriba: arriba,
+      tabletHorizontal,
     });
 
     // --- Línea grande ---
