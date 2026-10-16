@@ -14,14 +14,14 @@
  */
 import { textos } from '../i18n/textos';
 
-const correo = 'pakoportalo@gmail.com';
+const correo = 'hello@pakoportalo.com';
 const instagram = 'pakoportalo';
 const telefono = '+34 636 25 06 34';
 const base = import.meta.env.BASE_URL.replace(/\/*$/, '/');
 const t = textos(Astro.currentLocale);
 ---
 
-<dialog class="tarjeta" data-tarjeta-dialogo aria-labelledby="tarjeta-nombre">
+<dialog class="tarjeta" data-tarjeta-dialogo aria-labelledby="tarjeta-nombre" tabindex="-1">
   <div class="tarjeta__escena" data-escena>
     <div class="tarjeta__giro" data-giro>
       <section class="tarjeta__cara tarjeta__cara--frente" style={`--grano: url('${base}tarjeta/grano.webp')`}>
@@ -402,6 +402,10 @@ const t = textos(Astro.currentLocale);
       color 250ms ease;
   }
 
+  .tarjeta:focus-visible {
+    outline: none;
+  }
+
   .tarjeta__boton:hover,
   .tarjeta__boton:focus-visible {
     opacity: 1;
@@ -643,7 +647,12 @@ const t = textos(Astro.currentLocale);
       vecesPunto += 1;
     };
     const punto = { x: 50, y: 50, destinoX: 50, destinoY: 50, dentro: false };
-    frente.addEventListener('pointermove', (evento) => {
+    // Sin cursor (móvil, tableta) el punto no tiene a quién seguir: se pasea
+    // solo por la tarjeta, muy despacio.
+    const sinCursor = window.matchMedia('(hover: none)').matches;
+    let inicioPunto = 0;
+    if (sinCursor) frente.setAttribute('data-cursor', '');
+    else frente.addEventListener('pointermove', (evento) => {
       const r = frente.getBoundingClientRect();
       punto.destinoX = ((evento.clientX - r.left) / r.width) * 100;
       punto.destinoY = ((evento.clientY - r.top) / r.height) * 100;
@@ -655,10 +664,11 @@ const t = textos(Astro.currentLocale);
         frente.setAttribute('data-cursor', '');
       }
     });
-    frente.addEventListener('pointerleave', () => {
-      punto.dentro = false;
-      frente.removeAttribute('data-cursor');
-    });
+    if (!sinCursor)
+      frente.addEventListener('pointerleave', () => {
+        punto.dentro = false;
+        frente.removeAttribute('data-cursor');
+      });
 
     let destinoX = 0;
     let destinoY = 0;
@@ -671,6 +681,8 @@ const t = textos(Astro.currentLocale);
     let bucle = 0;
     let anterior = 0;
     let origen: HTMLElement | null = null;
+    /** Si se abrió con el teclado; con el dedo o el ratón no se le devuelve el foco al cerrar. */
+    let porTeclado = false;
 
     /** De espaldas pasado el canto: con el ángulo entre 90° y 270°. */
     const mostrarCara = (angulo: number) => {
@@ -698,6 +710,13 @@ const t = textos(Astro.currentLocale);
       mostrarCara(vuelta + x * INCLINA);
       giro.style.setProperty('--lx', `${(50 + x * 45).toFixed(1)}%`);
       giro.style.setProperty('--ly', `${(50 + y * 45).toFixed(1)}%`);
+      if (sinCursor) {
+        // Dos periodos largos y sin múltiplo común: el recorrido no se repite pronto.
+        // Senos que valen 0 al abrir: arranca en el centro.
+        const t = ahora - inicioPunto;
+        punto.destinoX = 50 + Math.sin(t / 3600) * 32 + Math.sin(t / 1700) * 6;
+        punto.destinoY = 50 + Math.sin(t / 5000) * 30 - Math.sin(t / 2200) * 6;
+      }
       punto.x += (punto.destinoX - punto.x) * (1 - Math.pow(0.94, dt));
       punto.y += (punto.destinoY - punto.y) * (1 - Math.pow(0.94, dt));
       frente.style.setProperty('--px', `${punto.x.toFixed(2)}%`);
@@ -712,7 +731,12 @@ const t = textos(Astro.currentLocale);
       vueltaDestino = 0;
       velocidadVuelta = 0;
       dialogo.showModal();
+      // El diálogo enfoca solo su primer botón, y en el móvil le salía el
+      // marco azul del teclado. Con el dedo o el ratón, el foco va a la tarjeta.
+      if (!porTeclado) dialogo.focus();
       alternarPunto();
+      inicioPunto = performance.now();
+      punto.x = punto.y = punto.destinoX = punto.destinoY = 50;
       clearTimeout(glitch);
       if (!quieto) programarGlitch(0, 1500);
       requestAnimationFrame(() => dialogo.setAttribute('data-abierta', ''));
@@ -755,7 +779,7 @@ const t = textos(Astro.currentLocale);
       clearTimeout(glitch);
       window.setTimeout(() => {
         dialogo.close();
-        origen?.focus({ preventScroll: true });
+        if (porTeclado) origen?.focus({ preventScroll: true });
       }, 300);
     };
 
@@ -765,6 +789,8 @@ const t = textos(Astro.currentLocale);
       const enlace = (evento.target as Element).closest<HTMLElement>('[data-tarjeta]');
       if (!enlace) return;
       evento.preventDefault();
+      // Un clic con el teclado (Intro) llega sin pulsaciones: detail 0.
+      porTeclado = evento.detail === 0;
       abrir(enlace);
     });
 

@@ -433,6 +433,10 @@ const orbitas = conOrbitas
     gap: 32px;
     color: inherit;
     text-decoration: none;
+    /* En el móvil, sin el recuadro gris del toque ni selección al mantener. */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   /* Las dos frases ocupan la misma celda: una se va por arriba mientras la
